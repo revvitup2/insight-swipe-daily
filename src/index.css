@@ -47,21 +47,27 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
     touch-action: pan-y;
+    overscroll-behavior: none;
   }
   
   .insight-card {
     height: calc(100vh - 4rem);
     touch-action: pan-y;
+    position: absolute;
+    width: 100%;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: transform;
   }
   
   .insight-image {
     height: 35vh;
     object-fit: cover;
     width: 100%;
+    position: relative;
   }
   
   .industry-tag {
-    @apply text-xs py-1 px-2 rounded-full bg-muted text-muted-foreground font-medium;
+    @apply text-xs py-1 px-2 rounded-full font-medium absolute top-4 left-4 z-10 bg-black/30 text-white backdrop-blur-sm;
   }
   
   .influencer-avatar {
@@ -109,5 +115,13 @@
   
   .nav-item.active {
     @apply text-primary;
+  }
+
+  .slide-up {
+    transform: translateY(-100vh);
+  }
+  
+  .slide-down {
+    transform: translateY(100vh);
   }
 }

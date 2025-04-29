@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import InsightCard, { Insight } from "@/components/InsightCard";
@@ -125,7 +124,11 @@ const Index = () => {
   const [showingInfluencer, setShowingInfluencer] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
   const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
+  const [touchMove, setTouchMove] = useState(0);
+  const [showNavbar, setShowNavbar] = useState(true);
+  const [insightPositions, setInsightPositions] = useState<string[]>([]);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const swipeContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
   
@@ -138,12 +141,20 @@ const Index = () => {
     }
   }, [showingInfluencer, insights]);
 
+  useEffect(() => {
+    // Initialize positions
+    const positions = insights.map((_, i) => 
+      i === currentInsightIndex ? "" : (i < currentInsightIndex ? "slide-up" : "slide-down")
+    );
+    setInsightPositions(positions);
+  }, [insights, currentInsightIndex]);
+
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
     localStorage.setItem("onboarded", "true");
     setOnboarded(true);
     
     toast({
-      title: "Welcome to InfluenDoze!",
+      title: "Welcome to VibeOn!",
       description: "We've personalized your feed based on your interests.",
     });
   };
@@ -211,33 +222,62 @@ const Index = () => {
   };
   
   const navigateToNextInsight = () => {
-    if (currentInsightIndex < insights.length - 1) {
-      setCurrentInsightIndex(currentInsightIndex + 1);
+    if (currentInsightIndex < insights.length - 1 && !isAnimating) {
+      setIsAnimating(true);
+      
+      // Create a new positions array
+      const newPositions = [...insightPositions];
+      newPositions[currentInsightIndex] = "slide-up";
+      setInsightPositions(newPositions);
+      
+      setTimeout(() => {
+        setCurrentInsightIndex(currentInsightIndex + 1);
+        setIsAnimating(false);
+      }, 300);
     }
   };
   
   const navigateToPreviousInsight = () => {
-    if (currentInsightIndex > 0) {
-      setCurrentInsightIndex(currentInsightIndex - 1);
+    if (currentInsightIndex > 0 && !isAnimating) {
+      setIsAnimating(true);
+      
+      // Create a new positions array
+      const newPositions = [...insightPositions];
+      newPositions[currentInsightIndex] = "slide-down";
+      setInsightPositions(newPositions);
+      
+      setTimeout(() => {
+        setCurrentInsightIndex(currentInsightIndex - 1);
+        setIsAnimating(false);
+      }, 300);
     }
   };
   
-  // Handle touch events for swiping
+  // Handle touch events for swiping and navbar toggling
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientY);
+    setTouchMove(e.targetTouches[0].clientY);
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientY);
+    setTouchMove(e.targetTouches[0].clientY);
   };
   
   const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 100) {
-      // Swipe up - next insight
-      navigateToNextInsight();
-    } else if (touchEnd - touchStart > 100) {
-      // Swipe down - previous insight
-      navigateToPreviousInsight();
+    const swipeDistance = touchStart - touchMove;
+    
+    // Determine if the user is swiping vertically
+    if (Math.abs(swipeDistance) > 100) {
+      if (swipeDistance > 0) {
+        // Swipe up - next insight
+        navigateToNextInsight();
+      } else {
+        // Swipe down - previous insight
+        navigateToPreviousInsight();
+      }
+    } else {
+      // Short touch/tap - toggle navbar
+      setShowNavbar(!showNavbar);
     }
   };
   
@@ -253,17 +293,21 @@ const Index = () => {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onClick={() => setShowNavbar(!showNavbar)}
+          ref={swipeContainerRef}
         >
-          {insights.length > 0 && currentInsightIndex < insights.length && (
+          {insights.map((insight, index) => (
             <InsightCard 
-              insight={insights[currentInsightIndex]}
+              key={insight.id}
+              insight={insight}
               onSave={handleSaveInsight}
               onLike={handleLikeInsight}
               onShare={handleShareInsight}
               onFollowInfluencer={handleFollowInfluencer}
               onInfluencerClick={handleInfluencerClick}
+              position={insightPositions[index] || ""}
             />
-          )}
+          ))}
         </div>
       ) : (
         selectedInfluencer && (
@@ -276,6 +320,7 @@ const Index = () => {
         )
       )}
       
+      {/* Navigation with dynamic visibility */}
       <Navigation />
     </div>
   );

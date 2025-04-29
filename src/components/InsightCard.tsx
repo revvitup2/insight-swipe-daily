@@ -30,6 +30,7 @@ interface InsightCardProps {
   onShare: (id: string) => void;
   onFollowInfluencer: (influencerId: string) => void;
   onInfluencerClick: (influencerId: string) => void;
+  position: string;
 }
 
 export const InsightCard = ({
@@ -39,6 +40,7 @@ export const InsightCard = ({
   onShare,
   onFollowInfluencer,
   onInfluencerClick,
+  position,
 }: InsightCardProps) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -86,8 +88,8 @@ export const InsightCard = ({
   return (
     <div 
       className={cn(
-        "insight-card w-full p-4 flex flex-col overflow-hidden transition-opacity",
-        isVisible ? "opacity-100" : "opacity-0"
+        "insight-card w-full p-4 flex flex-col overflow-hidden",
+        position
       )}
     >
       <div className="flex-1 flex flex-col">
@@ -98,6 +100,7 @@ export const InsightCard = ({
             alt={insight.title}
             className="insight-image rounded-xl"
           />
+          <span className="industry-tag">{insight.industry}</span>
         </div>
         
         {/* Title Section */}
@@ -108,76 +111,74 @@ export const InsightCard = ({
         
         {/* Metadata */}
         <div className="flex items-center justify-between mb-6">
-          <div 
-            className="flex items-center cursor-pointer" 
-            onClick={handleInfluencerClick}
-          >
-            <img
-              src={insight.influencer.profileImage}
-              alt={insight.influencer.name}
-              className="influencer-avatar mr-2"
-            />
-            <span className="text-sm font-medium">{insight.influencer.name}</span>
+          <div className="flex items-center">
+            <div 
+              className="flex items-center cursor-pointer" 
+              onClick={handleInfluencerClick}
+            >
+              <img
+                src={insight.influencer.profileImage}
+                alt={insight.influencer.name}
+                className="influencer-avatar mr-2"
+              />
+              <span className="text-sm font-medium mr-2">{insight.influencer.name}</span>
+            </div>
+            
+            {!insight.influencer.isFollowed ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleFollowInfluencer}
+                className="text-xs h-7 px-2"
+              >
+                Follow
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleFollowInfluencer}
+                className="text-xs h-7 px-2 bg-muted/50"
+              >
+                Following
+              </Button>
+            )}
           </div>
-          
-          <span className="industry-tag">{insight.industry}</span>
         </div>
         
         {/* Interaction Buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button 
-              className="interaction-btn" 
-              onClick={handleLike}
-              aria-label="Like"
-            >
-              <Heart 
-                className={cn("w-5 h-5", 
-                  insight.isLiked ? "fill-red-500 text-red-500" : ""
-                )} 
-              />
-            </button>
-            
-            <button 
-              className="interaction-btn" 
-              onClick={handleSave}
-              aria-label="Save"
-            >
-              <Save 
-                className={cn("w-5 h-5", 
-                  insight.isSaved ? "fill-primary text-primary" : ""
-                )} 
-              />
-            </button>
-            
-            <button 
-              className="interaction-btn" 
-              onClick={handleShare}
-              aria-label="Share"
-            >
-              <Share className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex items-center space-x-4">
+          <button 
+            className="interaction-btn" 
+            onClick={handleLike}
+            aria-label="Like"
+          >
+            <Heart 
+              className={cn("w-5 h-5", 
+                insight.isLiked ? "fill-red-500 text-red-500" : ""
+              )} 
+            />
+          </button>
           
-          {!insight.influencer.isFollowed ? (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleFollowInfluencer}
-              className="text-xs"
-            >
-              Follow
-            </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleFollowInfluencer}
-              className="text-xs bg-muted/50"
-            >
-              Following
-            </Button>
-          )}
+          <button 
+            className="interaction-btn" 
+            onClick={handleSave}
+            aria-label="Save"
+          >
+            <Save 
+              className={cn("w-5 h-5", 
+                insight.isSaved ? "fill-primary text-primary" : ""
+              )} 
+            />
+          </button>
+          
+          <button 
+            className="interaction-btn" 
+            onClick={handleShare}
+            aria-label="Share"
+          >
+            <Share className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

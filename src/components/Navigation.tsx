@@ -2,10 +2,12 @@
 import { Home, Bookmark, Search, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 export const Navigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [isVisible, setIsVisible] = useState(true);
   
   const navItems = [
     {
@@ -29,9 +31,19 @@ export const Navigation = () => {
       icon: <User className="w-6 h-6 nav-icon" />,
     },
   ];
+
+  // Reset visibility when route changes
+  useEffect(() => {
+    setIsVisible(true);
+  }, [currentPath]);
   
   return (
-    <div className="bottom-nav">
+    <div 
+      className={cn(
+        "bottom-nav transition-transform duration-300", 
+        !isVisible && "translate-y-full"
+      )}
+    >
       {navItems.map((item) => (
         <Link 
           key={item.path} 
