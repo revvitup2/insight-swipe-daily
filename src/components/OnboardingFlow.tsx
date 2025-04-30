@@ -47,12 +47,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     <div className="min-h-screen flex flex-col p-6">
       {step === 1 && (
         <div className="flex flex-col items-center justify-center flex-grow animate-fade-in">
-          <div className="text-4xl mb-4">InfluenDoze</div>
+          <div className="text-4xl mb-4">VibeOn</div>
           <h1 className="text-2xl font-bold text-center mb-4">
-            Daily insights from top influencers
+            Daily insights from top influencers you ❤️
           </h1>
           <p className="text-center text-muted-foreground mb-8">
-            Get the Top 10 daily concise insights from industry experts across hot sectors.
+            Top 10 insights. Trusted experts. Delivered daily
           </p>
           <Button 
             onClick={() => setStep(2)}
