@@ -5,8 +5,6 @@ import InsightCard, { Insight } from "@/components/InsightCard";
 import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 const mockInsights: Insight[] = [
   {
@@ -22,8 +20,7 @@ const mockInsights: Insight[] = [
       isFollowed: false
     },
     isSaved: false,
-    isLiked: false,
-    sourceUrl: "https://twitter.com/alexchen/status/12345"
+    isLiked: false
   },
   {
     id: "2",
@@ -38,8 +35,7 @@ const mockInsights: Insight[] = [
       isFollowed: true
     },
     isSaved: false,
-    isLiked: false,
-    sourceUrl: "https://linkedin.com/in/sarah-johnson/posts/567890"
+    isLiked: false
   },
   {
     id: "3",
@@ -54,8 +50,7 @@ const mockInsights: Insight[] = [
       isFollowed: false
     },
     isSaved: false,
-    isLiked: false,
-    sourceUrl: "https://medium.com/@michaeltorres/remote-teams-success"
+    isLiked: false
   },
   {
     id: "4",
@@ -70,8 +65,7 @@ const mockInsights: Insight[] = [
       isFollowed: false
     },
     isSaved: false,
-    isLiked: false,
-    sourceUrl: "https://healthcare-journal.com/articles/predictive-ai"
+    isLiked: false
   },
   {
     id: "5",
@@ -86,8 +80,7 @@ const mockInsights: Insight[] = [
       isFollowed: false
     },
     isSaved: false,
-    isLiked: false,
-    sourceUrl: "https://youtube.com/watch?v=web3-explained"
+    isLiked: false
   }
 ];
 
@@ -135,7 +128,6 @@ const Index = () => {
   const [showNavbar, setShowNavbar] = useState(true);
   const [insightPositions, setInsightPositions] = useState<string[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [showEndMessage, setShowEndMessage] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
@@ -155,9 +147,6 @@ const Index = () => {
       i === currentInsightIndex ? "" : (i < currentInsightIndex ? "slide-up" : "slide-down")
     );
     setInsightPositions(positions);
-    
-    // Check if we're at the end of insights
-    setShowEndMessage(currentInsightIndex >= insights.length);
   }, [insights, currentInsightIndex]);
 
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
@@ -245,9 +234,6 @@ const Index = () => {
         setCurrentInsightIndex(currentInsightIndex + 1);
         setIsAnimating(false);
       }, 300);
-    } else if (currentInsightIndex >= insights.length - 1 && !showEndMessage) {
-      // Show end message when there are no more insights
-      setShowEndMessage(true);
     }
   };
   
@@ -263,7 +249,6 @@ const Index = () => {
       setTimeout(() => {
         setCurrentInsightIndex(currentInsightIndex - 1);
         setIsAnimating(false);
-        setShowEndMessage(false);
       }, 300);
     }
   };
@@ -296,28 +281,6 @@ const Index = () => {
     }
   };
   
-  // Handle horizontal swipes
-  const handleHorizontalSwipe = (direction: 'left' | 'right', insightId: string) => {
-    const currentInsight = insights.find(i => i.id === insightId);
-    
-    if (!currentInsight) return;
-    
-    if (direction === 'left') {
-      // Swipe left - go to influencer profile
-      handleInfluencerClick(currentInsight.influencer.id);
-    } else {
-      // Swipe right - go to source URL
-      if (currentInsight.sourceUrl) {
-        window.open(currentInsight.sourceUrl, '_blank');
-      } else {
-        toast({
-          title: "Source unavailable",
-          description: "This insight doesn't have a source URL",
-        });
-      }
-    }
-  };
-  
   if (!onboarded) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
@@ -333,43 +296,18 @@ const Index = () => {
           onClick={() => setShowNavbar(!showNavbar)}
           ref={swipeContainerRef}
         >
-          {showEndMessage ? (
-            <div className="h-full flex flex-col items-center justify-center p-6 animate-fade-in">
-              <Card className="w-full max-w-md mx-auto p-6 text-center">
-                <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold mb-3">🎉 You're all caught up!</h2>
-                  <p className="text-muted-foreground mb-4">
-                    You've gone through all of today's vibes. Come back tomorrow for fresh insights!
-                  </p>
-                  <Button 
-                    onClick={() => {
-                      setCurrentInsightIndex(0);
-                      setShowEndMessage(false);
-                      const positions = insights.map(() => "");
-                      setInsightPositions(positions);
-                    }}
-                    className="mt-4"
-                  >
-                    Start Over
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            insights.map((insight, index) => (
-              <InsightCard 
-                key={insight.id}
-                insight={insight}
-                onSave={handleSaveInsight}
-                onLike={handleLikeInsight}
-                onShare={handleShareInsight}
-                onFollowInfluencer={handleFollowInfluencer}
-                onInfluencerClick={handleInfluencerClick}
-                position={insightPositions[index] || ""}
-                onHorizontalSwipe={handleHorizontalSwipe}
-              />
-            ))
-          )}
+          {insights.map((insight, index) => (
+            <InsightCard 
+              key={insight.id}
+              insight={insight}
+              onSave={handleSaveInsight}
+              onLike={handleLikeInsight}
+              onShare={handleShareInsight}
+              onFollowInfluencer={handleFollowInfluencer}
+              onInfluencerClick={handleInfluencerClick}
+              position={insightPositions[index] || ""}
+            />
+          ))}
         </div>
       ) : (
         selectedInfluencer && (

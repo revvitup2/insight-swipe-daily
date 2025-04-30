@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Heart, Share, Save, ExternalLink } from "lucide-react";
+import { Heart, Share, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ export interface Insight {
   influencer: Influencer;
   isSaved: boolean;
   isLiked: boolean;
-  sourceUrl?: string;
 }
 
 interface InsightCardProps {
@@ -32,7 +31,6 @@ interface InsightCardProps {
   onFollowInfluencer: (influencerId: string) => void;
   onInfluencerClick: (influencerId: string) => void;
   position: string;
-  onHorizontalSwipe?: (direction: 'left' | 'right', insightId: string) => void;
 }
 
 export const InsightCard = ({
@@ -43,10 +41,8 @@ export const InsightCard = ({
   onFollowInfluencer,
   onInfluencerClick,
   position,
-  onHorizontalSwipe,
 }: InsightCardProps) => {
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [touchEndX, setTouchEndX] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -89,35 +85,12 @@ export const InsightCard = ({
     onInfluencerClick(insight.influencer.id);
   };
 
-  // Handle horizontal swipe detection
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    setTouchEndX(e.changedTouches[0].clientX);
-    const swipeDistance = touchStartX - touchEndX;
-    
-    // If horizontal swipe is significant (more than 75px)
-    if (Math.abs(swipeDistance) > 75 && onHorizontalSwipe) {
-      if (swipeDistance > 0) {
-        // Swipe left - go to influencer profile
-        onHorizontalSwipe('left', insight.id);
-      } else {
-        // Swipe right - go to source URL
-        onHorizontalSwipe('right', insight.id);
-      }
-    }
-  };
-
   return (
     <div 
       className={cn(
         "insight-card w-full p-4 flex flex-col overflow-hidden",
         position
       )}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <div className="flex-1 flex flex-col">
         {/* Image Section - Top 30% */}

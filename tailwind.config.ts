@@ -57,7 +57,7 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        vibeon: {
+        influendoze: {
           blue: '#1A365D',
           teal: '#0D9488',
           violet: '#8B5CF6',
