@@ -1,9 +1,10 @@
 
 import { useState } from "react";
-import { Heart, Share, Save } from "lucide-react";
+import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { formatDistanceToNow } from "date-fns";
 
 interface Influencer {
   id: string;
@@ -21,6 +22,11 @@ export interface Insight {
   influencer: Influencer;
   isSaved: boolean;
   isLiked: boolean;
+  keyPoints: string[];
+  sentiment: string;
+  publishedAt: string;
+  source: "youtube" | "twitter" | "linkedin" | "other";
+  sourceUrl: string;
 }
 
 interface InsightCardProps {
@@ -31,7 +37,23 @@ interface InsightCardProps {
   onFollowInfluencer: (influencerId: string) => void;
   onInfluencerClick: (influencerId: string) => void;
   position: string;
+  onSourceClick?: (url: string) => void;
 }
+
+const PlatformIcon = ({ source }: { source: string }) => {
+  const iconProps = { className: "w-4 h-4", strokeWidth: 2 };
+
+  switch (source) {
+    case "youtube":
+      return <Youtube {...iconProps} />;
+    case "twitter":
+      return <Twitter {...iconProps} />;
+    case "linkedin":
+      return <Linkedin {...iconProps} />;
+    default:
+      return null;
+  }
+};
 
 export const InsightCard = ({
   insight,
@@ -41,6 +63,7 @@ export const InsightCard = ({
   onFollowInfluencer,
   onInfluencerClick,
   position,
+  onSourceClick,
 }: InsightCardProps) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -85,6 +108,17 @@ export const InsightCard = ({
     onInfluencerClick(insight.influencer.id);
   };
 
+  const handleSourceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSourceClick && insight.sourceUrl) {
+      onSourceClick(insight.sourceUrl);
+    }
+  };
+
+  const timeAgo = insight.publishedAt 
+    ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: true })
+    : '';
+
   return (
     <div 
       className={cn(
@@ -101,6 +135,15 @@ export const InsightCard = ({
             className="insight-image rounded-xl"
           />
           <span className="industry-tag">{insight.industry}</span>
+          
+          {insight.source && (
+            <div 
+              className="platform-tag"
+              onClick={handleSourceClick}
+            >
+              <PlatformIcon source={insight.source} />
+            </div>
+          )}
         </div>
         
         {/* Title Section */}
@@ -144,6 +187,10 @@ export const InsightCard = ({
               </Button>
             )}
           </div>
+          
+          {timeAgo && (
+            <span className="text-xs text-muted-foreground">{timeAgo}</span>
+          )}
         </div>
         
         {/* Interaction Buttons */}

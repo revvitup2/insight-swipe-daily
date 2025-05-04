@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -27,6 +28,10 @@ interface ApiInsight {
     sentiment: string;
     topics: string[];
   };
+  source?: {
+    platform: "youtube" | "twitter" | "linkedin" | "other";
+    url: string;
+  };
 }
 
 const Index = () => {
@@ -37,11 +42,14 @@ const Index = () => {
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [showingInfluencer, setShowingInfluencer] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchMove, setTouchMove] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchMoveX, setTouchMoveX] = useState(0);
+  const [touchStartY, setTouchStartY] = useState(0);
+  const [touchMoveY, setTouchMoveY] = useState(0);
   const [showNavbar, setShowNavbar] = useState(true);
   const [insightPositions, setInsightPositions] = useState<string[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   
@@ -53,24 +61,38 @@ const Index = () => {
         const response = await fetch('https://influenedoze.weddingmoments.fun/feed');
         const data: ApiInsight[] = await response.json();
         
-        const formattedInsights: Insight[] = data.map((item, index) => ({
-          id: item.video_id,
-          title: item.metadata.title,
-          summary: item.analysis.summary,
-          image: item.metadata.thumbnails.high.url,
-          industry: item.analysis.topics[0] || "General",
-          influencer: {
-            id: item.influencer_id,
-            name: item.metadata.channel_title,
-            profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
-            isFollowed: false
-          },
-          isSaved: false,
-          isLiked: false,
-          keyPoints: item.analysis.key_points,
-          sentiment: item.analysis.sentiment,
-          publishedAt: item.published_at
-        }));
+        const formattedInsights: Insight[] = data.map((item, index) => {
+          // Determine source platform based on available data
+          // In a real app, this would come from the API
+          const sourcePlatform = item.source?.platform || (
+            index % 3 === 0 ? "youtube" : 
+            index % 3 === 1 ? "twitter" : "linkedin"
+          );
+          
+          // Generate source URL (in a real app, this would come from the API)
+          const sourceUrl = item.source?.url || `https://${sourcePlatform}.com/watch?v=${item.video_id}`;
+          
+          return {
+            id: item.video_id,
+            title: item.metadata.title,
+            summary: item.analysis.summary,
+            image: item.metadata.thumbnails.high.url,
+            industry: item.analysis.topics[0] || "General",
+            influencer: {
+              id: item.influencer_id,
+              name: item.metadata.channel_title,
+              profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
+              isFollowed: false
+            },
+            isSaved: false,
+            isLiked: false,
+            keyPoints: item.analysis.key_points,
+            sentiment: item.analysis.sentiment,
+            publishedAt: item.published_at,
+            source: sourcePlatform,
+            sourceUrl: sourceUrl
+          };
+        });
 
         setInsights(formattedInsights);
         setIsLoading(false);
@@ -196,6 +218,11 @@ const Index = () => {
   const handleInsightClick = () => {
     setShowingInfluencer(false);
   };
+
+  const handleSourceClick = (url: string) => {
+    // Open the source URL in a new tab
+    window.open(url, '_blank');
+  };
   
   const navigateToNextInsight = () => {
     if (currentInsightIndex < insights.length - 1 && !isAnimating) {
@@ -226,27 +253,74 @@ const Index = () => {
       }, 300);
     }
   };
+
+  const navigateToInfluencerProfile = () => {
+    if (!isAnimating && insights.length > 0) {
+      setIsAnimating(true);
+      handleInfluencerClick(insights[currentInsightIndex].influencer.id);
+      setIsAnimating(false);
+    }
+  };
+
+  const navigateToSourceUrl = () => {
+    if (!isAnimating && insights.length > 0) {
+      setIsAnimating(true);
+      const insight = insights[currentInsightIndex];
+      if (insight.sourceUrl) {
+        handleSourceClick(insight.sourceUrl);
+      }
+      setIsAnimating(false);
+    }
+  };
   
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientY);
-    setTouchMove(e.targetTouches[0].clientY);
+    setTouchStartY(e.targetTouches[0].clientY);
+    setTouchMoveY(e.targetTouches[0].clientY);
+    setTouchStartX(e.targetTouches[0].clientX);
+    setTouchMoveX(e.targetTouches[0].clientX);
+    setIsHorizontalSwipe(false);
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchMove(e.targetTouches[0].clientY);
+    setTouchMoveY(e.targetTouches[0].clientY);
+    setTouchMoveX(e.targetTouches[0].clientX);
+    
+    // Determine the primary direction of the swipe
+    const verticalDistance = Math.abs(touchMoveY - touchStartY);
+    const horizontalDistance = Math.abs(touchMoveX - touchStartX);
+    
+    // If it's more horizontal than vertical and exceeds threshold
+    if (horizontalDistance > verticalDistance && horizontalDistance > 30) {
+      setIsHorizontalSwipe(true);
+    }
   };
   
   const handleTouchEnd = () => {
-    const swipeDistance = touchStart - touchMove;
+    const verticalSwipeDistance = touchStartY - touchMoveY;
+    const horizontalSwipeDistance = touchStartX - touchMoveX;
     
-    if (Math.abs(swipeDistance) > 100) {
-      if (swipeDistance > 0) {
-        navigateToNextInsight();
-      } else {
-        navigateToPreviousInsight();
+    if (isHorizontalSwipe) {
+      // Process horizontal swipe
+      if (Math.abs(horizontalSwipeDistance) > 100) {
+        if (horizontalSwipeDistance > 0) {
+          // Swiped left - go to influencer profile
+          navigateToInfluencerProfile();
+        } else {
+          // Swiped right - go to source URL
+          navigateToSourceUrl();
+        }
       }
     } else {
-      setShowNavbar(!showNavbar);
+      // Process vertical swipe
+      if (Math.abs(verticalSwipeDistance) > 100) {
+        if (verticalSwipeDistance > 0) {
+          navigateToNextInsight();
+        } else {
+          navigateToPreviousInsight();
+        }
+      } else {
+        setShowNavbar(!showNavbar);
+      }
     }
   };
   
@@ -295,6 +369,7 @@ const Index = () => {
               onShare={handleShareInsight}
               onFollowInfluencer={handleFollowInfluencer}
               onInfluencerClick={handleInfluencerClick}
+              onSourceClick={handleSourceClick}
               position={insightPositions[index] || ""}
             />
           ))}

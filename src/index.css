@@ -70,6 +70,10 @@
     @apply text-xs py-1 px-2 rounded-full font-medium absolute top-4 left-4 z-10 bg-black/30 text-white backdrop-blur-sm;
   }
   
+  .platform-tag {
+    @apply flex items-center justify-center absolute top-4 right-4 z-10 p-1.5 rounded-full cursor-pointer bg-black/30 text-white backdrop-blur-sm;
+  }
+
   .influencer-avatar {
     @apply w-7 h-7 rounded-full object-cover;
     border: 2px solid white;
@@ -123,5 +127,13 @@
   
   .slide-down {
     transform: translateY(100vh);
+  }
+  
+  .slide-left {
+    transform: translateX(-100vw);
+  }
+  
+  .slide-right {
+    transform: translateX(100vw);
   }
 }
