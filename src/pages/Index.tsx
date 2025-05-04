@@ -50,7 +50,7 @@ const Index = () => {
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const response = await fetch('http://15.207.114.84:8000/feed');
+        const response = await fetch('https://influenedoze.weddingmoments.fun/feed');
         const data: ApiInsight[] = await response.json();
         
         const formattedInsights: Insight[] = data.map((item, index) => ({
