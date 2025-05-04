@@ -6,120 +6,34 @@ import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
 
-const mockInsights: Insight[] = [
-  {
-    id: "1",
-    title: "Why AI Governance Will Define the Next Decade of Tech",
-    summary: "As AI systems become more powerful, the frameworks we create for governing them will shape our future. Companies leading in AI governance today will have the competitive edge tomorrow. Three core principles should guide our approach: transparency, accountability, and human oversight.",
-    image: "https://images.unsplash.com/photo-1518770660439-4636190af475",
-    industry: "AI",
-    influencer: {
-      id: "i1",
-      name: "Alex Chen",
-      profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100",
-      isFollowed: false
-    },
-    isSaved: false,
-    isLiked: false
-  },
-  {
-    id: "2",
-    title: "Five Key Financial Metrics Every Startup Should Track",
-    summary: "Beyond the obvious metrics like revenue and profit, startups should focus on customer acquisition cost (CAC), lifetime value (LTV), burn rate, runway, and conversion rates. These indicators collectively provide a comprehensive view of business health and sustainability.",
-    image: "https://images.unsplash.com/photo-1579621970795-87facc2f976d",
-    industry: "Finance",
-    influencer: {
-      id: "i2",
-      name: "Sarah Johnson",
-      profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100",
-      isFollowed: true
-    },
-    isSaved: false,
-    isLiked: false
-  },
-  {
-    id: "3",
-    title: "Remote Work Revolution: Building High-Performance Teams",
-    summary: "The future of work isn't about location—it's about results. Top companies are shifting to outcome-based performance metrics rather than monitoring hours. Creating psychological safety through clear expectations and regular, meaningful check-ins is essential for remote team success.",
-    image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-    industry: "Business",
-    influencer: {
-      id: "i3",
-      name: "Michael Torres",
-      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100",
-      isFollowed: false
-    },
-    isSaved: false,
-    isLiked: false
-  },
-  {
-    id: "4",
-    title: "The Healthcare Breakthrough Nobody's Talking About",
-    summary: "Predictive healthcare using AI and wearables is quietly revolutionizing preventive medicine. Early detection algorithms can now identify potential health issues weeks before symptoms appear, dramatically improving treatment outcomes while reducing costs by up to 60% for participating patients.",
-    image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef",
-    industry: "Healthcare",
-    influencer: {
-      id: "i4",
-      name: "Dr. Lisa Patel",
-      profileImage: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=100",
-      isFollowed: false
-    },
-    isSaved: false,
-    isLiked: false
-  },
-  {
-    id: "5",
-    title: "Web3 Business Models: Beyond the Hype",
-    summary: "Look past the cryptocurrency volatility to understand the true value proposition: decentralized ownership models that align incentives between creators, users, and investors. The most successful Web3 projects solve real problems while simplifying the user experience to near Web2 levels.",
-    image: "https://images.unsplash.com/photo-1639762681057-408e52192e55",
-    industry: "Technology",
-    influencer: {
-      id: "i5",
-      name: "David Nakamura",
-      profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100",
-      isFollowed: false
-    },
-    isSaved: false,
-    isLiked: false
-  }
-];
-
-const mockInfluencer: Influencer = {
-  id: "i1",
-  name: "Alex Chen",
-  profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100",
-  bio: "AI researcher and tech entrepreneur. Former lead at DeepMind. Passionate about ethical AI development and governance frameworks.",
-  industry: "AI",
-  followerCount: 248500,
-  engagementScore: 9.8,
-  isFollowed: false,
-  recentInsights: [
-    {
-      id: "1",
-      title: "Why AI Governance Will Define the Next Decade of Tech",
-      summary: "As AI systems become more powerful, the frameworks we create for governing them will shape our future.",
-      image: "https://images.unsplash.com/photo-1518770660439-4636190af475"
-    },
-    {
-      id: "6",
-      title: "The Myth of AGI: What We Get Wrong About Machine Intelligence",
-      summary: "The common conception of artificial general intelligence misunderstands both human and machine cognition.",
-      image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485"
-    },
-    {
-      id: "7",
-      title: "Three AI Trends Every Business Leader Must Understand",
-      summary: "The landscape of AI is rapidly evolving. Here's what decision-makers need to know about implementing AI responsibly.",
-      image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b"
-    }
-  ]
-};
+interface ApiInsight {
+  influencer_id: string;
+  video_id: string;
+  published_at: string;
+  metadata: {
+    title: string;
+    description: string;
+    channel_title: string;
+    thumbnails: {
+      high: {
+        url: string;
+      };
+    };
+    tags: string[];
+  };
+  analysis: {
+    summary: string;
+    key_points: string[];
+    sentiment: string;
+    topics: string[];
+  };
+}
 
 const Index = () => {
   const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
-  const [insights, setInsights] = useState<Insight[]>(mockInsights);
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [showingInfluencer, setShowingInfluencer] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
@@ -128,18 +42,63 @@ const Index = () => {
   const [showNavbar, setShowNavbar] = useState(true);
   const [insightPositions, setInsightPositions] = useState<string[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
-  
+
   useEffect(() => {
-    if (showingInfluencer && selectedInfluencer?.id === "i1") {
-      setSelectedInfluencer({
-        ...mockInfluencer,
-        isFollowed: insights.find(i => i.influencer.id === "i1")?.influencer.isFollowed || false
-      });
+    const fetchInsights = async () => {
+      try {
+        const response = await fetch('http://15.207.114.84:8000/feed');
+        const data: ApiInsight[] = await response.json();
+        
+        const formattedInsights: Insight[] = data.map((item, index) => ({
+          id: item.video_id,
+          title: item.metadata.title,
+          summary: item.analysis.summary,
+          image: item.metadata.thumbnails.high.url,
+          industry: item.analysis.topics[0] || "General",
+          influencer: {
+            id: item.influencer_id,
+            name: item.metadata.channel_title,
+            profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
+            isFollowed: false
+          },
+          isSaved: false,
+          isLiked: false,
+          keyPoints: item.analysis.key_points,
+          sentiment: item.analysis.sentiment,
+          publishedAt: item.published_at
+        }));
+
+        setInsights(formattedInsights);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching insights:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch insights. Please try again later.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+      }
+    };
+
+    fetchInsights();
+  }, []);
+
+  useEffect(() => {
+    if (showingInfluencer && selectedInfluencer) {
+      const influencerFromInsights = insights.find(i => i.influencer.id === selectedInfluencer.id);
+      if (influencerFromInsights) {
+        setSelectedInfluencer({
+          ...selectedInfluencer,
+          isFollowed: influencerFromInsights.influencer.isFollowed
+        });
+      }
     }
-  }, [showingInfluencer, insights]);
+  }, [showingInfluencer, insights, selectedInfluencer]);
 
   useEffect(() => {
     // Initialize positions
@@ -207,13 +166,30 @@ const Index = () => {
   };
   
   const handleInfluencerClick = (influencerId: string) => {
-    const influencer = mockInfluencer;
-    const isFollowed = insights.find(i => i.influencer.id === influencerId)?.influencer.isFollowed || false;
+    const insight = insights.find(i => i.influencer.id === influencerId);
+    if (!insight) return;
+    
+    const influencerInsights = insights
+      .filter(i => i.influencer.id === influencerId)
+      .map(i => ({
+        id: i.id,
+        title: i.title,
+        summary: i.summary,
+        image: i.image
+      }));
     
     setSelectedInfluencer({
-      ...influencer,
-      isFollowed
+      id: influencerId,
+      name: insight.influencer.name,
+      profileImage: insight.influencer.profileImage,
+      bio: `Content creator on ${insight.influencer.name}`,
+      industry: insight.industry,
+      followerCount: Math.floor(Math.random() * 1000000), // Random follower count for demo
+      engagementScore: parseFloat((Math.random() * 5 + 5).toFixed(1)), // Random score 5.0-9.9
+      isFollowed: insight.influencer.isFollowed,
+      recentInsights: influencerInsights.slice(0, 3) // Show up to 3 recent insights
     });
+    
     setShowingInfluencer(true);
   };
   
@@ -225,7 +201,6 @@ const Index = () => {
     if (currentInsightIndex < insights.length - 1 && !isAnimating) {
       setIsAnimating(true);
       
-      // Create a new positions array
       const newPositions = [...insightPositions];
       newPositions[currentInsightIndex] = "slide-up";
       setInsightPositions(newPositions);
@@ -241,7 +216,6 @@ const Index = () => {
     if (currentInsightIndex > 0 && !isAnimating) {
       setIsAnimating(true);
       
-      // Create a new positions array
       const newPositions = [...insightPositions];
       newPositions[currentInsightIndex] = "slide-down";
       setInsightPositions(newPositions);
@@ -253,7 +227,6 @@ const Index = () => {
     }
   };
   
-  // Handle touch events for swiping and navbar toggling
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientY);
     setTouchMove(e.targetTouches[0].clientY);
@@ -266,23 +239,40 @@ const Index = () => {
   const handleTouchEnd = () => {
     const swipeDistance = touchStart - touchMove;
     
-    // Determine if the user is swiping vertically
     if (Math.abs(swipeDistance) > 100) {
       if (swipeDistance > 0) {
-        // Swipe up - next insight
         navigateToNextInsight();
       } else {
-        // Swipe down - previous insight
         navigateToPreviousInsight();
       }
     } else {
-      // Short touch/tap - toggle navbar
       setShowNavbar(!showNavbar);
     }
   };
   
   if (!onboarded) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-primary">Loading insights...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (insights.length === 0) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-primary">No insights available at the moment.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -320,7 +310,6 @@ const Index = () => {
         )
       )}
       
-      {/* Navigation with dynamic visibility */}
       <Navigation />
     </div>
   );
