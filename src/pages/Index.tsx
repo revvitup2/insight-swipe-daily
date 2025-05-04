@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -61,16 +60,13 @@ const Index = () => {
         const response = await fetch('https://influenedoze.weddingmoments.fun/feed');
         const data: ApiInsight[] = await response.json();
         
-        const formattedInsights: Insight[] = data.map((item, index) => {
-          // Determine source platform based on available data
-          // In a real app, this would come from the API
-          const sourcePlatform = item.source?.platform || (
-            index % 3 === 0 ? "youtube" : 
-            index % 3 === 1 ? "twitter" : "linkedin"
-          );
+        const formattedInsights: Insight[] = data.map((item) => {
+          // Correctly identify YouTube URLs
+          // Check if sourceUrl contains youtube or youtu.be domains
+          const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
           
-          // Generate source URL (in a real app, this would come from the API)
-          const sourceUrl = item.source?.url || `https://${sourcePlatform}.com/watch?v=${item.video_id}`;
+          // Set all sources as YouTube since all are YouTube links
+          const sourcePlatform = "youtube";
           
           return {
             id: item.video_id,
