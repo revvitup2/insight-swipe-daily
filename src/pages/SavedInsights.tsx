@@ -6,19 +6,24 @@ import { Insight } from "@/components/InsightCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { SavedInsightCard } from "@/components/SavedInsightsCard";
+import { SavedInsightsData, VersionedInsight } from "./Index";
+import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 
 const SavedInsights = () => {
   const [savedInsights, setSavedInsights] = useState<Insight[]>([]);
   const navigate = useNavigate();
-
-  useEffect(() => {
+  
+    useEffect(() => {
     const loadSavedInsights = () => {
       try {
         const saved = localStorage.getItem("savedInsights");
         if (saved) {
-          const parsed = JSON.parse(saved);
+          const parsed: SavedInsightsData = JSON.parse(saved);
+          // Get only current version insights
+          const currentVersionInsights = parsed.versions?.[CURRENT_INSIGHT_VERSION] || [];
+          
           // Ensure we have valid insights with all required fields
-          const validInsights = parsed.filter((insight: Insight) => 
+          const validInsights = currentVersionInsights.filter((insight: Insight) => 
             insight?.id && insight?.title && insight?.summary
           );
           setSavedInsights(validInsights);
@@ -33,19 +38,29 @@ const SavedInsights = () => {
     return () => window.removeEventListener('storage', loadSavedInsights);
   }, []);
 
-  const handleRemoveInsight = (id: string) => {
-    const updated = savedInsights.filter(insight => insight.id !== id);
-    setSavedInsights(updated);
-    localStorage.setItem("savedInsights", JSON.stringify(updated));
+   const handleRemoveInsight = (id: string) => {
+    const saved = localStorage.getItem("savedInsights");
+    if (!saved) return;
     
-    // Update main insights if they exist in localStorage
+    const parsed: SavedInsightsData = JSON.parse(saved);
+    if (!parsed.versions[CURRENT_INSIGHT_VERSION]) return;
+    
+    // Remove from current version
+    parsed.versions[CURRENT_INSIGHT_VERSION] = 
+      parsed.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== id);
+    
+    // Update storage
+    localStorage.setItem("savedInsights", JSON.stringify(parsed));
+    setSavedInsights(prev => prev.filter(i => i.id !== id));
+    
+    // Update main insights
     const allInsights = localStorage.getItem("insights");
     if (allInsights) {
-      const parsed = JSON.parse(allInsights);
-      const updatedAllInsights = parsed.map((insight: Insight) => 
+      const parsedInsights = JSON.parse(allInsights);
+       const updatedInsights = parsedInsights.map((insight: Insight) => 
         insight.id === id ? { ...insight, isSaved: false } : insight
       );
-      localStorage.setItem("insights", JSON.stringify(updatedAllInsights));
+      localStorage.setItem("insights", JSON.stringify(updatedInsights));
     }
 
     toast({
@@ -54,22 +69,27 @@ const SavedInsights = () => {
     });
   };
 
-  return (
+
+
+     return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Saved Insights</h1>
           {savedInsights.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {savedInsights.length} {savedInsights.length === 1 ? "item" : "items"}
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {savedInsights.length} {savedInsights.length === 1 ? "item" : "items"}
+              </span>
+        
+            </div>
           )}
         </div>
         
         {savedInsights.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {savedInsights.map(insight => (
-              <SavedInsightCard
+                  <SavedInsightCard
                 key={insight.id}
                 insight={insight}
                 onRemove={handleRemoveInsight}

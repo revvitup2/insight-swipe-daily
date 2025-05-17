@@ -6,7 +6,7 @@ import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-
+import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 interface ApiInsight {
   influencer_id: string;
   video_id: string;
@@ -34,6 +34,19 @@ interface ApiInsight {
     url: string;
   };
 }
+
+// Add this to your types file or at the top of your component
+export interface VersionedInsight extends Insight {
+  version: number;
+  savedAt: string;
+}
+
+export interface SavedInsightsData {
+  versions: {
+    [version: number]: Insight[];
+  };
+}
+
 
 const Index = () => {
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>(() => {
@@ -160,6 +173,8 @@ const Index = () => {
     });
   };
   
+
+
 const handleSaveInsight = (id: string) => {
   setInsights(prevInsights => {
     const updatedInsights = prevInsights.map(insight => {
@@ -169,43 +184,52 @@ const handleSaveInsight = (id: string) => {
       return insight;
     });
 
-    // Get current saved insights from localStorage
-    const currentSaved = JSON.parse(localStorage.getItem("savedInsights") || "[]");
-    
+    // Get current saved insights data from localStorage
+    const savedData: SavedInsightsData = JSON.parse(
+      localStorage.getItem("savedInsights") || '{"versions":{}}'
+    );
+
     // Find the insight being toggled
     const insightToToggle = updatedInsights.find(i => i.id === id);
     
-    let updatedSaved;
-    if (insightToToggle?.isSaved) {
-      // Add to saved if it's being saved
-      updatedSaved = [...currentSaved, insightToToggle];
-    } else {
-      // Remove from saved if it's being unsaved
-      updatedSaved = currentSaved.filter((i: Insight) => i.id !== id);
+    if (insightToToggle) {
+      // Initialize version if it doesn't exist
+      if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
+        savedData.versions[CURRENT_INSIGHT_VERSION] = [];
+      }
+      
+      if (insightToToggle.isSaved) {
+        // Add to current version's saved insights
+        const versionInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
+        savedData.versions[CURRENT_INSIGHT_VERSION] = [
+          ...versionInsights.filter(i => i.id !== id), // Remove if already exists
+          {
+            ...insightToToggle
+          }
+        ];
+      } else {
+        // Remove from current version
+        savedData.versions[CURRENT_INSIGHT_VERSION] = 
+          (savedData.versions[CURRENT_INSIGHT_VERSION] || [])
+            .filter(i => i.id !== id);
+      }
+
+      // Update saved insights in localStorage
+      localStorage.setItem("savedInsights", JSON.stringify(savedData));
+      localStorage.setItem("insights", JSON.stringify(updatedInsights));
     }
-
-    // Filter out duplicates
-    const uniqueSaved = updatedSaved.filter(
-      (v: Insight, i: number, a: Insight[]) => 
-        a.findIndex(t => t.id === v.id) === i
-    );
-
-    // Update saved insights in localStorage
-    localStorage.setItem("savedInsights", JSON.stringify(uniqueSaved));
-    localStorage.setItem("insights", JSON.stringify(updatedInsights));
 
     return updatedInsights;
   });
 
   const isSaved = insights.find(i => i.id === id)?.isSaved;
   toast({
-    title: isSaved ? "Removed from saved" : "Insight saved",
+    title: isSaved ? "Saved" : "Removed from saved",
     description: isSaved 
-      ? "Removed from your saved items" 
-      : "You can find it in your saved items",
+      ? `Added to version ${CURRENT_INSIGHT_VERSION} collection` 
+      : "Removed from your saved items",
   });
 };
-
 
   const handleLikeInsight = (id: string) => {
     setInsights(insights.map(insight => {
