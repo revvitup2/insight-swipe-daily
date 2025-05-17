@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import ByteMeLogo from "@/components/ByteMeLogo";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Influencer {
   id: string;
@@ -88,18 +90,7 @@ export const InsightCard = ({
   onSourceClick,
   userIndustries = [],
 }: InsightCardProps) => {
-  const [isVisible, setIsVisible] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [needsReadMore, setNeedsReadMore] = useState(false);
-  
-  // Check if content exceeds 65 words
-  useEffect(() => {
-    if (insight.summary) {
-      const wordCount = insight.summary.split(/\s+/).length;
-      setNeedsReadMore(wordCount > 65);
-    }
-  }, [insight.summary]);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
@@ -153,11 +144,6 @@ export const InsightCard = ({
     }
   };
 
-  const toggleExpanded = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
-
   const timeAgo = insight.publishedAt 
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
@@ -179,7 +165,7 @@ export const InsightCard = ({
             className="insight-image rounded-xl"
           />
           
-          {/* ByteMe Brand Watermark - Moved to top right */}
+          {/* ByteMe Brand Watermark - Top right */}
           <div className="absolute top-2 right-2">
             <ByteMeLogo size="sm" className="opacity-80" />
           </div>
@@ -206,26 +192,15 @@ export const InsightCard = ({
           {insight.title}
         </h2>
         
-        {/* Summary Content with expandable option only if needed */}
-        <div className="relative mb-6 flex-1 overflow-y-auto" ref={contentRef}>
-          <p className={cn(
-            "text-base text-gray-700 dark:text-gray-300",
-            !isExpanded && needsReadMore ? "line-clamp-5" : ""
-          )}>
+        {/* Scrollable Summary Content */}
+        <ScrollArea className="flex-1 mb-4 pr-2">
+          <p className="text-base text-gray-700 dark:text-gray-300">
             {insight.summary}
           </p>
-          {needsReadMore && (
-            <button 
-              onClick={toggleExpanded} 
-              className="text-primary text-sm mt-1 font-medium"
-            >
-              {isExpanded ? "Show less" : "Read more"}
-            </button>
-          )}
-        </div>
+        </ScrollArea>
         
-        {/* Metadata */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Fixed Metadata */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <div 
               className="flex items-center cursor-pointer" 
