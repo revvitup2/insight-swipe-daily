@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ByteMeLogo from "@/components/ByteMeLogo";
+import { APP_NAME } from "@/constants/constants";
 
 interface Industry {
   id: string;
@@ -59,10 +61,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     <div className="min-h-screen flex flex-col p-6">
       {step === 1 && (
         <div className="flex flex-col items-center justify-center flex-grow animate-fade-in">
-          <div className="text-4xl mb-4">ByteMe</div>
-          <h1 className="text-2xl font-bold text-center mb-4">
+          {/* Redesigned branding with more prominent logo */}
+          <div className="mb-6 flex flex-col items-center">
+            <ByteMeLogo size="lg" className="mb-4" />
+            <h1 className="text-3xl font-bold text-primary">{APP_NAME}</h1>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-center mb-4">
             Daily insights from top influencers you ❤️
-          </h1>
+          </h2>
           <p className="text-center text-muted-foreground mb-8">
             Top 10 insights. Trusted experts. Delivered daily
           </p>
@@ -77,18 +84,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       
       {step === 2 && (
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-bold mb-2">Select your interests</h1>
-          
-          <div className="flex items-center mb-6">
-            <p className="text-muted-foreground">
-              Choose 3-5 industries you're interested in
-            </p>
-            {showSelectionWarning && (
-              <div className="ml-2 text-red-500 flex items-center text-sm">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                Select at least 3
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Select your interests</h1>
+              <div className="flex items-center">
+                <p className="text-muted-foreground">
+                  Choose 3-5 industries you're interested in
+                </p>
+                {showSelectionWarning && (
+                  <div className="ml-2 text-red-500 flex items-center text-sm">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Select at least 3
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+            {/* Add logo to step 2 as well */}
+            <ByteMeLogo size="md" />
           </div>
           
           <div className="grid grid-cols-2 gap-3 mb-8">

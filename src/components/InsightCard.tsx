@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { APP_LOGO } from "@/constants/constants";
+import ByteMeLogo from "@/components/ByteMeLogo";
 
 interface Influencer {
   id: string;
@@ -94,13 +93,11 @@ export const InsightCard = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const [needsReadMore, setNeedsReadMore] = useState(false);
   
-  // Check if content is too long and needs "read more" button
+  // Check if content exceeds 65 words
   useEffect(() => {
-    if (contentRef.current) {
-      const contentHeight = contentRef.current.scrollHeight;
-      const lineHeight = parseInt(window.getComputedStyle(contentRef.current).lineHeight);
-      // If content is more than 5 lines, show read more button
-      setNeedsReadMore(contentHeight > lineHeight * 5);
+    if (insight.summary) {
+      const wordCount = insight.summary.split(/\s+/).length;
+      setNeedsReadMore(wordCount > 65);
     }
   }, [insight.summary]);
   
@@ -182,11 +179,9 @@ export const InsightCard = ({
             className="insight-image rounded-xl"
           />
           
-          {/* ByteMe Brand Watermark - Modern subtle branding */}
-          <div className="absolute bottom-0 right-0 flex items-center">
-            <div className="w-8 h-8 opacity-70">
-              <img src={APP_LOGO} alt="ByteMe" className="w-full h-full" />
-            </div>
+          {/* ByteMe Brand Watermark - Moved to top right */}
+          <div className="absolute top-2 right-2">
+            <ByteMeLogo size="sm" className="opacity-80" />
           </div>
           
           {/* Industry Tag - Subtle black background */}

@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface ApiInsight {
   influencer_id: string;
@@ -456,14 +457,7 @@ const Index = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-primary">Loading insights...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading insights..." />;
   }
 
   if (filteredInsights.length === 0) {
