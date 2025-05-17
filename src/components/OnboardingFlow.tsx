@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Industry {
@@ -28,27 +28,38 @@ interface OnboardingFlowProps {
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [step, setStep] = useState(1);
+  const [showSelectionWarning, setShowSelectionWarning] = useState(false);
   
   const toggleIndustry = (industryId: string) => {
     if (selectedIndustries.includes(industryId)) {
       setSelectedIndustries(selectedIndustries.filter(id => id !== industryId));
+      setShowSelectionWarning(false);
     } else {
       if (selectedIndustries.length < 5) {
         setSelectedIndustries([...selectedIndustries, industryId]);
+        setShowSelectionWarning(false);
       }
     }
   };
   
+  const handleNextStep = () => {
+    if (selectedIndustries.length < 3) {
+      setShowSelectionWarning(true);
+      return;
+    }
+    handleComplete();
+  };
+  
   const handleComplete = () => {
-  localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
-  onComplete(selectedIndustries);
-};
+    localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
+    onComplete(selectedIndustries);
+  };
   
   return (
     <div className="min-h-screen flex flex-col p-6">
       {step === 1 && (
         <div className="flex flex-col items-center justify-center flex-grow animate-fade-in">
-          <div className="text-4xl mb-4">VibeOn</div>
+          <div className="text-4xl mb-4">ByteMe</div>
           <h1 className="text-2xl font-bold text-center mb-4">
             Daily insights from top influencers you ❤️
           </h1>
@@ -67,7 +78,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       {step === 2 && (
         <div className="animate-fade-in">
           <h1 className="text-2xl font-bold mb-2">Select your interests</h1>
-          <p className="text-muted-foreground mb-6">Choose 3-5 industries you're interested in</p>
+          
+          <div className="flex items-center mb-6">
+            <p className="text-muted-foreground">
+              Choose 3-5 industries you're interested in
+            </p>
+            {showSelectionWarning && (
+              <div className="ml-2 text-red-500 flex items-center text-sm">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                Select at least 3
+              </div>
+            )}
+          </div>
           
           <div className="grid grid-cols-2 gap-3 mb-8">
             {industries.map((industry) => (
@@ -94,16 +116,42 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             ))}
           </div>
           
-          <Button
-            onClick={handleComplete}
-            disabled={selectedIndustries.length < 3}
-            className="w-full bg-primary hover:bg-primary/90"
-          >
-            Continue
-          </Button>
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Selected {selectedIndustries.length}/5 industries
-          </p>
+          <div className="space-y-4">
+            <Button
+              onClick={handleNextStep}
+              disabled={selectedIndustries.length < 3}
+              className={cn(
+                "w-full",
+                selectedIndustries.length < 3 ? "bg-gray-300 hover:bg-gray-300 cursor-not-allowed" : "bg-primary hover:bg-primary/90"
+              )}
+            >
+              Continue
+            </Button>
+            
+            <div className="flex items-center justify-center">
+              <div className="bg-gray-200 h-2 rounded-full flex-1 overflow-hidden">
+                <div 
+                  className={cn(
+                    "h-full bg-primary transition-all duration-300",
+                    selectedIndustries.length < 3 ? "w-1/3" : 
+                    selectedIndustries.length < 5 ? "w-2/3" : "w-full"
+                  )}
+                ></div>
+              </div>
+              <p className="ml-2 text-xs text-muted-foreground">
+                Selected {selectedIndustries.length}/5
+                <span className="text-xs ml-1">
+                  (min 3)
+                </span>
+              </p>
+            </div>
+            
+            {showSelectionWarning && (
+              <p className="text-center text-red-500 text-sm">
+                Please select at least 3 categories to continue
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

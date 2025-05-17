@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,7 @@ export const InsightCard = ({
   userIndustries = [],
 }: InsightCardProps) => {
   const [isVisible, setIsVisible] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
   );
@@ -140,6 +142,11 @@ export const InsightCard = ({
     }
   };
 
+  const toggleExpanded = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
   const timeAgo = insight.publishedAt 
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: true })
     : '';
@@ -161,43 +168,50 @@ export const InsightCard = ({
             className="insight-image rounded-xl"
           />
           
-          {/* Industry Tag */}
-          <div className={cn(
-            "absolute top-2 left-2 flex items-center bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium",
-            "transition-colors duration-200",
-            isPreferredIndustry 
-              ? "border border-primary text-primary dark:text-primary-foreground" 
-              : "text-foreground"
-          )}>
+          {/* ByteMe Brand Watermark */}
+          <div className="absolute top-2 left-2 flex items-center bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-primary">
+            ByteMe
+          </div>
+          
+          {/* Industry Tag - Updated to subtle black background */}
+          <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
             <span className="mr-1">{getIndustryIcon(insight.industry)}</span>
             {insight.industry}
           </div>
           
-          {/* Source Platform */}
+          {/* Source Platform - Updated to subtle black background */}
           {insight.source && (
             <div 
-              className={cn(
-                "absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full",
-                "cursor-pointer hover:bg-background transition-colors"
-              )}
+              className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
               onClick={handleSourceClick}
             >
               <PlatformIcon source={insight.source} />
             </div>
           )}
-          
-         
         </div>
         
-        {/* Title Section */}
-        <h2 className="text-2xl font-bold mb-2 leading-tight text-gray-900 dark:text-white">
+        {/* Title Section - Reduced font size */}
+        <h2 className="text-xl font-bold mb-2 leading-tight text-gray-900 dark:text-white">
           {insight.title}
         </h2>
         
-        {/* Summary Content */}
-        <p className="text-base text-gray-700 dark:text-gray-300 mb-6 flex-grow">
-          {insight.summary}
-        </p>
+        {/* Summary Content with expandable option */}
+        <div className="relative mb-6">
+          <p className={cn(
+            "text-base text-gray-700 dark:text-gray-300",
+            isExpanded ? "" : "line-clamp-3"
+          )}>
+            {insight.summary}
+          </p>
+          {insight.summary.length > 120 && (
+            <button 
+              onClick={toggleExpanded} 
+              className="text-primary text-sm mt-1 font-medium"
+            >
+              {isExpanded ? "Show less" : "Read more"}
+            </button>
+          )}
+        </div>
         
         {/* Metadata */}
         <div className="flex items-center justify-between mb-6">
@@ -211,7 +225,7 @@ export const InsightCard = ({
                 alt={insight.influencer.name}
                 className="w-8 h-8 rounded-full mr-2 object-cover"
               />
-              <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white">
+              <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[120px]">
                 {insight.influencer.name}
               </span>
             </div>

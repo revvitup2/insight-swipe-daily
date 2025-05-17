@@ -7,6 +7,8 @@ import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
+import SwipeTutorial from "@/components/SwipeTutorial";
+
 interface ApiInsight {
   influencer_id: string;
   video_id: string;
@@ -47,7 +49,6 @@ export interface SavedInsightsData {
   };
 }
 
-
 const Index = () => {
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>(() => {
     const stored = localStorage.getItem("selectedIndustries");
@@ -59,6 +60,7 @@ const Index = () => {
   });
   const [insights, setInsights] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
+  const [previousInsightIndex, setPreviousInsightIndex] = useState(0);
   const [showingInfluencer, setShowingInfluencer] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -70,6 +72,7 @@ const Index = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
@@ -92,8 +95,23 @@ const Index = () => {
         const data: ApiInsight[] = await response.json();
         
         const formattedInsights: Insight[] = data.map((item) => {
+          // Determine the source platform based on the URL
           const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
-          const sourcePlatform = "youtube";
+          
+          // Default to YouTube as the platform since you mentioned all are YouTube links
+          // But still check URL pattern to be safe
+          let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
+          
+          // To be extra safe, check URL pattern
+          if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
+            sourcePlatform = "youtube";
+          } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
+            sourcePlatform = "twitter";
+          } else if (sourceUrl.includes('linkedin.com')) {
+            sourcePlatform = "linkedin";
+          } else {
+            sourcePlatform = "other";
+          }
           
           return {
             id: item.video_id,
@@ -133,6 +151,13 @@ const Index = () => {
     fetchInsights();
   }, []);
 
+  // Check if tutorial should be shown
+  useEffect(() => {
+    if (onboarded && !localStorage.getItem("tutorialShown")) {
+      setShowTutorial(true);
+    }
+  }, [onboarded]);
+
   useEffect(() => {
     setCurrentInsightIndex(0);
     const positions = filteredInsights.map((_, i) => 
@@ -168,68 +193,74 @@ const Index = () => {
     setOnboarded(true);
     
     toast({
-      title: "Welcome to VibeOn!",
+      title: "Welcome to ByteMe!",
       description: "We've personalized your feed based on your interests.",
     });
+    
+    // Show tutorial after onboarding
+    setShowTutorial(true);
   };
   
+  const handleTutorialComplete = () => {
+    setShowTutorial(false);
+    localStorage.setItem("tutorialShown", "true");
+  };
 
+  const handleSaveInsight = (id: string) => {
+    setInsights(prevInsights => {
+      const updatedInsights = prevInsights.map(insight => {
+        if (insight.id === id) {
+          return { ...insight, isSaved: !insight.isSaved };
+        }
+        return insight;
+      });
 
-const handleSaveInsight = (id: string) => {
-  setInsights(prevInsights => {
-    const updatedInsights = prevInsights.map(insight => {
-      if (insight.id === id) {
-        return { ...insight, isSaved: !insight.isSaved };
+      // Get current saved insights data from localStorage
+      const savedData: SavedInsightsData = JSON.parse(
+        localStorage.getItem("savedInsights") || '{"versions":{}}'
+      );
+
+      // Find the insight being toggled
+      const insightToToggle = updatedInsights.find(i => i.id === id);
+      
+      if (insightToToggle) {
+        // Initialize version if it doesn't exist
+        if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
+          savedData.versions[CURRENT_INSIGHT_VERSION] = [];
+        }
+        
+        if (insightToToggle.isSaved) {
+          // Add to current version's saved insights
+          const versionInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
+          savedData.versions[CURRENT_INSIGHT_VERSION] = [
+            ...versionInsights.filter(i => i.id !== id), // Remove if already exists
+            {
+              ...insightToToggle
+            }
+          ];
+        } else {
+          // Remove from current version
+          savedData.versions[CURRENT_INSIGHT_VERSION] = 
+            (savedData.versions[CURRENT_INSIGHT_VERSION] || [])
+              .filter(i => i.id !== id);
+        }
+
+        // Update saved insights in localStorage
+        localStorage.setItem("savedInsights", JSON.stringify(savedData));
+        localStorage.setItem("insights", JSON.stringify(updatedInsights));
       }
-      return insight;
+
+      return updatedInsights;
     });
 
-    // Get current saved insights data from localStorage
-    const savedData: SavedInsightsData = JSON.parse(
-      localStorage.getItem("savedInsights") || '{"versions":{}}'
-    );
-
-    // Find the insight being toggled
-    const insightToToggle = updatedInsights.find(i => i.id === id);
-    
-    if (insightToToggle) {
-      // Initialize version if it doesn't exist
-      if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
-        savedData.versions[CURRENT_INSIGHT_VERSION] = [];
-      }
-      
-      if (insightToToggle.isSaved) {
-        // Add to current version's saved insights
-        const versionInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
-        savedData.versions[CURRENT_INSIGHT_VERSION] = [
-          ...versionInsights.filter(i => i.id !== id), // Remove if already exists
-          {
-            ...insightToToggle
-          }
-        ];
-      } else {
-        // Remove from current version
-        savedData.versions[CURRENT_INSIGHT_VERSION] = 
-          (savedData.versions[CURRENT_INSIGHT_VERSION] || [])
-            .filter(i => i.id !== id);
-      }
-
-      // Update saved insights in localStorage
-      localStorage.setItem("savedInsights", JSON.stringify(savedData));
-      localStorage.setItem("insights", JSON.stringify(updatedInsights));
-    }
-
-    return updatedInsights;
-  });
-
-  const isSaved = insights.find(i => i.id === id)?.isSaved;
-  toast({
-    title: isSaved ? "Saved" : "Removed from saved",
-    description: isSaved 
-      ? `Added to version ${CURRENT_INSIGHT_VERSION} collection` 
-      : "Removed from your saved items",
-  });
-};
+    const isSaved = insights.find(i => i.id === id)?.isSaved;
+    toast({
+      title: isSaved ? "Saved" : "Removed from saved",
+      description: isSaved 
+        ? `Added to version ${CURRENT_INSIGHT_VERSION} collection` 
+        : "Removed from your saved items",
+    });
+  };
 
   const handleLikeInsight = (id: string) => {
     setInsights(insights.map(insight => {
@@ -273,6 +304,9 @@ const handleSaveInsight = (id: string) => {
     const insight = insights.find(i => i.influencer.id === influencerId);
     if (!insight) return;
     
+    // Store the current index before navigating away
+    setPreviousInsightIndex(currentInsightIndex);
+    
     const influencerInsights = insights
       .filter(i => i.influencer.id === influencerId)
       .map(i => ({
@@ -299,9 +333,13 @@ const handleSaveInsight = (id: string) => {
   
   const handleInsightClick = () => {
     setShowingInfluencer(false);
+    // Restore the previous insight index
+    setCurrentInsightIndex(previousInsightIndex);
   };
 
   const handleSourceClick = (url: string) => {
+    // Store the current index before navigating away
+    setPreviousInsightIndex(currentInsightIndex);
     window.open(url, '_blank');
   };
   
@@ -404,6 +442,15 @@ const handleSaveInsight = (id: string) => {
     }
   };
   
+  // Return to feed from influencer profile with horizontal swipe
+  const handleInfluencerProfileSwipe = (direction: 'left' | 'right') => {
+    if (direction === 'right') {
+      setShowingInfluencer(false);
+      // Restore the previous insight index
+      setCurrentInsightIndex(previousInsightIndex);
+    }
+  };
+
   if (!onboarded) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
@@ -443,6 +490,8 @@ const handleSaveInsight = (id: string) => {
 
   return (
     <div className="h-screen bg-background">
+      {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
+      
       {!showingInfluencer ? (
         <div 
           className="swipe-container"
@@ -469,12 +518,20 @@ const handleSaveInsight = (id: string) => {
         </div>
       ) : (
         selectedInfluencer && (
-          <InfluencerProfile 
-            influencer={selectedInfluencer}
-            onFollowToggle={handleFollowInfluencer}
-            onInsightClick={handleInsightClick}
-            onBack={() => setShowingInfluencer(false)}
-          />
+          <div onTouchStart={handleTouchStart} 
+               onTouchMove={handleTouchMove} 
+               onTouchEnd={() => handleInfluencerProfileSwipe(touchStartX - touchMoveX > 100 ? 'left' : touchMoveX - touchStartX > 100 ? 'right' : 'none')}>
+            <InfluencerProfile 
+              influencer={selectedInfluencer}
+              onFollowToggle={handleFollowInfluencer}
+              onInsightClick={handleInsightClick}
+              onBack={() => {
+                setShowingInfluencer(false);
+                // Restore the previous insight index
+                setCurrentInsightIndex(previousInsightIndex);
+              }}
+            />
+          </div>
         )
       )}
       
