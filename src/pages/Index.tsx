@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import InsightCard, { Insight } from "@/components/InsightCard";
 import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface ApiInsight {
   influencer_id: string;
   video_id: string;
   published_at: string;
+  industry:string;
   metadata: {
     title: string;
     description: string;
@@ -34,6 +36,11 @@ interface ApiInsight {
 }
 
 const Index = () => {
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>(() => {
+    const stored = localStorage.getItem("selectedIndustries");
+    return stored ? JSON.parse(stored) : [];
+  });
+
   const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
@@ -54,6 +61,17 @@ const Index = () => {
   
   const navigate = useNavigate();
 
+  const filteredInsights = useMemo(() => {
+    if (selectedIndustries.length === 0) return insights;
+    
+    return insights.filter(insight => {
+      const insightIndustry = insight.industry.toLowerCase();
+      return selectedIndustries.some(industry => 
+        insightIndustry.includes(industry.toLowerCase())
+      );
+    });
+  }, [insights, selectedIndustries]);
+
   useEffect(() => {
     const fetchInsights = async () => {
       try {
@@ -61,11 +79,7 @@ const Index = () => {
         const data: ApiInsight[] = await response.json();
         
         const formattedInsights: Insight[] = data.map((item) => {
-          // Correctly identify YouTube URLs
-          // Check if sourceUrl contains youtube or youtu.be domains
           const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
-          
-          // Set all sources as YouTube since all are YouTube links
           const sourcePlatform = "youtube";
           
           return {
@@ -73,7 +87,7 @@ const Index = () => {
             title: item.metadata.title,
             summary: item.analysis.summary,
             image: item.metadata.thumbnails.high.url,
-            industry: item.analysis.topics[0] || "General",
+            industry: item.industry || "General",
             influencer: {
               id: item.influencer_id,
               name: item.metadata.channel_title,
@@ -107,6 +121,22 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    setCurrentInsightIndex(0);
+    const positions = filteredInsights.map((_, i) => 
+      i === 0 ? "" : "slide-down"
+    );
+    setInsightPositions(positions);
+  }, [filteredInsights]);
+
+  useEffect(() => {
+    const newPositions = filteredInsights.map((_, i) => 
+      i === currentInsightIndex ? "" : 
+      (i < currentInsightIndex ? "slide-up" : "slide-down")
+    );
+    setInsightPositions(newPositions);
+  }, [currentInsightIndex, filteredInsights]);
+
+  useEffect(() => {
     if (showingInfluencer && selectedInfluencer) {
       const influencerFromInsights = insights.find(i => i.influencer.id === selectedInfluencer.id);
       if (influencerFromInsights) {
@@ -118,16 +148,10 @@ const Index = () => {
     }
   }, [showingInfluencer, insights, selectedInfluencer]);
 
-  useEffect(() => {
-    // Initialize positions
-    const positions = insights.map((_, i) => 
-      i === currentInsightIndex ? "" : (i < currentInsightIndex ? "slide-up" : "slide-down")
-    );
-    setInsightPositions(positions);
-  }, [insights, currentInsightIndex]);
-
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
+    localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
     localStorage.setItem("onboarded", "true");
+    setSelectedIndustries(selectedIndustries);
     setOnboarded(true);
     
     toast({
@@ -136,15 +160,53 @@ const Index = () => {
     });
   };
   
-  const handleSaveInsight = (id: string) => {
-    setInsights(insights.map(insight => {
+const handleSaveInsight = (id: string) => {
+  setInsights(prevInsights => {
+    const updatedInsights = prevInsights.map(insight => {
       if (insight.id === id) {
         return { ...insight, isSaved: !insight.isSaved };
       }
       return insight;
-    }));
-  };
-  
+    });
+
+    // Get current saved insights from localStorage
+    const currentSaved = JSON.parse(localStorage.getItem("savedInsights") || "[]");
+    
+    // Find the insight being toggled
+    const insightToToggle = updatedInsights.find(i => i.id === id);
+    
+    let updatedSaved;
+    if (insightToToggle?.isSaved) {
+      // Add to saved if it's being saved
+      updatedSaved = [...currentSaved, insightToToggle];
+    } else {
+      // Remove from saved if it's being unsaved
+      updatedSaved = currentSaved.filter((i: Insight) => i.id !== id);
+    }
+
+    // Filter out duplicates
+    const uniqueSaved = updatedSaved.filter(
+      (v: Insight, i: number, a: Insight[]) => 
+        a.findIndex(t => t.id === v.id) === i
+    );
+
+    // Update saved insights in localStorage
+    localStorage.setItem("savedInsights", JSON.stringify(uniqueSaved));
+    localStorage.setItem("insights", JSON.stringify(updatedInsights));
+
+    return updatedInsights;
+  });
+
+  const isSaved = insights.find(i => i.id === id)?.isSaved;
+  toast({
+    title: isSaved ? "Removed from saved" : "Insight saved",
+    description: isSaved 
+      ? "Removed from your saved items" 
+      : "You can find it in your saved items",
+  });
+};
+
+
   const handleLikeInsight = (id: string) => {
     setInsights(insights.map(insight => {
       if (insight.id === id) {
@@ -202,10 +264,10 @@ const Index = () => {
       profileImage: insight.influencer.profileImage,
       bio: `Content creator on ${insight.influencer.name}`,
       industry: insight.industry,
-      followerCount: Math.floor(Math.random() * 1000000), // Random follower count for demo
-      engagementScore: parseFloat((Math.random() * 5 + 5).toFixed(1)), // Random score 5.0-9.9
+      followerCount: Math.floor(Math.random() * 1000000),
+      engagementScore: parseFloat((Math.random() * 5 + 5).toFixed(1)),
       isFollowed: insight.influencer.isFollowed,
-      recentInsights: influencerInsights.slice(0, 3) // Show up to 3 recent insights
+      recentInsights: influencerInsights.slice(0, 3)
     });
     
     setShowingInfluencer(true);
@@ -216,12 +278,11 @@ const Index = () => {
   };
 
   const handleSourceClick = (url: string) => {
-    // Open the source URL in a new tab
     window.open(url, '_blank');
   };
   
   const navigateToNextInsight = () => {
-    if (currentInsightIndex < insights.length - 1 && !isAnimating) {
+    if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
       setIsAnimating(true);
       
       const newPositions = [...insightPositions];
@@ -232,6 +293,11 @@ const Index = () => {
         setCurrentInsightIndex(currentInsightIndex + 1);
         setIsAnimating(false);
       }, 300);
+    } else if (currentInsightIndex === filteredInsights.length - 1) {
+      toast({
+        title: "No more insights",
+        description: "You've reached the end of your feed",
+      });
     }
   };
   
@@ -251,17 +317,17 @@ const Index = () => {
   };
 
   const navigateToInfluencerProfile = () => {
-    if (!isAnimating && insights.length > 0) {
+    if (!isAnimating && filteredInsights.length > 0) {
       setIsAnimating(true);
-      handleInfluencerClick(insights[currentInsightIndex].influencer.id);
+      handleInfluencerClick(filteredInsights[currentInsightIndex].influencer.id);
       setIsAnimating(false);
     }
   };
 
   const navigateToSourceUrl = () => {
-    if (!isAnimating && insights.length > 0) {
+    if (!isAnimating && filteredInsights.length > 0) {
       setIsAnimating(true);
-      const insight = insights[currentInsightIndex];
+      const insight = filteredInsights[currentInsightIndex];
       if (insight.sourceUrl) {
         handleSourceClick(insight.sourceUrl);
       }
@@ -281,11 +347,9 @@ const Index = () => {
     setTouchMoveY(e.targetTouches[0].clientY);
     setTouchMoveX(e.targetTouches[0].clientX);
     
-    // Determine the primary direction of the swipe
     const verticalDistance = Math.abs(touchMoveY - touchStartY);
     const horizontalDistance = Math.abs(touchMoveX - touchStartX);
     
-    // If it's more horizontal than vertical and exceeds threshold
     if (horizontalDistance > verticalDistance && horizontalDistance > 30) {
       setIsHorizontalSwipe(true);
     }
@@ -296,18 +360,14 @@ const Index = () => {
     const horizontalSwipeDistance = touchStartX - touchMoveX;
     
     if (isHorizontalSwipe) {
-      // Process horizontal swipe
       if (Math.abs(horizontalSwipeDistance) > 100) {
         if (horizontalSwipeDistance > 0) {
-          // Swiped left - go to influencer profile
           navigateToInfluencerProfile();
         } else {
-          // Swiped right - go to source URL
           navigateToSourceUrl();
         }
       }
     } else {
-      // Process vertical swipe
       if (Math.abs(verticalSwipeDistance) > 100) {
         if (verticalSwipeDistance > 0) {
           navigateToNextInsight();
@@ -335,11 +395,23 @@ const Index = () => {
     );
   }
 
-  if (insights.length === 0) {
+  if (filteredInsights.length === 0) {
     return (
       <div className="h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-primary">No insights available at the moment.</p>
+        <div className="text-center p-4">
+          <p className="text-primary mb-4">
+            {insights.length === 0 
+              ? "No insights available at the moment." 
+              : "No insights match your selected industries."}
+          </p>
+          {insights.length > 0 && (
+            <Button 
+              onClick={() => navigate("/profile")}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Update Interests
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -356,7 +428,7 @@ const Index = () => {
           onClick={() => setShowNavbar(!showNavbar)}
           ref={swipeContainerRef}
         >
-          {insights.map((insight, index) => (
+          {filteredInsights.map((insight, index) => (
             <InsightCard 
               key={insight.id}
               insight={insight}
@@ -367,6 +439,7 @@ const Index = () => {
               onInfluencerClick={handleInfluencerClick}
               onSourceClick={handleSourceClick}
               position={insightPositions[index] || ""}
+              userIndustries={selectedIndustries}
             />
           ))}
         </div>

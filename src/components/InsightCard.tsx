@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,27 @@ interface Influencer {
   profileImage: string;
   isFollowed: boolean;
 }
+
+const industryIcons: Record<string, string> = {
+  finance: "💰",
+  ai: "🤖",
+  healthcare: "🏥",
+  startups: "🚀",
+  business: "💼",
+  technology: "💻",
+  marketing: "📢",
+  design: "🎨",
+  general: "📰",
+  science: "🔬",
+  education: "🎓",
+  politics: "🏛️",
+  entertainment: "🎬"
+};
+
+const getIndustryIcon = (industry: string) => {
+  const lowerIndustry = industry.toLowerCase();
+  return industryIcons[lowerIndustry] || industryIcons['general'];
+};
 
 export interface Insight {
   id: string;
@@ -38,6 +58,7 @@ interface InsightCardProps {
   onInfluencerClick: (influencerId: string) => void;
   position: string;
   onSourceClick?: (url: string) => void;
+  userIndustries?: string[];
 }
 
 const PlatformIcon = ({ source }: { source: string }) => {
@@ -64,8 +85,12 @@ export const InsightCard = ({
   onInfluencerClick,
   position,
   onSourceClick,
+  userIndustries = [],
 }: InsightCardProps) => {
   const [isVisible, setIsVisible] = useState(true);
+  const isPreferredIndustry = userIndustries.some(industry => 
+    insight.industry.toLowerCase().includes(industry.toLowerCase())
+  );
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -122,35 +147,57 @@ export const InsightCard = ({
   return (
     <div 
       className={cn(
-        "insight-card w-full p-4 flex flex-col overflow-hidden",
+        "insight-card w-full p-4 flex flex-col overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow",
+        "border border-gray-200 dark:border-gray-800",
         position
       )}
     >
       <div className="flex-1 flex flex-col">
-        {/* Image Section - Top 30% */}
+        {/* Image Section */}
         <div className="relative mb-4 rounded-xl overflow-hidden">
-          <img
+           <img
             src={insight.image}
             alt={insight.title}
             className="insight-image rounded-xl"
           />
-          <span className="industry-tag">{insight.industry}</span>
           
+          {/* Industry Tag */}
+          <div className={cn(
+            "absolute top-2 left-2 flex items-center bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium",
+            "transition-colors duration-200",
+            isPreferredIndustry 
+              ? "border border-primary text-primary dark:text-primary-foreground" 
+              : "text-foreground"
+          )}>
+            <span className="mr-1">{getIndustryIcon(insight.industry)}</span>
+            {insight.industry}
+          </div>
+          
+          {/* Source Platform */}
           {insight.source && (
             <div 
-              className="platform-tag"
+              className={cn(
+                "absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full",
+                "cursor-pointer hover:bg-background transition-colors"
+              )}
               onClick={handleSourceClick}
             >
               <PlatformIcon source={insight.source} />
             </div>
           )}
+          
+         
         </div>
         
         {/* Title Section */}
-        <h2 className="text-2xl font-bold mb-2 leading-tight">{insight.title}</h2>
+        <h2 className="text-2xl font-bold mb-2 leading-tight text-gray-900 dark:text-white">
+          {insight.title}
+        </h2>
         
         {/* Summary Content */}
-        <p className="text-base text-gray-700 mb-6 flex-grow">{insight.summary}</p>
+        <p className="text-base text-gray-700 dark:text-gray-300 mb-6 flex-grow">
+          {insight.summary}
+        </p>
         
         {/* Metadata */}
         <div className="flex items-center justify-between mb-6">
@@ -162,30 +209,21 @@ export const InsightCard = ({
               <img
                 src={insight.influencer.profileImage}
                 alt={insight.influencer.name}
-                className="influencer-avatar mr-2"
+                className="w-8 h-8 rounded-full mr-2 object-cover"
               />
-              <span className="text-sm font-medium mr-2">{insight.influencer.name}</span>
+              <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white">
+                {insight.influencer.name}
+              </span>
             </div>
             
-            {!insight.influencer.isFollowed ? (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleFollowInfluencer}
-                className="text-xs h-7 px-2"
-              >
-                Follow
-              </Button>
-            ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleFollowInfluencer}
-                className="text-xs h-7 px-2 bg-muted/50"
-              >
-                Following
-              </Button>
-            )}
+            <Button 
+              variant={insight.influencer.isFollowed ? "default" : "outline"}
+              size="sm" 
+              onClick={handleFollowInfluencer}
+              className="text-xs h-7 px-2"
+            >
+              {insight.influencer.isFollowed ? "Following" : "Follow"}
+            </Button>
           </div>
           
           {timeAgo && (
@@ -196,35 +234,35 @@ export const InsightCard = ({
         {/* Interaction Buttons */}
         <div className="flex items-center space-x-4">
           <button 
-            className="interaction-btn" 
+            className="interaction-btn flex items-center gap-1 text-sm" 
             onClick={handleLike}
             aria-label="Like"
           >
             <Heart 
               className={cn("w-5 h-5", 
-                insight.isLiked ? "fill-red-500 text-red-500" : ""
+                insight.isLiked ? "fill-red-500 text-red-500" : "text-gray-500 dark:text-gray-400"
               )} 
             />
           </button>
           
           <button 
-            className="interaction-btn" 
+            className="interaction-btn flex items-center gap-1 text-sm" 
             onClick={handleSave}
             aria-label="Save"
           >
             <Save 
               className={cn("w-5 h-5", 
-                insight.isSaved ? "fill-primary text-primary" : ""
+                insight.isSaved ? "fill-primary text-primary" : "text-gray-500 dark:text-gray-400"
               )} 
             />
           </button>
           
           <button 
-            className="interaction-btn" 
+            className="interaction-btn flex items-center gap-1 text-sm" 
             onClick={handleShare}
             aria-label="Share"
           >
-            <Share className="w-5 h-5" />
+            <Share className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
       </div>

@@ -40,8 +40,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
   
   const handleComplete = () => {
-    onComplete(selectedIndustries);
-  };
+  localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
+  onComplete(selectedIndustries);
+};
   
   return (
     <div className="min-h-screen flex flex-col p-6">

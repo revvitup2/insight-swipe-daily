@@ -19,7 +19,16 @@ const industries = [
 ];
 
 const Profile = () => {
-  const [userIndustries, setUserIndustries] = useState(industries);
+   const [userIndustries, setUserIndustries] = useState(() => {
+    const stored = localStorage.getItem("selectedIndustries");
+    return stored 
+      ? industries.map(i => ({
+          id: i.id,
+          name: i.name,
+          selected: JSON.parse(stored).includes(i.id)
+        }))
+      : industries.map(i => ({ ...i, selected: false }));
+  });
   const [notifications, setNotifications] = useState({
     dailyDigest: true,
     newInsights: true,
@@ -67,6 +76,9 @@ const Profile = () => {
   };
   
   const handleSaveChanges = () => {
+    const selected = userIndustries.filter(i => i.selected).map(i => i.id);
+    localStorage.setItem("selectedIndustries", JSON.stringify(selected));
+    
     toast({
       title: "Settings saved",
       description: "Your profile settings have been updated",
