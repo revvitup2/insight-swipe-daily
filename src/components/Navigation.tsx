@@ -3,7 +3,7 @@ import { Home, Bookmark, Search, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { APP_NAME } from "@/constants/constants";
+import { APP_NAME, APP_LOGO } from "@/constants/constants";
 
 export const Navigation = () => {
   const location = useLocation();

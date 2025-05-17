@@ -520,7 +520,13 @@ const Index = () => {
         selectedInfluencer && (
           <div onTouchStart={handleTouchStart} 
                onTouchMove={handleTouchMove} 
-               onTouchEnd={() => handleInfluencerProfileSwipe(touchStartX - touchMoveX > 100 ? 'left' : touchMoveX - touchStartX > 100 ? 'right' : 'none')}>
+               onTouchEnd={() => {
+                 const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
+                                      touchMoveX - touchStartX > 100 ? 'right' : null;
+                 if (swipeDirection) {
+                   handleInfluencerProfileSwipe(swipeDirection);
+                 }
+               }}>
             <InfluencerProfile 
               influencer={selectedInfluencer}
               onFollowToggle={handleFollowInfluencer}

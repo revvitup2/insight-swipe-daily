@@ -57,12 +57,12 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        influendoze: {
-          blue: '#1A365D',
-          teal: '#0D9488',
-          violet: '#8B5CF6',
-          lightgray: '#FAFAFA',
-          darkgray: '#1F2937',
+        byteme: {
+          purple: '#9b87f5',
+          darkPurple: '#7E69AB',
+          deepPurple: '#6E59A5',
+          darkBg: '#1A1F2C',
+          lightPurple: '#D6BCFA',
         },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',

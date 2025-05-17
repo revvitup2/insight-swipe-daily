@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
+import { APP_LOGO } from "@/constants/constants";
 
 interface Influencer {
   id: string;
@@ -90,6 +91,19 @@ export const InsightCard = ({
 }: InsightCardProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [needsReadMore, setNeedsReadMore] = useState(false);
+  
+  // Check if content is too long and needs "read more" button
+  useEffect(() => {
+    if (contentRef.current) {
+      const contentHeight = contentRef.current.scrollHeight;
+      const lineHeight = parseInt(window.getComputedStyle(contentRef.current).lineHeight);
+      // If content is more than 5 lines, show read more button
+      setNeedsReadMore(contentHeight > lineHeight * 5);
+    }
+  }, [insight.summary]);
+  
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
   );
@@ -148,7 +162,7 @@ export const InsightCard = ({
   };
 
   const timeAgo = insight.publishedAt 
-    ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: true })
+    ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
   return (
@@ -162,24 +176,26 @@ export const InsightCard = ({
       <div className="flex-1 flex flex-col">
         {/* Image Section */}
         <div className="relative mb-4 rounded-xl overflow-hidden">
-           <img
+          <img
             src={insight.image}
             alt={insight.title}
             className="insight-image rounded-xl"
           />
           
-          {/* ByteMe Brand Watermark */}
-          <div className="absolute top-2 left-2 flex items-center bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-primary">
-            ByteMe
+          {/* ByteMe Brand Watermark - Modern subtle branding */}
+          <div className="absolute bottom-0 right-0 flex items-center">
+            <div className="w-8 h-8 opacity-70">
+              <img src={APP_LOGO} alt="ByteMe" className="w-full h-full" />
+            </div>
           </div>
           
-          {/* Industry Tag - Updated to subtle black background */}
+          {/* Industry Tag - Subtle black background */}
           <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
             <span className="mr-1">{getIndustryIcon(insight.industry)}</span>
             {insight.industry}
           </div>
           
-          {/* Source Platform - Updated to subtle black background */}
+          {/* Source Platform - Subtle black background */}
           {insight.source && (
             <div 
               className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
@@ -191,19 +207,19 @@ export const InsightCard = ({
         </div>
         
         {/* Title Section - Reduced font size */}
-        <h2 className="text-xl font-bold mb-2 leading-tight text-gray-900 dark:text-white">
+        <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white">
           {insight.title}
         </h2>
         
-        {/* Summary Content with expandable option */}
-        <div className="relative mb-6">
+        {/* Summary Content with expandable option only if needed */}
+        <div className="relative mb-6 flex-1 overflow-y-auto" ref={contentRef}>
           <p className={cn(
             "text-base text-gray-700 dark:text-gray-300",
-            isExpanded ? "" : "line-clamp-3"
+            !isExpanded && needsReadMore ? "line-clamp-5" : ""
           )}>
             {insight.summary}
           </p>
-          {insight.summary.length > 120 && (
+          {needsReadMore && (
             <button 
               onClick={toggleExpanded} 
               className="text-primary text-sm mt-1 font-medium"
