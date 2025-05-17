@@ -273,12 +273,78 @@ const Index = () => {
   };
   
   const handleShareInsight = (id: string) => {
-    toast({
-      title: "Sharing options",
-      description: "Sharing functionality would open here",
-    });
+  const insight = insights.find(i => i.id === id);
+  if (!insight) return;
+
+  const shareData = {
+    title: insight.title,
+    text: insight.summary.substring(0, 100) + '...', // First 100 chars of summary
+    url: insight.sourceUrl || window.location.href,
   };
-  
+
+  // Check if Web Share API is available (mobile devices)
+  if (navigator.share) {
+    navigator.share(shareData)
+      .then(() => {
+        toast({
+          title: "Shared successfully",
+          description: "Thanks for sharing this insight!",
+        });
+      })
+      .catch((error) => {
+        console.error('Error sharing:', error);
+        toast({
+          title: "Error",
+          description: "Couldn't share the insight",
+          variant: "destructive",
+        });
+      });
+  } else {
+    // Fallback for desktop browsers
+    toast({
+      title: "Share this insight",
+      description: (
+        <div className="flex flex-col space-y-2">
+          <p>{insight.title}</p>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(insight.title)}&url=${encodeURIComponent(shareData.url)}`, '_blank');
+              }}
+            >
+              Twitter
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareData.url)}`, '_blank');
+              }}
+            >
+              LinkedIn
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(`${insight.title} - ${shareData.url}`);
+                toast({
+                  title: "Copied to clipboard",
+                  description: "You can now paste the link anywhere",
+                });
+              }}
+            >
+              Copy Link
+            </Button>
+          </div>
+        </div>
+      ),
+    });
+  }
+};
+
   const handleFollowInfluencer = (influencerId: string) => {
     setInsights(insights.map(insight => {
       if (insight.influencer.id === influencerId) {

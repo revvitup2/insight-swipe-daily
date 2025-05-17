@@ -87,7 +87,7 @@ const Profile = () => {
   
   const handleLogout = () => {
     // In a real app, we would log out the user
-    localStorage.removeItem("onboarded");
+      localStorage.clear();
     navigate("/");
     window.location.reload();
   };
