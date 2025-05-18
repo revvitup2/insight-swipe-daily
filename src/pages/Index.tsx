@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -12,7 +11,7 @@ import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SwipeContainer from "@/components/SwipeContainer";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { isMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ApiInsight {
   influencer_id: string;
@@ -79,7 +78,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
-  const isMobileView = isMobile();
+  const isMobileView = useIsMobile();
   
   const navigate = useNavigate();
 
