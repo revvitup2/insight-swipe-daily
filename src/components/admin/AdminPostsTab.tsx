@@ -79,8 +79,9 @@ export const AdminPostsTab = () => {
                          post.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.influencer.name.toLowerCase().includes(searchQuery.toLowerCase());
                          
-    const matchesCategory = filterCategory ? post.industry.toLowerCase() === filterCategory.toLowerCase() : true;
-    
+    const matchesCategory = filterCategory === "all" || !filterCategory 
+  ? true 
+  : post.industry.toLowerCase() === filterCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
   
@@ -105,7 +106,7 @@ export const AdminPostsTab = () => {
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Categories</SelectItem>
+            <SelectItem value="all">All Categories</SelectItem>
             {categories.map(category => (
               <SelectItem key={category} value={category.toLowerCase()}>
                 {category}
