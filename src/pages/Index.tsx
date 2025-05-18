@@ -476,9 +476,7 @@ const Index = () => {
     setIsHorizontalSwipe(false);
     
     // Hide navbar on touch start for mobile
-    if (isMobileView) {
-      setShowNavbar(false);
-    }
+    setShowNavbar(false);
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -564,75 +562,22 @@ const Index = () => {
       
       {!showingInfluencer ? (
         <div className="relative h-full flex flex-col">
-          {/* Mobile View - Swipe Container */}
-          {isMobileView ? (
-            <SwipeContainer
-              insights={filteredInsights}
-              positions={insightPositions}
-              onSave={handleSaveInsight}
-              onLike={handleLikeInsight}
-              onShare={handleShareInsight}
-              onFollowInfluencer={handleFollowInfluencer}
-              onInfluencerClick={handleInfluencerClick}
-              onSourceClick={handleSourceClick}
-              userIndustries={selectedIndustries}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onClick={() => setShowNavbar(!showNavbar)}
-              ref={swipeContainerRef}
-            />
-          ) : (
-            /* Desktop View - Stacked Insights with Navigation Arrows */
-            <div className="container mx-auto py-8 px-4 flex flex-col items-center">
-              <div className="w-full max-w-2xl">
-                {filteredInsights.map((insight, index) => (
-                  <div 
-                    key={insight.id}
-                    className={`mb-8 transition-opacity duration-500 ${
-                      index === currentInsightIndex ? 'opacity-100' : 'hidden'
-                    }`}
-                  >
-                    <InsightCard
-                      insight={insight}
-                      onSave={handleSaveInsight}
-                      onLike={handleLikeInsight}
-                      onShare={handleShareInsight}
-                      onFollowInfluencer={handleFollowInfluencer}
-                      onInfluencerClick={handleInfluencerClick}
-                      onSourceClick={handleSourceClick}
-                      position=""
-                      userIndustries={selectedIndustries}
-                    />
-                  </div>
-                ))}
-                
-                <div className="flex justify-center space-x-4 mt-4">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={navigateToPreviousInsight}
-                    disabled={currentInsightIndex === 0 || isAnimating}
-                    className="rounded-full"
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <span className="px-2 py-1 bg-gray-100 rounded-md text-sm">
-                    {currentInsightIndex + 1} / {filteredInsights.length}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={navigateToNextInsight}
-                    disabled={currentInsightIndex === filteredInsights.length - 1 || isAnimating}
-                    className="rounded-full"
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          <SwipeContainer
+            insights={filteredInsights}
+            positions={insightPositions}
+            onSave={handleSaveInsight}
+            onLike={handleLikeInsight}
+            onShare={handleShareInsight}
+            onFollowInfluencer={handleFollowInfluencer}
+            onInfluencerClick={handleInfluencerClick}
+            onSourceClick={handleSourceClick}
+            userIndustries={selectedIndustries}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onClick={() => setShowNavbar(!showNavbar)}
+            ref={swipeContainerRef}
+          />
         </div>
       ) : (
         selectedInfluencer && (
@@ -659,12 +604,10 @@ const Index = () => {
         )
       )}
       
-      {/* Only render Navigation component on mobile and control its visibility */}
-      {isMobileView && (
-        <div style={{ opacity: showNavbar ? 1 : 0 }} className="transition-opacity duration-300">
-          <Navigation />
-        </div>
-      )}
+      {/* Navigation component with visibility control */}
+      <div style={{ opacity: showNavbar ? 1 : 0 }} className="transition-opacity duration-300">
+        <Navigation />
+      </div>
     </div>
   );
 };
