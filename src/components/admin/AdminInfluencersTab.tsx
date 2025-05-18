@@ -5,25 +5,62 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Search, Plus, Loader2 } from "lucide-react";
+import { Search, Plus, Loader2, Trash2, Pencil } from "lucide-react";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface InfluencerSubmission {
+  id: string;
   platform: string;
   url: string;
+  channelId: string;
+  industry: string;
+  industryType: string;
 }
 
 export const AdminInfluencersTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [platform, setPlatform] = useState<string>("youtube");
   const [profileUrl, setProfileUrl] = useState("");
+  const [channelId, setChannelId] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [industryType, setIndustryType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recentAdditions, setRecentAdditions] = useState<InfluencerSubmission[]>([]);
+  const [deleteInfluencerId, setDeleteInfluencerId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingInfluencer, setEditingInfluencer] = useState<InfluencerSubmission | null>(null);
   
   const handleAddInfluencer = () => {
     if (!profileUrl) {
       toast({
         title: "Missing profile URL",
         description: "Please enter a profile URL",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!channelId) {
+      toast({
+        title: "Missing channel ID",
+        description: "Please enter a channel ID",
         variant: "destructive"
       });
       return;
@@ -61,19 +98,67 @@ export const AdminInfluencersTab = () => {
     
     // Simulate API call
     setTimeout(() => {
+      const newInfluencer: InfluencerSubmission = {
+        id: Math.random().toString(36).substring(2, 9),
+        platform,
+        url: profileUrl,
+        channelId,
+        industry,
+        industryType
+      };
+      
       toast({
         title: "Influencer added",
         description: "The influencer has been added for content processing",
       });
       
       setRecentAdditions([
-        { platform, url: profileUrl },
+        newInfluencer,
         ...recentAdditions
       ]);
       
       setProfileUrl("");
+      setChannelId("");
+      setIndustry("");
+      setIndustryType("");
       setIsSubmitting(false);
     }, 1500);
+  };
+  
+  const handleConfirmDelete = (id: string) => {
+    setDeleteInfluencerId(id);
+  };
+
+  const handleDeleteInfluencer = () => {
+    if (deleteInfluencerId) {
+      setRecentAdditions(recentAdditions.filter(item => item.id !== deleteInfluencerId));
+      toast({
+        title: "Influencer deleted",
+        description: "The influencer has been removed",
+      });
+      setDeleteInfluencerId(null);
+    }
+  };
+  
+  const handleEditInfluencer = (influencer: InfluencerSubmission) => {
+    setEditingInfluencer({...influencer});
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingInfluencer) {
+      setRecentAdditions(recentAdditions.map(item => 
+        item.id === editingInfluencer.id ? editingInfluencer : item
+      ));
+      
+      toast({
+        title: "Influencer updated",
+        description: "Changes have been saved",
+      });
+      
+      setIsEditDialogOpen(false);
+      setEditingInfluencer(null);
+    }
   };
   
   return (
@@ -82,23 +167,35 @@ export const AdminInfluencersTab = () => {
         <CardHeader>
           <CardTitle>Add New Influencer</CardTitle>
           <CardDescription>
-            Add influencers by entering their social media profile URL
+            Add influencers by entering their social media profile URL and details
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
-            <div>
-              <label className="text-sm font-medium">Platform</label>
-              <Select value={platform} onValueChange={setPlatform}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="youtube">YouTube</SelectItem>
-                  <SelectItem value="twitter">Twitter</SelectItem>
-                  <SelectItem value="linkedin">LinkedIn</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Platform</label>
+                <Select value={platform} onValueChange={setPlatform}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="twitter">Twitter</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Channel ID</label>
+                <Input
+                  value={channelId}
+                  onChange={(e) => setChannelId(e.target.value)}
+                  placeholder="Channel or account ID"
+                  className="mt-1"
+                />
+              </div>
             </div>
             
             <div>
@@ -109,6 +206,28 @@ export const AdminInfluencersTab = () => {
                 placeholder="https://youtube.com/channel/..."
                 className="mt-1"
               />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Industry</label>
+                <Input
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  placeholder="Technology, Finance, etc."
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Industry Type</label>
+                <Input
+                  value={industryType}
+                  onChange={(e) => setIndustryType(e.target.value)}
+                  placeholder="B2B, B2C, etc."
+                  className="mt-1"
+                />
+              </div>
             </div>
             
             <Button 
@@ -155,11 +274,15 @@ export const AdminInfluencersTab = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {recentAdditions
-              .filter(item => item.url.toLowerCase().includes(searchQuery.toLowerCase()))
-              .map((item, index) => (
-                <Card key={index}>
+              .filter(item => 
+                item.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.channelId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.industry.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((item) => (
+                <Card key={item.id}>
                   <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                       <div>
                         <div className="font-medium mb-1">
                           {item.platform === "youtube" 
@@ -168,18 +291,39 @@ export const AdminInfluencersTab = () => {
                               ? "Twitter Profile"
                               : "LinkedIn Profile"}
                         </div>
-                        <div className="text-sm text-muted-foreground break-all">
+                        <div className="text-sm text-muted-foreground break-all mb-2">
                           {item.url}
                         </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="font-semibold">Channel ID:</span> {item.channelId}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Industry:</span> {item.industry}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Type:</span> {item.industryType}
+                          </div>
+                        </div>
                       </div>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        item.platform === "youtube" 
-                          ? "bg-red-100 text-red-800" 
-                          : item.platform === "twitter"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-blue-100 text-blue-800"
-                      }`}>
-                        {item.platform}
+                      <div className="flex flex-col space-y-2">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.platform === "youtube" 
+                            ? "bg-red-100 text-red-800" 
+                            : item.platform === "twitter"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-blue-100 text-blue-800"
+                        }`}>
+                          {item.platform}
+                        </div>
+                        <div className="flex space-x-1">
+                          <Button size="sm" variant="ghost" onClick={() => handleEditInfluencer(item)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleConfirmDelete(item.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -188,6 +332,96 @@ export const AdminInfluencersTab = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteInfluencerId} onOpenChange={(open) => !open && setDeleteInfluencerId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this influencer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the influencer and associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteInfluencer}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Influencer Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Influencer</DialogTitle>
+            <DialogDescription>
+              Make changes to the influencer details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingInfluencer && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Platform</label>
+                  <Select 
+                    value={editingInfluencer.platform} 
+                    onValueChange={(value) => setEditingInfluencer({...editingInfluencer, platform: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="youtube">YouTube</SelectItem>
+                      <SelectItem value="twitter">Twitter</SelectItem>
+                      <SelectItem value="linkedin">LinkedIn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Channel ID</label>
+                  <Input
+                    value={editingInfluencer.channelId}
+                    onChange={(e) => setEditingInfluencer({...editingInfluencer, channelId: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Profile URL</label>
+                <Input
+                  value={editingInfluencer.url}
+                  onChange={(e) => setEditingInfluencer({...editingInfluencer, url: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Industry</label>
+                  <Input
+                    value={editingInfluencer.industry}
+                    onChange={(e) => setEditingInfluencer({...editingInfluencer, industry: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Industry Type</label>
+                  <Input
+                    value={editingInfluencer.industryType}
+                    onChange={(e) => setEditingInfluencer({...editingInfluencer, industryType: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

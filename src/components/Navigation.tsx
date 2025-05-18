@@ -62,4 +62,5 @@ export const Navigation = () => {
   );
 };
 
+// Modified this export to allow import by name
 export default Navigation;

@@ -7,12 +7,34 @@ import { Insight } from "@/components/InsightCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export const AdminPostsTab = () => {
   const [posts, setPosts] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("");
+  const [deletePostId, setDeletePostId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Insight | null>(null);
 
   useEffect(() => {
     // In a real app, this would fetch from your actual API
@@ -45,7 +67,7 @@ export const AdminPostsTab = () => {
         setPosts(formattedInsights);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching insights:", error);
+        console.error("Error fetching bites:", error);
         toast({
           title: "Error",
           description: "Failed to fetch posts",
@@ -58,20 +80,40 @@ export const AdminPostsTab = () => {
     fetchInsights();
   }, []);
   
-  const handleDeletePost = (id: string) => {
-    toast({
-      title: "Post deleted",
-      description: "The post has been removed from the database",
-    });
-    setPosts(posts.filter(post => post.id !== id));
+  const handleConfirmDelete = (id: string) => {
+    setDeletePostId(id);
+  };
+
+  const handleDeletePost = () => {
+    if (deletePostId) {
+      setPosts(posts.filter(post => post.id !== deletePostId));
+      toast({
+        title: "Post deleted",
+        description: "The post has been removed from the database",
+      });
+      setDeletePostId(null);
+    }
   };
   
-  const handleEditPost = (id: string) => {
-    // In a real app, this would open an edit form
-    toast({
-      title: "Edit post",
-      description: "Edit functionality would open here",
-    });
+  const handleEditPost = (post: Insight) => {
+    setEditingPost({...post});
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingPost) {
+      setPosts(posts.map(post => 
+        post.id === editingPost.id ? editingPost : post
+      ));
+      
+      toast({
+        title: "Post updated",
+        description: "Changes have been saved",
+      });
+      
+      setIsEditDialogOpen(false);
+      setEditingPost(null);
+    }
   };
 
   const filteredPosts = posts.filter(post => {
@@ -80,8 +122,8 @@ export const AdminPostsTab = () => {
                          post.influencer.name.toLowerCase().includes(searchQuery.toLowerCase());
                          
     const matchesCategory = filterCategory === "all" || !filterCategory 
-  ? true 
-  : post.industry.toLowerCase() === filterCategory.toLowerCase();
+      ? true 
+      : post.industry.toLowerCase() === filterCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
   
@@ -175,7 +217,7 @@ export const AdminPostsTab = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleEditPost(post.id)}
+                          onClick={() => handleEditPost(post)}
                         >
                           <Pencil className="h-4 w-4 mr-1" /> Edit
                         </Button>
@@ -183,7 +225,7 @@ export const AdminPostsTab = () => {
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          onClick={() => handleDeletePost(post.id)}
+                          onClick={() => handleConfirmDelete(post.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-1" /> Delete
                         </Button>
@@ -196,6 +238,85 @@ export const AdminPostsTab = () => {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletePostId} onOpenChange={(open) => !open && setDeletePostId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the post from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePost}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Post Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+            <DialogDescription>
+              Make changes to the post details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingPost && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="title" className="text-sm font-medium">Title</label>
+                <Input 
+                  id="title"
+                  value={editingPost.title}
+                  onChange={(e) => setEditingPost({...editingPost, title: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="summary" className="text-sm font-medium">Summary</label>
+                <Textarea
+                  id="summary"
+                  value={editingPost.summary}
+                  onChange={(e) => setEditingPost({...editingPost, summary: e.target.value})}
+                  rows={5}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="image" className="text-sm font-medium">Image URL</label>
+                <Input
+                  id="image"
+                  value={editingPost.image}
+                  onChange={(e) => setEditingPost({...editingPost, image: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="w-full h-32 rounded overflow-hidden">
+                  <img 
+                    src={editingPost.image} 
+                    alt="Post preview" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://via.placeholder.com/800x450?text=Image+Preview";
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

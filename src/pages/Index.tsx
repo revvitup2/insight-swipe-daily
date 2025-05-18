@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -9,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import SwipeContainer from "@/components/SwipeContainer";
+import { ArrowUp, ArrowDown } from "lucide-react";
+import { isMobile } from "@/hooks/use-mobile";
 
 interface ApiInsight {
   influencer_id: string;
@@ -75,6 +79,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
+  const isMobileView = isMobile();
   
   const navigate = useNavigate();
 
@@ -139,10 +144,10 @@ const Index = () => {
         setInsights(formattedInsights);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching insights:", error);
+        console.error("Error fetching bites:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch insights. Please try again later.",
+          description: "Failed to fetch bites. Please try again later.",
           variant: "destructive"
         });
         setIsLoading(false);
@@ -216,12 +221,12 @@ const Index = () => {
         return insight;
       });
 
-      // Get current saved insights data from localStorage
+      // Get current saved bites data from localStorage
       const savedData: SavedInsightsData = JSON.parse(
         localStorage.getItem("savedInsights") || '{"versions":{}}'
       );
 
-      // Find the insight being toggled
+      // Find the bite being toggled
       const insightToToggle = updatedInsights.find(i => i.id === id);
       
       if (insightToToggle) {
@@ -231,7 +236,7 @@ const Index = () => {
         }
         
         if (insightToToggle.isSaved) {
-          // Add to current version's saved insights
+          // Add to current version's saved bites
           const versionInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
           savedData.versions[CURRENT_INSIGHT_VERSION] = [
             ...versionInsights.filter(i => i.id !== id), // Remove if already exists
@@ -246,7 +251,7 @@ const Index = () => {
               .filter(i => i.id !== id);
         }
 
-        // Update saved insights in localStorage
+        // Update saved bites in localStorage
         localStorage.setItem("savedInsights", JSON.stringify(savedData));
         localStorage.setItem("insights", JSON.stringify(updatedInsights));
       }
@@ -288,21 +293,21 @@ const Index = () => {
       .then(() => {
         toast({
           title: "Shared successfully",
-          description: "Thanks for sharing this insight!",
+          description: "Thanks for sharing this bite!",
         });
       })
       .catch((error) => {
         console.error('Error sharing:', error);
         toast({
           title: "Error",
-          description: "Couldn't share the insight",
+          description: "Couldn't share the bite",
           variant: "destructive",
         });
       });
   } else {
     // Fallback for desktop browsers
     toast({
-      title: "Share this insight",
+      title: "Share this bite",
       description: (
         <div className="flex flex-col space-y-2">
           <p>{insight.title}</p>
@@ -424,7 +429,7 @@ const Index = () => {
       }, 300);
     } else if (currentInsightIndex === filteredInsights.length - 1) {
       toast({
-        title: "No more insights",
+        title: "No more bites",
         description: "You've reached the end of your feed",
       });
     }
@@ -470,6 +475,11 @@ const Index = () => {
     setTouchStartX(e.targetTouches[0].clientX);
     setTouchMoveX(e.targetTouches[0].clientX);
     setIsHorizontalSwipe(false);
+    
+    // Hide navbar on touch start for mobile
+    if (isMobileView) {
+      setShowNavbar(false);
+    }
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -504,6 +514,7 @@ const Index = () => {
           navigateToPreviousInsight();
         }
       } else {
+        // Toggle navbar visibility on tap
         setShowNavbar(!showNavbar);
       }
     }
@@ -523,7 +534,7 @@ const Index = () => {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading insights..." />;
+    return <LoadingSpinner message="Loading bites..." />;
   }
 
   if (filteredInsights.length === 0) {
@@ -532,8 +543,8 @@ const Index = () => {
         <div className="text-center p-4">
           <p className="text-primary mb-4">
             {insights.length === 0 
-              ? "No insights available at the moment." 
-              : "No insights match your selected industries."}
+              ? "No bites available at the moment." 
+              : "No bites match your selected industries."}
           </p>
           {insights.length > 0 && (
             <Button 
@@ -553,28 +564,76 @@ const Index = () => {
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
       
       {!showingInfluencer ? (
-        <div 
-          className="swipe-container"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onClick={() => setShowNavbar(!showNavbar)}
-          ref={swipeContainerRef}
-        >
-          {filteredInsights.map((insight, index) => (
-            <InsightCard 
-              key={insight.id}
-              insight={insight}
+        <div className="relative h-full flex flex-col">
+          {/* Mobile View - Swipe Container */}
+          {isMobileView ? (
+            <SwipeContainer
+              insights={filteredInsights}
+              positions={insightPositions}
               onSave={handleSaveInsight}
               onLike={handleLikeInsight}
               onShare={handleShareInsight}
               onFollowInfluencer={handleFollowInfluencer}
               onInfluencerClick={handleInfluencerClick}
               onSourceClick={handleSourceClick}
-              position={insightPositions[index] || ""}
               userIndustries={selectedIndustries}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={() => setShowNavbar(!showNavbar)}
+              ref={swipeContainerRef}
             />
-          ))}
+          ) : (
+            /* Desktop View - Stacked Insights with Navigation Arrows */
+            <div className="container mx-auto py-8 px-4 flex flex-col items-center">
+              <div className="w-full max-w-2xl">
+                {filteredInsights.map((insight, index) => (
+                  <div 
+                    key={insight.id}
+                    className={`mb-8 transition-opacity duration-500 ${
+                      index === currentInsightIndex ? 'opacity-100' : 'hidden'
+                    }`}
+                  >
+                    <InsightCard
+                      insight={insight}
+                      onSave={handleSaveInsight}
+                      onLike={handleLikeInsight}
+                      onShare={handleShareInsight}
+                      onFollowInfluencer={handleFollowInfluencer}
+                      onInfluencerClick={handleInfluencerClick}
+                      onSourceClick={handleSourceClick}
+                      position=""
+                      userIndustries={selectedIndustries}
+                    />
+                  </div>
+                ))}
+                
+                <div className="flex justify-center space-x-4 mt-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={navigateToPreviousInsight}
+                    disabled={currentInsightIndex === 0 || isAnimating}
+                    className="rounded-full"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <span className="px-2 py-1 bg-gray-100 rounded-md text-sm">
+                    {currentInsightIndex + 1} / {filteredInsights.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={navigateToNextInsight}
+                    disabled={currentInsightIndex === filteredInsights.length - 1 || isAnimating}
+                    className="rounded-full"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         selectedInfluencer && (
@@ -601,7 +660,12 @@ const Index = () => {
         )
       )}
       
-      <Navigation />
+      {/* Only render Navigation component on mobile and control its visibility */}
+      {isMobileView && (
+        <div style={{ opacity: showNavbar ? 1 : 0 }} className="transition-opacity duration-300">
+          <Navigation />
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useContext } from 'react';
 import InsightCard, { Insight } from './InsightCard';
 
 interface SwipeContainerProps {
@@ -36,7 +36,7 @@ const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
   }, ref) => {
     return (
       <div 
-        className="swipe-container"
+        className="swipe-container h-full"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
