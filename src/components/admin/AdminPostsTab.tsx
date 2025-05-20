@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { fetchFeedItems, updateFeedItem,deleteFeedItem } from "@/lib/api";
 
 export const AdminPostsTab = () => {
   const [posts, setPosts] = useState<Insight[]>([]);
@@ -36,11 +37,13 @@ export const AdminPostsTab = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Insight | null>(null);
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     // In a real app, this would fetch from your actual API
     const fetchInsights = async () => {
       try {
-        const response = await fetch('https://influenedoze.weddingmoments.fun/feed');
+        const response = await fetch(`${API_BASE_URL}/feed`);
         const data = await response.json();
         
         const formattedInsights = data.map((item: any) => ({
@@ -84,24 +87,58 @@ export const AdminPostsTab = () => {
     setDeletePostId(id);
   };
 
-  const handleDeletePost = () => {
-    if (deletePostId) {
-      setPosts(posts.filter(post => post.id !== deletePostId));
-      toast({
-        title: "Post deleted",
-        description: "The post has been removed from the database",
-      });
-      setDeletePostId(null);
+// Update the handleDeletePost function
+const handleDeletePost = async () => {
+  if (!deletePostId) return;
+
+  try {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      throw new Error("No authentication token found");
     }
-  };
+    
+    await deleteFeedItem(token, deletePostId);
+    
+    setPosts(posts.filter(post => post.id !== deletePostId));
+    toast({
+      title: "Post deleted",
+      description: "The post has been successfully deleted",
+    });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    toast({
+      title: "Error",
+      description: "Failed to delete post",
+      variant: "destructive"
+    });
+  } finally {
+    setDeletePostId(null);
+  }
+};
   
   const handleEditPost = (post: Insight) => {
     setEditingPost({...post});
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = () => {
-    if (editingPost) {
+  const handleSaveEdit = async () => {
+    if (!editingPost) return;
+    
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+      
+      await updateFeedItem(token, editingPost.id, {
+        metadata: {
+          title: editingPost.title
+        },
+        analysis: {
+          summary: editingPost.summary
+        }
+      });
+      
       setPosts(posts.map(post => 
         post.id === editingPost.id ? editingPost : post
       ));
@@ -113,6 +150,13 @@ export const AdminPostsTab = () => {
       
       setIsEditDialogOpen(false);
       setEditingPost(null);
+    } catch (error) {
+      console.error("Error updating post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive"
+      });
     }
   };
 
@@ -286,7 +330,7 @@ export const AdminPostsTab = () => {
                 />
               </div>
               
-              <div className="grid gap-2">
+              {/* <div className="grid gap-2">
                 <label htmlFor="image" className="text-sm font-medium">Image URL</label>
                 <Input
                   id="image"
@@ -307,7 +351,7 @@ export const AdminPostsTab = () => {
                     }}
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
 

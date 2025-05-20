@@ -20,7 +20,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const isAuthenticated = localStorage.getItem("adminAuthenticated") === "true";
+const isAuthenticated = localStorage.getItem("adminToken") !== null && localStorage.getItem("adminToken") !== "";
   
   if (!isAuthenticated) {
     return <Navigate to="/admin" replace />;

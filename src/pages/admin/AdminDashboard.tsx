@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,12 +14,25 @@ const AdminDashboard = ({ activeTab = "posts" }: AdminDashboardProps) => {
   const [currentTab, setCurrentTab] = useState<string>(activeTab);
   const navigate = useNavigate();
   
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      navigate("/admin");
+    }
+  }, [navigate]);
+
   const handleLogout = () => {
-    localStorage.removeItem("adminAuthenticated");
+    localStorage.removeItem("adminToken");
     navigate("/admin");
   };
   
   const handleTabChange = (value: string) => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      navigate("/admin");
+      return;
+    }
     setCurrentTab(value);
     navigate(`/admin/${value}`);
   };

@@ -1,15 +1,11 @@
-
+// src/components/AdminLogin.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-
-// This would normally be handled securely on a backend
-// For demo purposes only, we use a hardcoded admin
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
+import { loginAdmin } from "@/lib/api";
 
 const AdminLogin = () => {
   const [username, setUsername] = useState("");
@@ -17,31 +13,33 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // In a real app, you'd handle this with secure authentication
-        localStorage.setItem("adminAuthenticated", "true");
-        navigate("/admin/dashboard");
-        toast({
-          title: "Login successful",
-          description: "Welcome to the admin dashboard",
-        });
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid username or password",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
-  };
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
   
+  try {
+    const { access_token } = await loginAdmin(username, password);
+    console.log('Received token:', access_token); // Debug log
+    
+    localStorage.setItem("adminToken", access_token);
+    console.log('Token stored:', localStorage.getItem("adminToken")); // Debug log
+    
+    navigate("/admin/dashboard");
+    toast({
+      title: "Login successful",
+      description: "Welcome to the admin dashboard",
+    });
+  } catch (error) {
+    console.error('Login error:', error); // Debug log
+    toast({
+      title: "Login failed",
+      description: "Invalid username or password",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-[350px]">
@@ -62,7 +60,7 @@ const AdminLogin = () => {
               </label>
               <Input
                 id="username"
-                placeholder="admin"
+                placeholder="admin@example.com"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required

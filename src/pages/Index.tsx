@@ -9,9 +9,6 @@ import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import SwipeContainer from "@/components/SwipeContainer";
-import { ArrowUp, ArrowDown } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ApiInsight {
   influencer_id: string;
@@ -78,7 +75,6 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
-  const isMobileView = useIsMobile();
   
   const navigate = useNavigate();
 
@@ -92,11 +88,12 @@ const Index = () => {
       );
     });
   }, [insights, selectedIndustries]);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const response = await fetch('https://influenedoze.weddingmoments.fun/feed');
+        const response = await fetch(`${API_BASE_URL}/feed`);
         const data: ApiInsight[] = await response.json();
         
         const formattedInsights: Insight[] = data.map((item) => {
@@ -143,10 +140,10 @@ const Index = () => {
         setInsights(formattedInsights);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching bites:", error);
+        console.error("Error fetching insights:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch bites. Please try again later.",
+          description: "Failed to fetch insights. Please try again later.",
           variant: "destructive"
         });
         setIsLoading(false);
@@ -220,12 +217,12 @@ const Index = () => {
         return insight;
       });
 
-      // Get current saved bites data from localStorage
+      // Get current saved insights data from localStorage
       const savedData: SavedInsightsData = JSON.parse(
         localStorage.getItem("savedInsights") || '{"versions":{}}'
       );
 
-      // Find the bite being toggled
+      // Find the insight being toggled
       const insightToToggle = updatedInsights.find(i => i.id === id);
       
       if (insightToToggle) {
@@ -235,7 +232,7 @@ const Index = () => {
         }
         
         if (insightToToggle.isSaved) {
-          // Add to current version's saved bites
+          // Add to current version's saved insights
           const versionInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
           savedData.versions[CURRENT_INSIGHT_VERSION] = [
             ...versionInsights.filter(i => i.id !== id), // Remove if already exists
@@ -250,7 +247,7 @@ const Index = () => {
               .filter(i => i.id !== id);
         }
 
-        // Update saved bites in localStorage
+        // Update saved insights in localStorage
         localStorage.setItem("savedInsights", JSON.stringify(savedData));
         localStorage.setItem("insights", JSON.stringify(updatedInsights));
       }
@@ -292,21 +289,21 @@ const Index = () => {
       .then(() => {
         toast({
           title: "Shared successfully",
-          description: "Thanks for sharing this bite!",
+          description: "Thanks for sharing this insight!",
         });
       })
       .catch((error) => {
         console.error('Error sharing:', error);
         toast({
           title: "Error",
-          description: "Couldn't share the bite",
+          description: "Couldn't share the insight",
           variant: "destructive",
         });
       });
   } else {
     // Fallback for desktop browsers
     toast({
-      title: "Share this bite",
+      title: "Share this insight",
       description: (
         <div className="flex flex-col space-y-2">
           <p>{insight.title}</p>
@@ -428,7 +425,7 @@ const Index = () => {
       }, 300);
     } else if (currentInsightIndex === filteredInsights.length - 1) {
       toast({
-        title: "No more bites",
+        title: "No more insights",
         description: "You've reached the end of your feed",
       });
     }
@@ -474,9 +471,6 @@ const Index = () => {
     setTouchStartX(e.targetTouches[0].clientX);
     setTouchMoveX(e.targetTouches[0].clientX);
     setIsHorizontalSwipe(false);
-    
-    // Hide navbar on touch start for mobile
-    setShowNavbar(false);
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -511,7 +505,6 @@ const Index = () => {
           navigateToPreviousInsight();
         }
       } else {
-        // Toggle navbar visibility on tap
         setShowNavbar(!showNavbar);
       }
     }
@@ -531,7 +524,7 @@ const Index = () => {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading bites..." />;
+    return <LoadingSpinner message="Loading insights..." />;
   }
 
   if (filteredInsights.length === 0) {
@@ -540,8 +533,8 @@ const Index = () => {
         <div className="text-center p-4">
           <p className="text-primary mb-4">
             {insights.length === 0 
-              ? "No bites available at the moment." 
-              : "No bites match your selected industries."}
+              ? "No insights available at the moment." 
+              : "No insights match your selected industries."}
           </p>
           {insights.length > 0 && (
             <Button 
@@ -561,23 +554,28 @@ const Index = () => {
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
       
       {!showingInfluencer ? (
-        <div className="relative h-full flex flex-col">
-          <SwipeContainer
-            insights={filteredInsights}
-            positions={insightPositions}
-            onSave={handleSaveInsight}
-            onLike={handleLikeInsight}
-            onShare={handleShareInsight}
-            onFollowInfluencer={handleFollowInfluencer}
-            onInfluencerClick={handleInfluencerClick}
-            onSourceClick={handleSourceClick}
-            userIndustries={selectedIndustries}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onClick={() => setShowNavbar(!showNavbar)}
-            ref={swipeContainerRef}
-          />
+        <div 
+          className="swipe-container"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={() => setShowNavbar(!showNavbar)}
+          ref={swipeContainerRef}
+        >
+          {filteredInsights.map((insight, index) => (
+            <InsightCard 
+              key={insight.id}
+              insight={insight}
+              onSave={handleSaveInsight}
+              onLike={handleLikeInsight}
+              onShare={handleShareInsight}
+              onFollowInfluencer={handleFollowInfluencer}
+              onInfluencerClick={handleInfluencerClick}
+              onSourceClick={handleSourceClick}
+              position={insightPositions[index] || ""}
+              userIndustries={selectedIndustries}
+            />
+          ))}
         </div>
       ) : (
         selectedInfluencer && (
@@ -604,10 +602,7 @@ const Index = () => {
         )
       )}
       
-      {/* Navigation component with visibility control */}
-      <div style={{ opacity: showNavbar ? 1 : 0 }} className="transition-opacity duration-300">
-        <Navigation />
-      </div>
+      <Navigation />
     </div>
   );
 };
