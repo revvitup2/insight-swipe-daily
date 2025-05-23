@@ -1,3 +1,4 @@
+
 import { useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -147,7 +148,7 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
-  console.log("Rendering InsightCard with position:", position, "for insight:", insight.id);
+  console.log("Rendering InsightCard with position:", position, "for insight:", insight.id, insight.title);
 
   return (
     <div 
@@ -165,7 +166,7 @@ export const InsightCard = ({
                   position === "slide-right" ? "translateX(100vw)" : "translateY(0)",
       }}
     >
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Image Section - Fixed height */}
         <div className="relative mb-4 rounded-xl overflow-hidden flex-shrink-0">
           <img
@@ -207,7 +208,7 @@ export const InsightCard = ({
         </h2>
             
         {/* Scrollable Summary Content - Flexible height */}
-        <div className="flex-1 min-h-0 mb-4">
+        <div className="flex-1 min-h-0 mb-4 overflow-auto">
           <ScrollArea className="h-full pr-2 max-h-[200px]">
             <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
               {insight.summary}
@@ -217,7 +218,7 @@ export const InsightCard = ({
       </div>
       
       {/* Bottom section - Fixed */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 mt-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center min-w-0 flex-1">
             <div 
@@ -229,6 +230,10 @@ export const InsightCard = ({
                 alt={insight.influencer.name}
                 className="w-8 h-8 rounded-full mr-2 object-cover flex-shrink-0"
                 loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(insight.influencer.name);
+                }}
               />
               <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate">
                 {insight.influencer.name}

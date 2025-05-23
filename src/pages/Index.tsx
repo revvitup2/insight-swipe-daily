@@ -9,6 +9,71 @@ import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import SwipeContainer from "@/components/SwipeContainer";
+
+// Sample data to use when API fails
+const FALLBACK_INSIGHTS: Insight[] = [
+  {
+    id: "fallback-1",
+    title: "The Future of AI Technology in Business",
+    summary: "Artificial intelligence is transforming how businesses operate. From customer service chatbots to predictive analytics, AI is helping companies streamline operations and make better decisions. This insight explores the most promising applications and how companies can implement them effectively.",
+    image: "https://images.unsplash.com/photo-1677442135136-60dd2f279279?q=80&w=2070",
+    industry: "technology",
+    influencer: {
+      id: "inf-1",
+      name: "Tech Insights",
+      profileImage: "https://ui-avatars.com/api/?name=Tech+Insights",
+      isFollowed: false
+    },
+    isSaved: false,
+    isLiked: false,
+    keyPoints: ["AI adoption increasing across industries", "Machine learning models becoming more accessible", "Focus on ethical AI implementation"],
+    sentiment: "positive",
+    publishedAt: new Date().toISOString(),
+    source: "youtube",
+    sourceUrl: "https://youtube.com/watch?v=example1"
+  },
+  {
+    id: "fallback-2",
+    title: "Sustainable Finance: Investment Trends for 2025",
+    summary: "ESG (Environmental, Social, and Governance) investing continues to gain momentum. Investors are increasingly looking for companies that demonstrate commitment to sustainability while delivering solid returns. This insight covers the latest trends and opportunities in this growing sector.",
+    image: "https://images.unsplash.com/photo-1605792657660-596af9009e82?q=80&w=2002",
+    industry: "finance",
+    influencer: {
+      id: "inf-2",
+      name: "Finance Forward",
+      profileImage: "https://ui-avatars.com/api/?name=Finance+Forward",
+      isFollowed: false
+    },
+    isSaved: false,
+    isLiked: false,
+    keyPoints: ["Green bonds gaining popularity", "Carbon footprint reduction becoming key metric", "Regulatory changes supporting sustainable investments"],
+    sentiment: "neutral",
+    publishedAt: new Date().toISOString(),
+    source: "linkedin",
+    sourceUrl: "https://linkedin.com/posts/example"
+  },
+  {
+    id: "fallback-3",
+    title: "Healthcare Innovation: Telemedicine Revolution",
+    summary: "The pandemic accelerated the adoption of telemedicine, and it's here to stay. Virtual care is expanding beyond simple consultations to include remote monitoring, specialized care, and integrated health platforms. This insight examines how healthcare providers are adapting to this new paradigm.",
+    image: "https://images.unsplash.com/photo-1631217873436-b0fa38a5f311?q=80&w=2091",
+    industry: "healthcare",
+    influencer: {
+      id: "inf-3",
+      name: "Health Tech Today",
+      profileImage: "https://ui-avatars.com/api/?name=Health+Tech",
+      isFollowed: false
+    },
+    isSaved: false,
+    isLiked: false,
+    keyPoints: ["Patient satisfaction rates high for virtual visits", "Insurance companies expanding telemedicine coverage", "AI diagnostics enhancing remote care capabilities"],
+    sentiment: "positive",
+    publishedAt: new Date().toISOString(),
+    source: "twitter",
+    sourceUrl: "https://twitter.com/example/status/123"
+  }
+];
 
 interface ApiInsight {
   influencer_id: string;
@@ -75,6 +140,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
@@ -101,6 +167,10 @@ const Index = () => {
       try {
         console.log("Making fetch request to:", `${API_BASE_URL}/feed`);
         
+        // Set a reasonable timeout for the request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
         const response = await fetch(`${API_BASE_URL}/feed`, {
           method: 'GET',
           headers: {
@@ -108,7 +178,14 @@ const Index = () => {
             'Content-Type': 'application/json',
           },
           mode: 'cors',
+          signal: controller.signal
+        }).catch(err => {
+          console.error("Fetch error:", err);
+          throw err;
         });
+        
+        // Clear the timeout if the request completes
+        clearTimeout(timeoutId);
         
         console.log("Response status:", response.status);
         console.log("Response headers:", Object.fromEntries(response.headers.entries()));
@@ -169,16 +246,32 @@ const Index = () => {
         });
 
         console.log("Formatted insights:", formattedInsights);
-        setInsights(formattedInsights);
+        if (formattedInsights.length > 0) {
+          setInsights(formattedInsights);
+          setUsingFallbackData(false);
+        } else {
+          // No insights returned, fall back to sample data
+          console.log("No insights returned from API, using fallback data");
+          setInsights(FALLBACK_INSIGHTS);
+          setUsingFallbackData(true);
+          toast({
+            title: "Using sample data",
+            description: "We couldn't load your content from the server. Showing sample data instead.",
+          });
+        }
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching insights:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         setFetchError(errorMessage);
         
+        console.log("Falling back to sample data due to error");
+        setInsights(FALLBACK_INSIGHTS);
+        setUsingFallbackData(true);
+        
         toast({
-          title: "Error",
-          description: `Failed to fetch insights: ${errorMessage}`,
+          title: "Connection issue",
+          description: "Using sample data while we try to reconnect to the server.",
           variant: "destructive"
         });
         setIsLoading(false);
@@ -323,77 +416,77 @@ const Index = () => {
   };
   
   const handleShareInsight = (id: string) => {
-  const insight = insights.find(i => i.id === id);
-  if (!insight) return;
+    const insight = insights.find(i => i.id === id);
+    if (!insight) return;
+    
+    const shareData = {
+      title: insight.title,
+      text: insight.summary.substring(0, 100) + '...', // First 100 chars of summary
+      url: insight.sourceUrl || window.location.href,
+    };
 
-  const shareData = {
-    title: insight.title,
-    text: insight.summary.substring(0, 100) + '...', // First 100 chars of summary
-    url: insight.sourceUrl || window.location.href,
-  };
-
-  // Check if Web Share API is available (mobile devices)
-  if (navigator.share) {
-    navigator.share(shareData)
-      .then(() => {
-        toast({
-          title: "Shared successfully",
-          description: "Thanks for sharing this insight!",
+    // Check if Web Share API is available (mobile devices)
+    if (navigator.share) {
+      navigator.share(shareData)
+        .then(() => {
+          toast({
+            title: "Shared successfully",
+            description: "Thanks for sharing this insight!",
+          });
+        })
+        .catch((error) => {
+          console.error('Error sharing:', error);
+          toast({
+            title: "Error",
+            description: "Couldn't share the insight",
+            variant: "destructive",
+          });
         });
-      })
-      .catch((error) => {
-        console.error('Error sharing:', error);
-        toast({
-          title: "Error",
-          description: "Couldn't share the insight",
-          variant: "destructive",
-        });
-      });
-  } else {
-    // Fallback for desktop browsers
-    toast({
-      title: "Share this insight",
-      description: (
-        <div className="flex flex-col space-y-2">
-          <p>{insight.title}</p>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(insight.title)}&url=${encodeURIComponent(shareData.url)}`, '_blank');
-              }}
-            >
-              Twitter
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareData.url)}`, '_blank');
-              }}
-            >
-              LinkedIn
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(`${insight.title} - ${shareData.url}`);
-                toast({
-                  title: "Copied to clipboard",
-                  description: "You can now paste the link anywhere",
-                });
-              }}
-            >
-              Copy Link
-            </Button>
+    } else {
+      // Fallback for desktop browsers
+      toast({
+        title: "Share this insight",
+        description: (
+          <div className="flex flex-col space-y-2">
+            <p>{insight.title}</p>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(insight.title)}&url=${encodeURIComponent(shareData.url)}`, '_blank');
+                }}
+              >
+                Twitter
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareData.url)}`, '_blank');
+                }}
+              >
+                LinkedIn
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${insight.title} - ${shareData.url}`);
+                  toast({
+                    title: "Copied to clipboard",
+                    description: "You can now paste the link anywhere",
+                  });
+                }}
+              >
+                Copy Link
+              </Button>
+            </div>
           </div>
-        </div>
-      ),
-    });
-  }
-};
+        ),
+      });
+    }
+  };
 
   const handleFollowInfluencer = (influencerId: string) => {
     setInsights(insights.map(insight => {
@@ -578,8 +671,8 @@ const Index = () => {
     return <LoadingSpinner message="Loading insights..." />;
   }
 
-  // Show error state if fetch failed
-  if (fetchError) {
+  // Show error state if fetch failed and no fallback data
+  if (fetchError && !usingFallbackData && insights.length === 0) {
     return (
       <div className="h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
@@ -623,33 +716,29 @@ const Index = () => {
     <div className="h-screen bg-background overflow-hidden">
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
       
+      {usingFallbackData && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-white text-xs text-center py-1">
+          Using sample data - Connection issue
+        </div>
+      )}
+      
       {!showingInfluencer ? (
-        <div 
-          className="swipe-container"
+        <SwipeContainer
+          insights={filteredInsights}
+          positions={insightPositions}
+          onSave={handleSaveInsight}
+          onLike={handleLikeInsight}
+          onShare={handleShareInsight}
+          onFollowInfluencer={handleFollowInfluencer}
+          onInfluencerClick={handleInfluencerClick}
+          onSourceClick={handleSourceClick}
+          userIndustries={selectedIndustries}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={() => setShowNavbar(!showNavbar)}
           ref={swipeContainerRef}
-        >
-          {filteredInsights.map((insight, index) => {
-            console.log(`Rendering insight ${index} with position:`, insightPositions[index]);
-            return (
-              <InsightCard 
-                key={insight.id}
-                insight={insight}
-                onSave={handleSaveInsight}
-                onLike={handleLikeInsight}
-                onShare={handleShareInsight}
-                onFollowInfluencer={handleFollowInfluencer}
-                onInfluencerClick={handleInfluencerClick}
-                onSourceClick={handleSourceClick}
-                position={insightPositions[index] || ""}
-                userIndustries={selectedIndustries}
-              />
-            );
-          })}
-        </div>
+        />
       ) : (
         selectedInfluencer && (
           <div onTouchStart={handleTouchStart} 
