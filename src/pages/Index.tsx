@@ -74,6 +74,7 @@ const Index = () => {
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
@@ -88,15 +89,45 @@ const Index = () => {
       );
     });
   }, [insights, selectedIndustries]);
+  
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const fetchInsights = async () => {
+      console.log("Starting to fetch insights from:", API_BASE_URL);
+      setIsLoading(true);
+      setFetchError(null);
+      
       try {
-        const response = await fetch(`${API_BASE_URL}/feed`);
-        const data: ApiInsight[] = await response.json();
+        console.log("Making fetch request to:", `${API_BASE_URL}/feed`);
         
-        const formattedInsights: Insight[] = data.map((item) => {
+        const response = await fetch(`${API_BASE_URL}/feed`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors',
+        });
+        
+        console.log("Response status:", response.status);
+        console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+        
+        const data: ApiInsight[] = await response.json();
+        console.log("Fetched data:", data);
+        console.log("Number of insights fetched:", data?.length || 0);
+        
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid data format: expected array");
+        }
+        
+        const formattedInsights: Insight[] = data.map((item, index) => {
+          console.log(`Processing insight ${index}:`, item);
+          
           // Determine the source platform based on the URL
           const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
           
@@ -137,13 +168,17 @@ const Index = () => {
           };
         });
 
+        console.log("Formatted insights:", formattedInsights);
         setInsights(formattedInsights);
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching insights:", error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        setFetchError(errorMessage);
+        
         toast({
           title: "Error",
-          description: "Failed to fetch insights. Please try again later.",
+          description: `Failed to fetch insights: ${errorMessage}`,
           variant: "destructive"
         });
         setIsLoading(false);
@@ -151,7 +186,7 @@ const Index = () => {
     };
 
     fetchInsights();
-  }, []);
+  }, [API_BASE_URL]);
 
   // Check if tutorial should be shown
   useEffect(() => {
@@ -160,19 +195,33 @@ const Index = () => {
     }
   }, [onboarded]);
 
+  // Initialize positions when filtered insights change
   useEffect(() => {
+    console.log("Setting up initial positions for", filteredInsights.length, "insights");
     setCurrentInsightIndex(0);
-    const positions = filteredInsights.map((_, i) => 
-      i === 0 ? "" : "slide-down"
-    );
+    const positions = filteredInsights.map((_, i) => {
+      const position = i === 0 ? "" : "slide-down";
+      console.log(`Insight ${i} position:`, position);
+      return position;
+    });
     setInsightPositions(positions);
   }, [filteredInsights]);
 
+  // Update positions when current insight changes
   useEffect(() => {
-    const newPositions = filteredInsights.map((_, i) => 
-      i === currentInsightIndex ? "" : 
-      (i < currentInsightIndex ? "slide-up" : "slide-down")
-    );
+    console.log("Updating positions for current insight index:", currentInsightIndex);
+    const newPositions = filteredInsights.map((_, i) => {
+      let position = "";
+      if (i === currentInsightIndex) {
+        position = "";
+      } else if (i < currentInsightIndex) {
+        position = "slide-up";
+      } else {
+        position = "slide-down";
+      }
+      console.log(`Insight ${i} new position:`, position);
+      return position;
+    });
     setInsightPositions(newPositions);
   }, [currentInsightIndex, filteredInsights]);
 
@@ -412,6 +461,7 @@ const Index = () => {
   };
   
   const navigateToNextInsight = () => {
+    console.log("Navigating to next insight. Current:", currentInsightIndex, "Total:", filteredInsights.length);
     if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
       setIsAnimating(true);
       
@@ -432,6 +482,7 @@ const Index = () => {
   };
   
   const navigateToPreviousInsight = () => {
+    console.log("Navigating to previous insight. Current:", currentInsightIndex);
     if (currentInsightIndex > 0 && !isAnimating) {
       setIsAnimating(true);
       
@@ -527,6 +578,23 @@ const Index = () => {
     return <LoadingSpinner message="Loading insights..." />;
   }
 
+  // Show error state if fetch failed
+  if (fetchError) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Failed to load content: {fetchError}</p>
+          <Button 
+            onClick={() => window.location.reload()}
+            className="bg-primary hover:bg-primary/90"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (filteredInsights.length === 0) {
     return (
       <div className="h-screen bg-background flex items-center justify-center">
@@ -549,8 +617,10 @@ const Index = () => {
     );
   }
 
+  console.log("Rendering insights. Current index:", currentInsightIndex, "Total insights:", filteredInsights.length);
+
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
       
       {!showingInfluencer ? (
@@ -562,20 +632,23 @@ const Index = () => {
           onClick={() => setShowNavbar(!showNavbar)}
           ref={swipeContainerRef}
         >
-          {filteredInsights.map((insight, index) => (
-            <InsightCard 
-              key={insight.id}
-              insight={insight}
-              onSave={handleSaveInsight}
-              onLike={handleLikeInsight}
-              onShare={handleShareInsight}
-              onFollowInfluencer={handleFollowInfluencer}
-              onInfluencerClick={handleInfluencerClick}
-              onSourceClick={handleSourceClick}
-              position={insightPositions[index] || ""}
-              userIndustries={selectedIndustries}
-            />
-          ))}
+          {filteredInsights.map((insight, index) => {
+            console.log(`Rendering insight ${index} with position:`, insightPositions[index]);
+            return (
+              <InsightCard 
+                key={insight.id}
+                insight={insight}
+                onSave={handleSaveInsight}
+                onLike={handleLikeInsight}
+                onShare={handleShareInsight}
+                onFollowInfluencer={handleFollowInfluencer}
+                onInfluencerClick={handleInfluencerClick}
+                onSourceClick={handleSourceClick}
+                position={insightPositions[index] || ""}
+                userIndustries={selectedIndustries}
+              />
+            );
+          })}
         </div>
       ) : (
         selectedInfluencer && (
