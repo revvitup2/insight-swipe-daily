@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Insight } from "@/components/InsightCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Pencil, Trash2, Search,Copy  } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { 
   Dialog, 
@@ -46,26 +46,27 @@ export const AdminPostsTab = () => {
         const response = await fetch(`${API_BASE_URL}/feed`);
         const data = await response.json();
         
-        const formattedInsights = data.map((item: any) => ({
-          id: item.video_id,
-          title: item.metadata.title,
-          summary: item.analysis.summary,
-          image: item.metadata.thumbnails.high.url,
-          industry: item.industry || "General",
-          influencer: {
-            id: item.influencer_id,
-            name: item.metadata.channel_title,
-            profileImage: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.metadata.channel_title)}`,
-            isFollowed: false
-          },
-          isSaved: false,
-          isLiked: false,
-          keyPoints: item.analysis.key_points,
-          sentiment: item.analysis.sentiment,
-          publishedAt: item.published_at,
-          source: "youtube",
-          sourceUrl: `https://youtube.com/watch?v=${item.video_id}`
-        }));
+       const formattedInsights = data.map((item: any) => ({
+  id: item.video_id,
+  title: item.metadata.title,
+  summary: item.analysis.summary,
+  image: item.metadata.thumbnails.high.url,
+  industry: item.industry || "General",
+  influencer: {
+    id: item.influencer_id,
+    name: item.metadata.channel_title,
+    profileImage: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.metadata.channel_title)}`,
+    isFollowed: false,
+    channel_id: item.metadata.channel_id // Add this line
+  },
+  isSaved: false,
+  isLiked: false,
+  keyPoints: item.analysis.key_points,
+  sentiment: item.analysis.sentiment,
+  publishedAt: item.published_at,
+  source: "youtube",
+  sourceUrl: `https://youtube.com/watch?v=${item.video_id}`
+}));
         
         setPosts(formattedInsights);
         setIsLoading(false);
@@ -120,6 +121,23 @@ const handleDeletePost = async () => {
     setEditingPost({...post});
     setIsEditDialogOpen(true);
   };
+
+  const handleCopyChannelId = (channelId: string) => {
+  navigator.clipboard.writeText(channelId)
+    .then(() => {
+      toast({
+        title: "Copied!",
+        description: "Channel ID copied to clipboard",
+      });
+    })
+    .catch(() => {
+      toast({
+        title: "Error",
+        description: "Failed to copy Channel ID",
+        variant: "destructive"
+      });
+    });
+};
 
   const handleSaveEdit = async () => {
     if (!editingPost) return;
@@ -256,8 +274,11 @@ const handleDeletePost = async () => {
                           Published: {new Date(post.publishedAt).toLocaleDateString()}
                         </span>
                       </div>
-                      
+                      <div className="flex flex-col space-y-2">
                       <div className="flex space-x-2">
+
+    
+
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -273,6 +294,14 @@ const handleDeletePost = async () => {
                         >
                           <Trash2 className="h-4 w-4 mr-1" /> Delete
                         </Button>
+                        </div>
+                                                 <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => handleCopyChannelId(post.influencer.channel_id)}
+    >
+      <Copy className="h-4 w-4 mr-1" /> Copy Channel ID
+    </Button>
                       </div>
                     </div>
                   </div>

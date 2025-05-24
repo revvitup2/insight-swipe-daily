@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ApiInsight {
   influencer_id: string;
@@ -59,6 +61,7 @@ const Index = () => {
   const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
+  const [direction, setDirection] = useState(1);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [previousInsightIndex, setPreviousInsightIndex] = useState(0);
@@ -411,40 +414,34 @@ const Index = () => {
     window.open(url, '_blank');
   };
   
-  const navigateToNextInsight = () => {
-    if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
-      setIsAnimating(true);
-      
-      const newPositions = [...insightPositions];
-      newPositions[currentInsightIndex] = "slide-up";
-      setInsightPositions(newPositions);
-      
-      setTimeout(() => {
-        setCurrentInsightIndex(currentInsightIndex + 1);
-        setIsAnimating(false);
-      }, 300);
-    } else if (currentInsightIndex === filteredInsights.length - 1) {
-      toast({
-        title: "No more insights",
-        description: "You've reached the end of your feed",
-      });
-    }
-  };
-  
-  const navigateToPreviousInsight = () => {
-    if (currentInsightIndex > 0 && !isAnimating) {
-      setIsAnimating(true);
-      
-      const newPositions = [...insightPositions];
-      newPositions[currentInsightIndex] = "slide-down";
-      setInsightPositions(newPositions);
-      
-      setTimeout(() => {
-        setCurrentInsightIndex(currentInsightIndex - 1);
-        setIsAnimating(false);
-      }, 300);
-    }
-  };
+const navigateToNextInsight = () => {
+  if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
+    setIsAnimating(true);
+    setDirection(1); // Forward direction
+    
+    setTimeout(() => {
+      setCurrentInsightIndex(currentInsightIndex + 1);
+      setIsAnimating(false);
+    }, 300);
+  } else if (currentInsightIndex === filteredInsights.length - 1) {
+    toast({
+      title: "No more insights",
+      description: "You've reached the end of your feed",
+    });
+  }
+};
+
+const navigateToPreviousInsight = () => {
+  if (currentInsightIndex > 0 && !isAnimating) {
+    setIsAnimating(true);
+    setDirection(-1); // Backward direction
+    
+    setTimeout(() => {
+      setCurrentInsightIndex(currentInsightIndex - 1);
+      setIsAnimating(false);
+    }, 300);
+  }
+};
 
   const navigateToInfluencerProfile = () => {
     if (!isAnimating && filteredInsights.length > 0) {
@@ -484,32 +481,33 @@ const Index = () => {
       setIsHorizontalSwipe(true);
     }
   };
-  
+
   const handleTouchEnd = () => {
-    const verticalSwipeDistance = touchStartY - touchMoveY;
-    const horizontalSwipeDistance = touchStartX - touchMoveX;
-    
-    if (isHorizontalSwipe) {
-      if (Math.abs(horizontalSwipeDistance) > 100) {
-        if (horizontalSwipeDistance > 0) {
-          navigateToInfluencerProfile();
-        } else {
-          navigateToSourceUrl();
-        }
-      }
-    } else {
-      if (Math.abs(verticalSwipeDistance) > 100) {
-        if (verticalSwipeDistance > 0) {
-          navigateToNextInsight();
-        } else {
-          navigateToPreviousInsight();
-        }
+  const verticalSwipeDistance = touchStartY - touchMoveY;
+  const horizontalSwipeDistance = touchStartX - touchMoveX;
+  
+  if (isHorizontalSwipe) {
+    if (Math.abs(horizontalSwipeDistance) > 100) {
+      if (horizontalSwipeDistance > 0) {
+        navigateToInfluencerProfile();
       } else {
-        setShowNavbar(!showNavbar);
+        navigateToSourceUrl();
       }
     }
-  };
-  
+  } else {
+    if (Math.abs(verticalSwipeDistance) > 100) {
+      if (verticalSwipeDistance > 0) {
+        setDirection(1); // Forward
+        navigateToNextInsight();
+      } else {
+        setDirection(-1); // Backward
+        navigateToPreviousInsight();
+      }
+    } else {
+      setShowNavbar(!showNavbar);
+    }
+  }
+};
   // Return to feed from influencer profile with horizontal swipe
   const handleInfluencerProfileSwipe = (direction: 'left' | 'right') => {
     if (direction === 'right') {
@@ -552,53 +550,66 @@ const Index = () => {
   return (
     <div className="h-screen bg-background">
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
-      
-      {!showingInfluencer ? (
-        <div 
-          className="swipe-container"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onClick={() => setShowNavbar(!showNavbar)}
-          ref={swipeContainerRef}
-        >
-          {filteredInsights.map((insight, index) => (
-            <InsightCard 
-              key={insight.id}
-              insight={insight}
+          {!showingInfluencer ? (
+      <div 
+        className="swipe-container h-full w-full"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => setShowNavbar(!showNavbar)}
+        ref={swipeContainerRef}
+      >
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentInsightIndex}
+            custom={direction}
+            initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="h-full w-full">
+               <InsightCard 
+              key={filteredInsights[currentInsightIndex].id}
+              insight={filteredInsights[currentInsightIndex]}
               onSave={handleSaveInsight}
               onLike={handleLikeInsight}
               onShare={handleShareInsight}
               onFollowInfluencer={handleFollowInfluencer}
               onInfluencerClick={handleInfluencerClick}
               onSourceClick={handleSourceClick}
-              position={insightPositions[index] || ""}
-              userIndustries={selectedIndustries}
+              userIndustries={selectedIndustries} 
+              position={""}
             />
-          ))}
+          </motion.div>
+          </AnimatePresence>
         </div>
       ) : (
         selectedInfluencer && (
-          <div onTouchStart={handleTouchStart} 
-               onTouchMove={handleTouchMove} 
-               onTouchEnd={() => {
-                 const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
-                                      touchMoveX - touchStartX > 100 ? 'right' : null;
-                 if (swipeDirection) {
-                   handleInfluencerProfileSwipe(swipeDirection);
-                 }
-               }}>
+          <motion.div
+            initial={{ x: 300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -300, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onTouchStart={handleTouchStart} 
+            onTouchMove={handleTouchMove} 
+            onTouchEnd={() => {
+              const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
+                                   touchMoveX - touchStartX > 100 ? 'right' : null;
+              if (swipeDirection) {
+                handleInfluencerProfileSwipe(swipeDirection);
+              }
+            }}
+          >
             <InfluencerProfile 
               influencer={selectedInfluencer}
               onFollowToggle={handleFollowInfluencer}
               onInsightClick={handleInsightClick}
               onBack={() => {
                 setShowingInfluencer(false);
-                // Restore the previous insight index
                 setCurrentInsightIndex(previousInsightIndex);
               }}
             />
-          </div>
+          </motion.div>
         )
       )}
       

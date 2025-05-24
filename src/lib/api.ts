@@ -73,6 +73,27 @@ export const fetchInfluencers = async (token: string) => {
   return response.json();
 };
 
+export const updateInfluencerPause = async (
+  token: string,
+  influencerId: string,
+  isPause: boolean
+) => {
+  const response = await fetch(`${API_BASE_URL}/admin/influencers/${influencerId}/pause`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ is_pause: isPause }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update influencer pause status');
+  }
+
+  return response.json();
+};
+
 export const createInfluencer = async (
   token: string,
   data: {
