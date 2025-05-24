@@ -192,11 +192,11 @@ export const InsightCard = ({
     </h2>
         
         {/* Scrollable Summary Content */}
-          <ScrollArea className="flex-1 mb-4 pr-2 max-h-[250px]"> {/* Added max height */}
-      <p className="text-base text-gray-700 dark:text-gray-300">
-        {insight.summary}
-      </p>
-    </ScrollArea>
+
+        
+        
+
+
   </div>
    <div>
 
