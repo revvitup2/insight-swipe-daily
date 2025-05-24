@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Influencer {
   id: string;
   name: string;
+  channel_id:string;
   profileImage: string;
   isFollowed: boolean;
 }

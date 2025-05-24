@@ -11,7 +11,8 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import { useState, useEffect } from "react";
+import { useState, useEffect,useMemo  } from "react";
+import Clarity from "@microsoft/clarity";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,12 @@ const App = () => {
       link.href = "/lovable-uploads/favicon.ico";
     }
   }, []);
+
+   const projectId = useMemo(() => "rolzayo9jx", []);
+
+  useEffect(() => {
+    Clarity.init(projectId);
+  }, [projectId]);
 
   return (
     <QueryClientProvider client={queryClient}>

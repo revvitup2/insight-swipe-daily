@@ -61,6 +61,7 @@ const Index = () => {
   const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
+  const [direction, setDirection] = useState(1);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [previousInsightIndex, setPreviousInsightIndex] = useState(0);
@@ -413,40 +414,34 @@ const Index = () => {
     window.open(url, '_blank');
   };
   
-  const navigateToNextInsight = () => {
-    if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
-      setIsAnimating(true);
-      
-      const newPositions = [...insightPositions];
-      newPositions[currentInsightIndex] = "slide-up";
-      setInsightPositions(newPositions);
-      
-      setTimeout(() => {
-        setCurrentInsightIndex(currentInsightIndex + 1);
-        setIsAnimating(false);
-      }, 300);
-    } else if (currentInsightIndex === filteredInsights.length - 1) {
-      toast({
-        title: "No more insights",
-        description: "You've reached the end of your feed",
-      });
-    }
-  };
-  
-  const navigateToPreviousInsight = () => {
-    if (currentInsightIndex > 0 && !isAnimating) {
-      setIsAnimating(true);
-      
-      const newPositions = [...insightPositions];
-      newPositions[currentInsightIndex] = "slide-down";
-      setInsightPositions(newPositions);
-      
-      setTimeout(() => {
-        setCurrentInsightIndex(currentInsightIndex - 1);
-        setIsAnimating(false);
-      }, 300);
-    }
-  };
+const navigateToNextInsight = () => {
+  if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
+    setIsAnimating(true);
+    setDirection(1); // Forward direction
+    
+    setTimeout(() => {
+      setCurrentInsightIndex(currentInsightIndex + 1);
+      setIsAnimating(false);
+    }, 300);
+  } else if (currentInsightIndex === filteredInsights.length - 1) {
+    toast({
+      title: "No more insights",
+      description: "You've reached the end of your feed",
+    });
+  }
+};
+
+const navigateToPreviousInsight = () => {
+  if (currentInsightIndex > 0 && !isAnimating) {
+    setIsAnimating(true);
+    setDirection(-1); // Backward direction
+    
+    setTimeout(() => {
+      setCurrentInsightIndex(currentInsightIndex - 1);
+      setIsAnimating(false);
+    }, 300);
+  }
+};
 
   const navigateToInfluencerProfile = () => {
     if (!isAnimating && filteredInsights.length > 0) {
@@ -486,32 +481,33 @@ const Index = () => {
       setIsHorizontalSwipe(true);
     }
   };
-  
+
   const handleTouchEnd = () => {
-    const verticalSwipeDistance = touchStartY - touchMoveY;
-    const horizontalSwipeDistance = touchStartX - touchMoveX;
-    
-    if (isHorizontalSwipe) {
-      if (Math.abs(horizontalSwipeDistance) > 100) {
-        if (horizontalSwipeDistance > 0) {
-          navigateToInfluencerProfile();
-        } else {
-          navigateToSourceUrl();
-        }
-      }
-    } else {
-      if (Math.abs(verticalSwipeDistance) > 100) {
-        if (verticalSwipeDistance > 0) {
-          navigateToNextInsight();
-        } else {
-          navigateToPreviousInsight();
-        }
+  const verticalSwipeDistance = touchStartY - touchMoveY;
+  const horizontalSwipeDistance = touchStartX - touchMoveX;
+  
+  if (isHorizontalSwipe) {
+    if (Math.abs(horizontalSwipeDistance) > 100) {
+      if (horizontalSwipeDistance > 0) {
+        navigateToInfluencerProfile();
       } else {
-        setShowNavbar(!showNavbar);
+        navigateToSourceUrl();
       }
     }
-  };
-  
+  } else {
+    if (Math.abs(verticalSwipeDistance) > 100) {
+      if (verticalSwipeDistance > 0) {
+        setDirection(1); // Forward
+        navigateToNextInsight();
+      } else {
+        setDirection(-1); // Backward
+        navigateToPreviousInsight();
+      }
+    } else {
+      setShowNavbar(!showNavbar);
+    }
+  }
+};
   // Return to feed from influencer profile with horizontal swipe
   const handleInfluencerProfileSwipe = (direction: 'left' | 'right') => {
     if (direction === 'right') {
@@ -555,34 +551,36 @@ const Index = () => {
     <div className="h-screen bg-background">
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
           {!showingInfluencer ? (
-        <div 
-          className="swipe-container h-full w-full"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onClick={() => setShowNavbar(!showNavbar)}
-          ref={swipeContainerRef}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentInsightIndex}
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -100, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="h-full w-full"
-            >
-              <InsightCard 
-                key={filteredInsights[currentInsightIndex].id}
-                insight={filteredInsights[currentInsightIndex]}
-                onSave={handleSaveInsight}
-                onLike={handleLikeInsight}
-                onShare={handleShareInsight}
-                onFollowInfluencer={handleFollowInfluencer}
-                onInfluencerClick={handleInfluencerClick}
-                onSourceClick={handleSourceClick}
-                userIndustries={selectedIndustries} position={""}              />
-            </motion.div>
+      <div 
+        className="swipe-container h-full w-full"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => setShowNavbar(!showNavbar)}
+        ref={swipeContainerRef}
+      >
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentInsightIndex}
+            custom={direction}
+            initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="h-full w-full">
+               <InsightCard 
+              key={filteredInsights[currentInsightIndex].id}
+              insight={filteredInsights[currentInsightIndex]}
+              onSave={handleSaveInsight}
+              onLike={handleLikeInsight}
+              onShare={handleShareInsight}
+              onFollowInfluencer={handleFollowInfluencer}
+              onInfluencerClick={handleInfluencerClick}
+              onSourceClick={handleSourceClick}
+              userIndustries={selectedIndustries} 
+              position={""}
+            />
+          </motion.div>
           </AnimatePresence>
         </div>
       ) : (
