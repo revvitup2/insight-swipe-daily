@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ApiInsight {
   influencer_id: string;
@@ -552,53 +554,64 @@ const Index = () => {
   return (
     <div className="h-screen bg-background">
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
-      
-      {!showingInfluencer ? (
+          {!showingInfluencer ? (
         <div 
-          className="swipe-container"
+          className="swipe-container h-full w-full"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={() => setShowNavbar(!showNavbar)}
           ref={swipeContainerRef}
         >
-          {filteredInsights.map((insight, index) => (
-            <InsightCard 
-              key={insight.id}
-              insight={insight}
-              onSave={handleSaveInsight}
-              onLike={handleLikeInsight}
-              onShare={handleShareInsight}
-              onFollowInfluencer={handleFollowInfluencer}
-              onInfluencerClick={handleInfluencerClick}
-              onSourceClick={handleSourceClick}
-              position={insightPositions[index] || ""}
-              userIndustries={selectedIndustries}
-            />
-          ))}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentInsightIndex}
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -100, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="h-full w-full"
+            >
+              <InsightCard 
+                key={filteredInsights[currentInsightIndex].id}
+                insight={filteredInsights[currentInsightIndex]}
+                onSave={handleSaveInsight}
+                onLike={handleLikeInsight}
+                onShare={handleShareInsight}
+                onFollowInfluencer={handleFollowInfluencer}
+                onInfluencerClick={handleInfluencerClick}
+                onSourceClick={handleSourceClick}
+                userIndustries={selectedIndustries} position={""}              />
+            </motion.div>
+          </AnimatePresence>
         </div>
       ) : (
         selectedInfluencer && (
-          <div onTouchStart={handleTouchStart} 
-               onTouchMove={handleTouchMove} 
-               onTouchEnd={() => {
-                 const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
-                                      touchMoveX - touchStartX > 100 ? 'right' : null;
-                 if (swipeDirection) {
-                   handleInfluencerProfileSwipe(swipeDirection);
-                 }
-               }}>
+          <motion.div
+            initial={{ x: 300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -300, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onTouchStart={handleTouchStart} 
+            onTouchMove={handleTouchMove} 
+            onTouchEnd={() => {
+              const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
+                                   touchMoveX - touchStartX > 100 ? 'right' : null;
+              if (swipeDirection) {
+                handleInfluencerProfileSwipe(swipeDirection);
+              }
+            }}
+          >
             <InfluencerProfile 
               influencer={selectedInfluencer}
               onFollowToggle={handleFollowInfluencer}
               onInsightClick={handleInsightClick}
               onBack={() => {
                 setShowingInfluencer(false);
-                // Restore the previous insight index
                 setCurrentInsightIndex(previousInsightIndex);
               }}
             />
-          </div>
+          </motion.div>
         )
       )}
       
