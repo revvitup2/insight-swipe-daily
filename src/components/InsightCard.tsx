@@ -149,129 +149,128 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
+  console.log("Rendering InsightCard with position:", position, "for insight:", insight.id, insight.title);
+
   return (
-   <div 
-  className={cn(
-    "insight-card w-full p-4 flex flex-col overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow",
-    "border border-gray-200 dark:border-gray-800",
-    position
-  )}
->
-       <div className="flex-1 flex flex-col overflow-hidden"> {/* Add overflow-hidden here */}
-    {/* Image Section */}
-    <div className="relative mb-4 rounded-xl overflow-hidden">
-      <img
-        src={insight.image}
-        alt={insight.title}
-        className="insight-image rounded-xl"
-      />
-      
-      {/* ByteMe Brand Watermark - Top right */}
-      <div className="absolute top-2 right-2">
-        <ByteMeLogo size="sm" className="opacity-80" />
-      </div>
-      
-      {/* Industry Tag - Subtle black background */}
-      <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
-        {insight.industry}
-      </div>
-          
-          {/* Source Platform - Subtle black background */}
-            {insight.source && (
-        <div 
-          className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
-          onClick={handleSourceClick}
-        >
-          <PlatformIcon source={insight.source} />
-        </div>
+    <div 
+      className={cn(
+        "insight-card w-full p-4 flex flex-col bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-all duration-300",
+        "border border-gray-200 dark:border-gray-800",
+        position,
+        position && "opacity-100"
       )}
-    </div>
-    
-    {/* Title Section */}
-    <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white">
-      {insight.title}
-    </h2>
-        
-        {/* Scrollable Summary Content */}
-
-        
-          <ScrollArea className="flex-1 mb-4 pr-2 max-h-[250px]"> {/* Added max height */}
-      <p className="text-base text-gray-700 dark:text-gray-300">
-        {insight.summary}
-      </p>
-    </ScrollArea>
-
-
-  </div>
-   <div>
-
- <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center">
-        <div 
-          className="flex items-center cursor-pointer" 
-          onClick={handleInfluencerClick}
-        >
+      style={{ 
+        zIndex: position === "" ? 10 : 1,
+        transform: position === "slide-up" ? "translateY(-100vh)" :
+                  position === "slide-down" ? "translateY(100vh)" :
+                  position === "slide-left" ? "translateX(-100vw)" :
+                  position === "slide-right" ? "translateX(100vw)" : "translateY(0)",
+      }}
+    >
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Image Section - Fixed height */}
+        <div className="relative mb-4 rounded-xl overflow-hidden flex-shrink-0">
           <img
-            src={insight.influencer.profileImage}
-            alt={insight.influencer.name}
-            className="w-8 h-8 rounded-full mr-2 object-cover"
+            src={insight.image}
+            alt={insight.title}
+            className="insight-image rounded-xl w-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              console.error("Image failed to load:", insight.image);
+              const target = e.target as HTMLImageElement;
+              target.src = "/placeholder.svg";
+            }}
           />
-          <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[180px]">
-            {insight.influencer.name}
-          </span>
+          
+          {/* ByteMe Brand Watermark - Top right */}
+          <div className="absolute top-2 right-2">
+            <ByteMeLogo size="sm" className="opacity-80" />
+          </div>
+          
+          {/* Industry Tag - Subtle black background */}
+          <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+            {insight.industry}
+          </div>
+              
+          {/* Source Platform - Subtle black background */}
+          {insight.source && (
+            <div 
+              className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+              onClick={handleSourceClick}
+            >
+              <PlatformIcon source={insight.source} />
+            </div>
+          )}
         </div>
-{/*         
-        <Button 
-          variant={insight.influencer.isFollowed ? "default" : "outline"}
-          size="sm" 
-          onClick={handleFollowInfluencer}
-          className="text-xs h-7 px-2"
-        >
-          {insight.influencer.isFollowed ? "Following" : "Follow"}
-        </Button> */}
+        
+        {/* Title Section - Fixed */}
+        <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white flex-shrink-0 line-clamp-2">
+          {insight.title}
+        </h2>
+            
+        {/* Scrollable Summary Content - Flexible height */}
+        <div className="flex-1 min-h-0 mb-4 overflow-auto">
+          <ScrollArea className="h-full pr-2 max-h-[200px]">
+            <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+              {insight.summary}
+            </p>
+          </ScrollArea>
+        </div>
       </div>
       
-      {timeAgo && (
-        <span className="text-xs text-muted-foreground">{timeAgo}</span>
-      )}
+      {/* Bottom section - Fixed */}
+      <div className="flex-shrink-0 mt-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center min-w-0 flex-1">
+            <div 
+              className="flex items-center cursor-pointer min-w-0" 
+              onClick={handleInfluencerClick}
+            >
+              <img
+                src={insight.influencer.profileImage}
+                alt={insight.influencer.name}
+                className="w-8 h-8 rounded-full mr-2 object-cover flex-shrink-0"
+                loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(insight.influencer.name);
+                }}
+              />
+              <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate">
+                {insight.influencer.name}
+              </span>
+            </div>
+          </div>
+          
+          {timeAgo && (
+            <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">{timeAgo}</span>
+          )}
+        </div>
+        
+        {/* Interaction Buttons */}
+        <div className="flex items-center space-x-4">
+          <button 
+            className="interaction-btn flex items-center gap-1 text-sm" 
+            onClick={handleSave}
+            aria-label="Save"
+          >
+            <Save 
+              className={cn("w-5 h-5", 
+                insight.isSaved ? "fill-primary text-primary" : "text-gray-500 dark:text-gray-400"
+              )} 
+            />
+          </button>
+          
+          <button 
+            className="interaction-btn flex items-center gap-1 text-sm" 
+            onClick={handleShare}
+            aria-label="Share"
+          >
+            <Share className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+      </div>
     </div>
-    
-    {/* Interaction Buttons */}
-    <div className="flex items-center space-x-4">
-      {/* <button 
-        className="interaction-btn flex items-center gap-1 text-sm" 
-        onClick={handleLike}
-        aria-label="Like"
-      >
-        <Heart 
-          className={cn("w-5 h-5", 
-            insight.isLiked ? "fill-red-500 text-red-500" : "text-gray-500 dark:text-gray-400"
-          )} 
-        />
-      </button> */}
-      
-      <button 
-        className="interaction-btn flex items-center gap-1 text-sm" 
-        onClick={handleSave}
-        aria-label="Save"
-      >
-        <Save 
-          className={cn("w-5 h-5", 
-            insight.isSaved ? "fill-primary text-primary" : "text-gray-500 dark:text-gray-400"
-          )} 
-        />
-      </button>
-      
-      <button 
-        className="interaction-btn flex items-center gap-1 text-sm" 
-        onClick={handleShare}
-        aria-label="Share"
-      >
-        <Share className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-      </button>
-    </div>
-  </div>
-</div>
   );
 };
 

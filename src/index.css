@@ -41,6 +41,7 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
   }
 
   body {
@@ -48,19 +49,31 @@
     font-family: 'Inter', sans-serif;
     touch-action: pan-y;
     overscroll-behavior: none;
+    height: 100vh;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
   }
   
   .insight-card {
     height: calc(100vh - 4rem);
     touch-action: pan-y;
     position: absolute;
-    width: 100%;
+    width: calc(100% - 2rem);
+    max-width: calc(100% - 2rem);
+    left: 1rem;
+    right: 1rem;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     will-change: transform;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
   }
   
   .insight-image {
     height: 35vh;
+    min-height: 200px;
+    max-height: 400px;
     object-fit: cover;
     width: 100%;
     position: relative;
@@ -89,8 +102,11 @@
   
   .swipe-container {
     height: calc(100vh - 4rem);
+    width: 100%;
     overflow: hidden;
     position: relative;
+    padding: 0;
+    margin: 0;
   }
   
   .page-container {
@@ -102,7 +118,7 @@
   }
 
   .bottom-nav {
-    @apply fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center py-2 px-4 z-10;
+    @apply fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center py-2 px-4 z-50;
   }
   
   .nav-item {
@@ -123,17 +139,25 @@
 
   .slide-up {
     transform: translateY(-100vh);
+    opacity: 0;
+    pointer-events: none;
   }
   
   .slide-down {
     transform: translateY(100vh);
+    opacity: 0;
+    pointer-events: none;
   }
   
   .slide-left {
     transform: translateX(-100vw);
+    opacity: 0;
+    pointer-events: none;
   }
   
   .slide-right {
     transform: translateX(100vw);
+    opacity: 0;
+    pointer-events: none;
   }
 }
