@@ -63,9 +63,10 @@ interface InsightCardProps {
   position: string;
   onSourceClick?: (url: string) => void;
   userIndustries?: string[];
+    onClick?: (id: string) => void;
 }
 
-const PlatformIcon = ({ source }: { source: string }) => {
+export const PlatformIcon = ({ source }: { source: string }) => {
   const iconProps = { className: "w-4 h-4", strokeWidth: 2 };
 
   switch (source) {
@@ -89,6 +90,7 @@ export const InsightCard = ({
   onInfluencerClick,
   position,
   onSourceClick,
+  onClick,
   userIndustries = [],
 }: InsightCardProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -149,6 +151,13 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
+      const handleCardClick = () => {
+    if (onClick) {
+      onClick(insight.id);
+    }
+  };
+
+
   return (
    <div 
   className={cn(
@@ -156,6 +165,8 @@ export const InsightCard = ({
     "border border-gray-200 dark:border-gray-800",
     position
   )}
+    onClick={handleCardClick} // Add this click handler
+      style={{ cursor: 'pointer' }} // Add pointer cursor
 >
        <div className="flex-1 flex flex-col overflow-hidden"> {/* Add overflow-hidden here */}
     {/* Image Section */}

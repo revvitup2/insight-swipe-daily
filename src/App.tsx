@@ -13,6 +13,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import { useState, useEffect,useMemo  } from "react";
 import Clarity from "@microsoft/clarity";
+import InsightDetails from "./pages/InsightsDetails";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             
             {/* Admin Routes */}
+                <Route path="/insights/:videoId" element={<InsightDetails />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={
               <ProtectedRoute>

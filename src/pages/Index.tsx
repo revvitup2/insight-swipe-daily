@@ -62,6 +62,7 @@ const Index = () => {
     return localStorage.getItem("onboarded") === "true";
   });
   const [direction, setDirection] = useState(1);
+  const [isSharing, setIsSharing] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [previousInsightIndex, setPreviousInsightIndex] = useState(0);
@@ -78,6 +79,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
+    const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
   
   const navigate = useNavigate();
 
@@ -275,79 +277,146 @@ const Index = () => {
       return insight;
     }));
   };
-  
-  const handleShareInsight = (id: string) => {
+
+
+const handleShareInsight = async (id: string) => {
   const insight = insights.find(i => i.id === id);
   if (!insight) return;
 
-  const shareData = {
-    title: insight.title,
-    text: insight.summary.substring(0, 100) + '...', // First 100 chars of summary
-    url: insight.sourceUrl || window.location.href,
-  };
+  try {
+    setIsSharing(true); // Start loading
 
-  // Check if Web Share API is available (mobile devices)
-  if (navigator.share) {
-    navigator.share(shareData)
-      .then(() => {
-        toast({
-          title: "Shared successfully",
-          description: "Thanks for sharing this insight!",
-        });
-      })
-      .catch((error) => {
-        console.error('Error sharing:', error);
-        toast({
-          title: "Error",
-          description: "Couldn't share the insight",
-          variant: "destructive",
-        });
-      });
-  } else {
-    // Fallback for desktop browsers
-    toast({
-      title: "Share this insight",
-      description: (
-        <div className="flex flex-col space-y-2">
-          <p>{insight.title}</p>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(insight.title)}&url=${encodeURIComponent(shareData.url)}`, '_blank');
-              }}
-            >
-              Twitter
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareData.url)}`, '_blank');
-              }}
-            >
-              LinkedIn
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(`${insight.title} - ${shareData.url}`);
-                toast({
-                  title: "Copied to clipboard",
-                  description: "You can now paste the link anywhere",
-                });
-              }}
-            >
-              Copy Link
-            </Button>
-          </div>
-        </div>
-      ),
+    const insightCard = document.querySelector(`.insight-card`) as HTMLElement;
+    if (!insightCard) {
+      setIsSharing(false);
+      return;
+    }
+
+    const { toBlob } = await import('html-to-image');
+    const blob = await toBlob(insightCard, {
+      quality: 0.95,
+      backgroundColor: '#ffffff',
+      cacheBust: true,
     });
+
+    if (!blob) {
+      setIsSharing(false);
+      return;
+    }
+
+    const shareUrl = `${window.location.origin}/insights/${insight.id}`;
+    const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful insights in less than 60 words, visit: ${shareUrl}`;
+    const file = new File([blob], 'insight.png', { type: 'image/png' });
+
+    // Check support for full share with image
+    const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
+
+    if (navigator.share) {
+      if (canShareWithImage) {
+        await navigator.share({
+          title: insight.title,
+          text: shareText,
+          url: shareUrl,
+          files: [file],
+        });
+      } else {
+        // Fallback to just text and link if image share isn't supported
+        await navigator.share({
+          title: insight.title,
+          text: shareText,
+          url: shareUrl,
+        });
+      }
+
+    } else {
+      // Desktop or unsupported browser fallback
+      const imageUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = imageUrl;
+      downloadLink.download = 'byte-me-insight.png';
+      document.body.appendChild(downloadLink);
+
+      toast({
+        title: "Share this insight",
+        description: (
+          <div className="flex flex-col space-y-4">
+            <div className="flex justify-center">
+              <img 
+                src={imageUrl} 
+                alt={insight.title} 
+                className="max-w-full h-auto rounded-lg border border-gray-200"
+              />
+            </div>
+            <p className="text-sm whitespace-pre-wrap">{shareText}</p>
+            <div className="flex flex-col space-y-2">
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    downloadLink.click();
+                    URL.revokeObjectURL(imageUrl);
+                    document.body.removeChild(downloadLink);
+                  }}
+                >
+                  Download Image
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareText);
+                    toast({
+                      title: "Copied to clipboard",
+                      description: "Text with link is ready to paste",
+                    });
+                  }}
+                >
+                  Copy Text
+                </Button>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                  }}
+                >
+                  Share on Twitter
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                  }}
+                >
+                  Share on LinkedIn
+                </Button>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  window.open(shareUrl, '_blank');
+                }}
+              >
+                Open Insight
+              </Button>
+            </div>
+          </div>
+        ),
+      });
+    }
+  } catch (error) {
+    console.error('Error sharing:', error);
+
+  } finally {
+    setIsSharing(false); // End loading
   }
 };
+
 
   const handleFollowInfluencer = (influencerId: string) => {
     setInsights(insights.map(insight => {
@@ -402,10 +471,11 @@ const Index = () => {
     setShowingInfluencer(true);
   };
   
-  const handleInsightClick = () => {
+  const handleInsightClick = (id:string) => {
     setShowingInfluencer(false);
     // Restore the previous insight index
-    setCurrentInsightIndex(previousInsightIndex);
+    // setCurrentInsightIndex(previousInsightIndex);
+      navigate(`/insights/${id}`);
   };
 
   const handleSourceClick = (url: string) => {
@@ -546,9 +616,18 @@ const navigateToPreviousInsight = () => {
       </div>
     );
   }
+  
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen bg-background relative">
+       {isSharing && (
+      <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-primary">Preparing share content...</p>
+        </div>
+      </div>
+    )}
       {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
           {!showingInfluencer ? (
       <div 
@@ -579,6 +658,8 @@ const navigateToPreviousInsight = () => {
               onSourceClick={handleSourceClick}
               userIndustries={selectedIndustries} 
               position={""}
+                onClick={handleInsightClick}
+            
             />
           </motion.div>
           </AnimatePresence>

@@ -1,8 +1,9 @@
 // components/SavedInsightCard.tsx
-import { Insight } from "./InsightCard";
+import { Insight, PlatformIcon } from "./InsightCard";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import ByteMeLogo from "@/components/ByteMeLogo";
 
 interface SavedInsightCardProps {
   insight: Insight;
@@ -18,7 +19,15 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
   };
 
   const handleClick = () => {
-    navigate(`/?insight=${insight.id}`);
+   navigate(`/insights/${insight.id}`);
+  };
+
+  const handleSourceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (insight.sourceUrl) {
+      // Handle source click - open URL or whatever logic you need
+      window.open(insight.sourceUrl, '_blank');
+    }
   };
 
   return (
@@ -32,9 +41,26 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
           alt={insight.title}
           className="w-full h-full object-cover"
         />
-        <div className="absolute bottom-2 left-2 bg-background/90 px-2 py-1 rounded-md text-xs font-medium">
+        
+        {/* ByteMe Brand Watermark - Top right */}
+        <div className="absolute top-2 right-2">
+          <ByteMeLogo size="sm" className="opacity-80" />
+        </div>
+        
+        {/* Industry Tag - Bottom left with subtle black background */}
+        <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
           {insight.industry}
         </div>
+        
+        {/* Source Platform - Bottom right with subtle black background */}
+        {insight.source && (
+          <div 
+            className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+            onClick={handleSourceClick}
+          >
+            <PlatformIcon source={insight.source} />
+          </div>
+        )}
       </div>
       
       <div className="sm:w-2/3 p-4 flex flex-col">

@@ -79,9 +79,9 @@ const SavedInsights = () => {
           <h1 className="text-2xl font-bold">Saved Insights</h1>
           {savedInsights.length > 0 && (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
+              {/* <span className="text-sm text-muted-foreground">
                 {savedInsights.length} {savedInsights.length === 1 ? "item" : "items"}
-              </span>
+              </span> */}
         
             </div>
           )}
@@ -93,6 +93,7 @@ const SavedInsights = () => {
                   <SavedInsightCard
                 key={insight.id}
                 insight={insight}
+            
                 onRemove={handleRemoveInsight}
               />
             ))}
