@@ -19,7 +19,7 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
   };
 
   const handleClick = () => {
-   navigate(`/insights/${insight.id}`);
+   navigate(`/bytes/${insight.id}`);
   };
 
   const handleSourceClick = (e: React.MouseEvent) => {

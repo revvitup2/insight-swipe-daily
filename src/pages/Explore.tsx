@@ -1,492 +1,582 @@
-
 "use client";
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
-import { Search, Plus, Loader2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Heart, Share, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
+import ByteMeLogo from "@/components/ByteMeLogo";
+import { PlatformIcon } from "@/components/InsightCard";
+import { useNavigate } from "react-router-dom";
 
-interface ExploreInfluencer {
-  id: string;
-  name: string;
-  profileImage: string;
+interface ApiInsight {
+  influencer_id: string;
+  video_id: string;
+  published_at: string;
   industry: string;
-  bio: string;
-  followers: number;
-  isFollowed: boolean;
+  metadata: {
+    title: string;
+    description: string;
+    channel_title: string;
+    thumbnails: {
+      high: {
+        url: string;
+      };
+    };
+    tags: string[];
+  };
+  analysis: {
+    summary: string;
+    key_points: string[];
+    sentiment: string;
+    topics: string[];
+  };
+  source?: {
+    platform: "youtube" | "twitter" | "linkedin" | "other";
+    url: string;
+  };
 }
 
-interface ExploreCategory {
+interface ExploreBite {
   id: string;
-  name: string;
-  icon: string;
-  influencers: ExploreInfluencer[];
+  title: string;
+  summary: string;
+  image: string;
+  industry: string;
+  influencer: {
+    id: string;
+    name: string;
+    profileImage: string;
+    isFollowed: boolean;
+  };
+  publishedAt: string;
+  isLiked: boolean;
+  isSaved: boolean;
+  sourceUrl: string;
+  source: "youtube" | "twitter" | "linkedin" | "other";
+  keyPoints: string[];
+  sentiment: string;
 }
 
-const exploreCategories: ExploreCategory[] = [
-  {
-    id: "trending",
-    name: "Hot Today 🔥",
-    icon: "🔥",
-    influencers: [
-      {
-        id: "e1",
-        name: "Emma Wilson",
-        profileImage: "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100",
-        industry: "Finance",
-        bio: "Finance strategist breaking down complex market trends",
-        followers: 542000,
-        isFollowed: false
-      },
-      {
-        id: "e2",
-        name: "James Rivera",
-        profileImage: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?q=80&w=100",
-        industry: "Technology",
-        bio: "Tech analyst focusing on emerging market innovations",
-        followers: 328000,
-        isFollowed: false
-      },
-      {
-        id: "e3",
-        name: "Kate Phillips",
-        profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100",
-        industry: "Marketing",
-        bio: "Marketing genius with insights on consumer behavior",
-        followers: 189000,
-        isFollowed: false
-      }
-    ]
-  },
-  {
-    id: "emerging",
-    name: "Emerging Voices 🚀",
-    icon: "🚀",
-    influencers: [
-      {
-        id: "e4",
-        name: "Ryan Chang",
-        profileImage: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=100",
-        industry: "Startups",
-        bio: "Startup founder sharing the journey of building companies",
-        followers: 78000,
-        isFollowed: false
-      },
-      {
-        id: "e5",
-        name: "Leila Ahmed",
-        profileImage: "https://images.unsplash.com/photo-1601412436009-d964bd02edbc?q=80&w=100",
-        industry: "Design",
-        bio: "Design thinker exploring the intersection of art and function",
-        followers: 92000,
-        isFollowed: false
-      },
-      {
-        id: "e6",
-        name: "Daniel Park",
-        profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100",
-        industry: "Business",
-        bio: "Business strategist with a focus on sustainable growth",
-        followers: 67000,
-        isFollowed: false
-      }
-    ]
-  },
-  {
-    id: "ai",
-    name: "Leaders in AI 💡",
-    icon: "💡",
-    influencers: [
-      {
-        id: "i1",
-        name: "Alex Chen",
-        profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100",
-        industry: "AI",
-        bio: "AI researcher and tech entrepreneur. Former lead at DeepMind.",
-        followers: 248500,
-        isFollowed: false
-      },
-      {
-        id: "e7",
-        name: "Sophia Williams",
-        profileImage: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=100",
-        industry: "AI",
-        bio: "AI ethics researcher focusing on responsible deployment",
-        followers: 156000,
-        isFollowed: false
-      },
-      {
-        id: "e8",
-        name: "Marcus Johnson",
-        profileImage: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=100",
-        industry: "AI",
-        bio: "Machine learning engineer demystifying complex AI concepts",
-        followers: 203000,
-        isFollowed: false
-      }
-    ]
-  },
-  {
-    id: "healthcare",
-    name: "Healthcare Trailblazers 🏥",
-    icon: "🏥",
-    influencers: [
-      {
-        id: "i4",
-        name: "Dr. Lisa Patel",
-        profileImage: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=100",
-        industry: "Healthcare",
-        bio: "Physician and healthcare innovator focused on preventive medicine",
-        followers: 187000,
-        isFollowed: false
-      },
-      {
-        id: "e9",
-        name: "Dr. Robert Kim",
-        profileImage: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=100",
-        industry: "Healthcare",
-        bio: "Neuroscientist sharing breakthroughs in brain research",
-        followers: 134000,
-        isFollowed: false
-      },
-      {
-        id: "e10",
-        name: "Dr. Amara Nelson",
-        profileImage: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?q=80&w=100",
-        industry: "Healthcare",
-        bio: "Public health expert analyzing global health trends",
-        followers: 159000,
-        isFollowed: false
-      }
-    ]
-  }
-];
+export interface VersionedInsight extends ExploreBite {
+  version: number;
+  savedAt: string;
+}
+
+export interface SavedBytesData {
+  versions: {
+    [version: number]: ExploreBite[];
+  };
+}
 
 const Explore = () => {
-  const [categories, setCategories] = useState(exploreCategories);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<ExploreInfluencer[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSuggestForm, setShowSuggestForm] = useState(false);
-  const [platform, setPlatform] = useState<string>("youtube");
-  const [profileUrl, setProfileUrl] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const handleFollowToggle = (categoryId: string, influencerId: string) => {
-    setCategories(categories.map(category => {
-      if (category.id === categoryId) {
-        return {
-          ...category,
-          influencers: category.influencers.map(influencer => {
-            if (influencer.id === influencerId) {
-              return {...influencer, isFollowed: !influencer.isFollowed};
-            }
-            return influencer;
-          })
-        };
-      }
-      return category;
-    }));
-    
-    const category = categories.find(c => c.id === categoryId);
-    const influencer = category?.influencers.find(i => i.id === influencerId);
-    
-    if (influencer) {
-      toast({
-        title: influencer.isFollowed 
-          ? `Unfollowed ${influencer.name}`
-          : `Following ${influencer.name}`,
-        description: influencer.isFollowed 
-          ? "You won't see their content in your feed"
-          : "You'll see their insights in your feed",
-      });
-    }
-  };
-  
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsSearching(true);
-    
-    // Simulated search results - in a real app, this would query your API
-    setTimeout(() => {
-      const allInfluencers = categories.flatMap(category => category.influencers);
-      
-      const results = allInfluencers.filter(influencer => 
-        influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        influencer.industry.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        influencer.bio.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      
-      setSearchResults(results);
-      setIsSearching(false);
-      
-      if (results.length === 0) {
-        setShowSuggestForm(true);
+  const [Bytes, setBytes] = useState<ExploreBite[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  // Fetch Bytes from API
+  useEffect(() => {
+    const fetchBytes = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/feed`);
+        const data: ApiInsight[] = await response.json();
+        
+        const formattedBytes: ExploreBite[] = data.map((item) => {
+          const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
+          let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
+          
+          if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
+            sourcePlatform = "youtube";
+          } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
+            sourcePlatform = "twitter";
+          } else if (sourceUrl.includes('linkedin.com')) {
+            sourcePlatform = "linkedin";
+          } else {
+            sourcePlatform = "other";
+          }
+          
+          // Check if this bite is already saved
+          const savedData: SavedBytesData = JSON.parse(
+            localStorage.getItem("savedBytes") || '{"versions":{}}'
+          );
+          const isSaved = Object.values(savedData.versions).some(version => 
+            version.some(bite => bite.id === item.video_id)
+          );
+          
+          return {
+            id: item.video_id,
+            title: item.metadata.title,
+            summary: item.analysis.summary,
+            image: item.metadata.thumbnails.high.url,
+            industry: item.industry || "General",
+            influencer: {
+              id: item.influencer_id,
+              name: item.metadata.channel_title,
+              profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
+              isFollowed: false
+            },
+            isSaved,
+            isLiked: false,
+            publishedAt: new Date(item.published_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            }),
+            sourceUrl: sourceUrl,
+            source: sourcePlatform,
+            keyPoints: item.analysis.key_points,
+            sentiment: item.analysis.sentiment
+          };
+        });
+
+        setBytes(formattedBytes);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching Bytes:", error);
         toast({
-          title: "No results found",
-          description: "Would you like to suggest a new influencer?",
+          title: "Error",
+          description: "Failed to fetch Bytes. Please try again later.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+      }
+    };
+
+    fetchBytes();
+  }, []);
+
+  // Get unique industries for categories
+  const categories = useMemo(() => {
+    const industrySet = new Set<string>();
+    Bytes.forEach(bite => {
+      if (bite.industry) {
+        industrySet.add(bite.industry);
+      }
+    });
+
+    const industryCategories = Array.from(industrySet).map(industry => ({
+      id: industry.toLowerCase().replace(/\s+/g, '-'),
+      name: industry,
+      icon: getIndustryIcon(industry)
+    }));
+
+    // Add "All" category at the beginning
+    return [
+      { id: "all", name: "All", icon: "🌟" },
+      ...industryCategories
+    ];
+  }, [Bytes]);
+
+  // Filter Bytes based on selected category and search query
+  const filteredBytes = useMemo(() => {
+    let filtered = Bytes;
+    
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(bite => 
+        bite.industry.toLowerCase().replace(/\s+/g, '-') === selectedCategory
+      );
+    }
+    
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(bite => 
+        bite.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bite.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bite.influencer.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [selectedCategory, searchQuery, Bytes]);
+
+  const handleLike = (id: string) => {
+    setBytes(prev => prev.map(bite => 
+      bite.id === id ? { ...bite, isLiked: !bite.isLiked } : bite
+    ));
+  };
+
+  const handleSave = (id: string) => {
+    setBytes(prevBytes => {
+      const updatedBytes = prevBytes.map(insight => {
+        if (insight.id === id) {
+          return { ...insight, isSaved: !insight.isSaved };
+        }
+        return insight;
+      });
+
+      // Get current saved Bytes data from localStorage
+      const savedData: SavedBytesData = JSON.parse(
+        localStorage.getItem("savedBytes") || '{"versions":{}}'
+      );
+
+      // Find the insight being toggled
+      const insightToToggle = updatedBytes.find(i => i.id === id);
+      
+      if (insightToToggle) {
+        // Initialize version if it doesn't exist
+        if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
+          savedData.versions[CURRENT_INSIGHT_VERSION] = [];
+        }
+        
+        if (insightToToggle.isSaved) {
+          // Add to current version's saved Bytes
+          const versionBytes = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
+          savedData.versions[CURRENT_INSIGHT_VERSION] = [
+            ...versionBytes.filter(i => i.id !== id), // Remove if already exists
+            {
+              ...insightToToggle,
+              savedAt: new Date().toISOString()
+            }
+          ];
+        } else {
+          // Remove from current version
+          savedData.versions[CURRENT_INSIGHT_VERSION] = 
+            (savedData.versions[CURRENT_INSIGHT_VERSION] || [])
+              .filter(i => i.id !== id);
+        }
+
+        // Update saved Bytes in localStorage
+        localStorage.setItem("savedBytes", JSON.stringify(savedData));
+      }
+
+      return updatedBytes;
+    });
+
+    const isSaved = Bytes.find(i => i.id === id)?.isSaved;
+    toast({
+      title: isSaved ? "Saved" : "Removed from saved",
+      description: isSaved 
+        ? `Added to version ${CURRENT_INSIGHT_VERSION} collection` 
+        : "Removed from your saved items",
+    });
+  };
+
+  const handleShare = async (id: string) => {
+    const bite = Bytes.find(i => i.id === id);
+    if (!bite) return;
+
+    try {
+      setIsSharing(true); // Start loading
+
+      // Get the insight card element
+      const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
+      if (!insightCard) {
+        setIsSharing(false);
+        return;
+      }
+
+      const { toBlob } = await import('html-to-image');
+      const blob = await toBlob(insightCard, {
+        quality: 0.95,
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+      });
+
+      if (!blob) {
+        setIsSharing(false);
+        return;
+      }
+
+      const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
+      const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
+      const file = new File([blob], 'insight.png', { type: 'image/png' });
+
+      // Check support for full share with image
+      const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
+
+      if (navigator.share) {
+        if (canShareWithImage) {
+          await navigator.share({
+            title: bite.title,
+            text: shareText,
+            url: shareUrl,
+            files: [file],
+          });
+        } else {
+          // Fallback to just text and link if image share isn't supported
+          await navigator.share({
+            title: bite.title,
+            text: shareText,
+            url: shareUrl,
+          });
+        }
+
+      } else {
+        // Desktop or unsupported browser fallback
+        const imageUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = imageUrl;
+        downloadLink.download = 'byte-me-insight.png';
+        document.body.appendChild(downloadLink);
+
+        toast({
+          title: "Share this insight",
+          description: (
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={imageUrl} 
+                  alt={bite.title} 
+                  className="max-w-full h-auto rounded-lg border border-gray-200"
+                />
+              </div>
+              <p className="text-sm whitespace-pre-wrap">{shareText}</p>
+              <div className="flex flex-col space-y-2">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      downloadLink.click();
+                      URL.revokeObjectURL(imageUrl);
+                      document.body.removeChild(downloadLink);
+                    }}
+                  >
+                    Download Image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareText);
+                      toast({
+                        title: "Copied to clipboard",
+                        description: "Text with link is ready to paste",
+                      });
+                    }}
+                  >
+                    Copy Text
+                  </Button>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                    }}
+                  >
+                    Share on Twitter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                    }}
+                  >
+                    Share on LinkedIn
+                  </Button>
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    window.open(shareUrl, '_blank');
+                  }}
+                >
+                  Open Insight
+                </Button>
+              </div>
+            </div>
+          ),
         });
       }
-    }, 1000);
-  };
-  
-  const handleSuggestInfluencer = () => {
-    if (!profileUrl) {
-      toast({
-        title: "Missing URL",
-        description: "Please enter a profile URL",
-        variant: "destructive"
-      });
-      return;
+    } catch (error) {
+      console.error('Error sharing:', error);
+    } finally {
+      setIsSharing(false); // End loading
     }
-    
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Thank you for your suggestion!",
-        description: "We'll review this influencer and add them to our platform soon.",
-      });
-      
-      setShowSuggestForm(false);
-      setProfileUrl("");
-      setIsSubmitting(false);
-    }, 1500);
   };
+
+
+  // Helper function to get icon for industry
+  function getIndustryIcon(industry: string): string {
+    const industryLower = industry.toLowerCase();
+    if (industryLower.includes('finance') || industryLower.includes('money')) return "💰";
+    if (industryLower.includes('tech') || industryLower.includes('ai')) return "🤖";
+    if (industryLower.includes('health')) return "🏥";
+    if (industryLower.includes('startup')) return "🚀";
+    if (industryLower.includes('business')) return "💼";
+    if (industryLower.includes('market')) return "📢";
+    if (industryLower.includes('design')) return "🎨";
+    return "📌";
+  }
+    const navigate = useNavigate();
   
-  const handleFollowSearchResult = (influencerId: string) => {
-    setSearchResults(searchResults.map(influencer => {
-      if (influencer.id === influencerId) {
-        return {...influencer, isFollowed: !influencer.isFollowed};
-      }
-      return influencer;
-    }));
-    
-    // Also update in main categories
-    setCategories(categories.map(category => ({
-      ...category,
-      influencers: category.influencers.map(influencer => {
-        if (influencer.id === influencerId) {
-          const updatedInfluencer = {...influencer, isFollowed: !influencer.isFollowed};
-          
-          // Show toast
-          toast({
-            title: updatedInfluencer.isFollowed 
-              ? `Following ${updatedInfluencer.name}`
-              : `Unfollowed ${updatedInfluencer.name}`,
-            description: updatedInfluencer.isFollowed 
-              ? "You'll see their insights in your feed"
-              : "You won't see their content in your feed",
-          });
-          
-          return updatedInfluencer;
-        }
-        return influencer;
-      })
-    })));
+    const handleClick = (id:string) => {
+   navigate(`/Bytes/${id}`);
   };
-  
+
+
+  if (isLoading) {
+    return <LoadingSpinner message="Loading Bytes..." />;
+  }
+
   return (
     <div className="page-container bg-background">
       <div className="p-4 pb-20">
-        <h1 className="text-2xl font-bold mb-4">ByteMe - Explore</h1>
+        <h1 className="text-2xl font-bold mb-4">Explore Bytes</h1>
         
-        {/* Search Section */}
-        <div className="mb-6">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search for influencers..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <Button 
-              onClick={handleSearch} 
-              disabled={isSearching || !searchQuery.trim()}
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search Bytes..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {categories.map((category) => (
+            <Button
+              key={category.id}
+              variant={selectedCategory === category.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category.id)}
+              className="flex items-center gap-1 whitespace-nowrap"
             >
-              {isSearching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Search"
-              )}
+              <span>{category.icon}</span>
+              <span>{category.name}</span>
+            </Button>
+          ))}
+        </div>
+
+        {/* Bytes Grid */}
+        <div className="space-y-4">
+          {filteredBytes.map((bite) => (
+            <div 
+              key={bite.id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+              data-insight-id={bite.id}
+              onClick={(e)=>{handleClick(bite.id)}}
+            >
+            <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
+                    <img
+                      src={bite.image}
+                      alt={bite.title}
+                      className="w-full h-full object-cover"
+                    />
+                    
+                    {/* ByteMe Brand Watermark - Top right */}
+                    <div className="absolute top-2 right-2">
+                      <ByteMeLogo size="sm" className="opacity-80" />
+                    </div>
+                    
+                    {/* Industry Tag - Bottom left with subtle black background */}
+                    <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+                      {bite.industry}
+                    </div>
+                    
+                    {/* Source Platform - Bottom right with subtle black background */}
+                    {bite.source && (
+                      <div 
+                        className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+                        // onClick={handleSourceClick}
+                      >
+                        <PlatformIcon source={bite.source} />
+                      </div>
+                    )}
+                  </div>
+                  
+              
+              <div className="p-4">
+                <div className="flex items-center mb-2">
+                  <img
+                    src={bite.influencer.profileImage}
+                    alt={bite.influencer.name}
+                    className="w-8 h-8 rounded-full mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    {bite.influencer.name}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-auto">
+                    {bite.publishedAt}
+                  </span>
+                </div>
+                
+                <h3 className="font-bold text-lg mb-2 line-clamp-2">
+                  {bite.title}
+                </h3>
+                
+                <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                  {bite.summary}
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                    {bite.industry}
+                  </span>
+                  
+                  <div className="flex items-center gap-3">
+                    {/* <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLike(bite.id);
+                      }}
+                      className={cn(
+                        "p-2 rounded-full transition-colors",
+                        bite.isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+                      )}
+                    >
+                      <Heart className={cn("w-5 h-5", bite.isLiked && "fill-current")} />
+                    </button> */}
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSave(bite.id);
+                      }}
+                      className={cn(
+                        "p-2 rounded-full transition-colors",
+                      "text-gray-400 hover:text-primary"
+                      )}
+                    >
+                      <Save className={cn("w-5 h-5")} />
+                    </button>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(bite.id);
+                      }}
+                      className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
+                    >
+                      <Share className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Load More Button */}
+      
+
+        {filteredBytes.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No Bytes found matching your criteria.</p>
+            <Button 
+              variant="ghost"
+              onClick={() => {
+                setSelectedCategory("all");
+                setSearchQuery("");
+              }}
+              className="mt-2"
+            >
+              Clear filters
             </Button>
           </div>
-          
-          {/* Search Results */}
-          {searchResults.length > 0 && (
-            <div className="mt-4 space-y-4">
-              <h2 className="font-semibold">Search Results</h2>
-              {searchResults.map(influencer => (
-                <div key={influencer.id} className="influencer-card">
-                  <div className="w-20 h-20 mr-4">
-                    <img 
-                      src={influencer.profileImage}
-                      alt={influencer.name}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">{influencer.name}</h3>
-                      <span className="industry-tag">{influencer.industry}</span>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                      {influencer.bio}
-                    </p>
-                    
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-muted-foreground">
-                        {influencer.followers.toLocaleString()} followers
-                      </span>
-                      
-                      <Button
-                        variant={influencer.isFollowed ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => handleFollowSearchResult(influencer.id)}
-                        className="text-xs"
-                      >
-                        {influencer.isFollowed ? "Following" : "Follow"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Suggest New Influencer Form */}
-          {showSuggestForm && (
-            <Card className="mt-4">
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-2">Suggest a New Influencer</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Can't find who you're looking for? Suggest them to be added:
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Platform</label>
-                    <Select value={platform} onValueChange={setPlatform}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select platform" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="youtube">YouTube</SelectItem>
-                        <SelectItem value="twitter">Twitter</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium">Profile URL</label>
-                    <Input
-                      value={profileUrl}
-                      onChange={(e) => setProfileUrl(e.target.value)}
-                      placeholder="https://youtube.com/channel/..."
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleSuggestInfluencer} 
-                      disabled={isSubmitting}
-                      className="flex-1"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Suggest Influencer
-                        </>
-                      )}
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowSuggestForm(false)}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-        
-        {/* Categories Tabs */}
-        <Tabs defaultValue="trending" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-6">
-            <TabsTrigger value="trending">🔥</TabsTrigger>
-            <TabsTrigger value="emerging">🚀</TabsTrigger>
-            <TabsTrigger value="ai">💡</TabsTrigger>
-            <TabsTrigger value="healthcare">🏥</TabsTrigger>
-          </TabsList>
-          
-          {categories.map(category => (
-            <TabsContent key={category.id} value={category.id} className="animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4">{category.name}</h2>
-              
-              <div className="space-y-4">
-                {category.influencers.map(influencer => (
-                  <div key={influencer.id} className="influencer-card">
-                    <div className="w-20 h-20 mr-4">
-                      <img 
-                        src={influencer.profileImage}
-                        alt={influencer.name}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex justify-between">
-                        <h3 className="font-medium">{influencer.name}</h3>
-                        <span className="industry-tag">{influencer.industry}</span>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                        {influencer.bio}
-                      </p>
-                      
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-muted-foreground">
-                          {influencer.followers.toLocaleString()} followers
-                        </span>
-                        
-                        <Button
-                          variant={influencer.isFollowed ? "outline" : "default"}
-                          size="sm"
-                          onClick={() => handleFollowToggle(category.id, influencer.id)}
-                          className="text-xs"
-                        >
-                          {influencer.isFollowed ? "Following" : "Follow"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+        )}
       </div>
       
       <Navigation />

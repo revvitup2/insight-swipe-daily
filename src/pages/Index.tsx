@@ -46,7 +46,7 @@ export interface VersionedInsight extends Insight {
   savedAt: string;
 }
 
-export interface SavedInsightsData {
+export interface SavedBytesData {
   versions: {
     [version: number]: Insight[];
   };
@@ -63,7 +63,7 @@ const Index = () => {
   });
   const [direction, setDirection] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
-  const [insights, setInsights] = useState<Insight[]>([]);
+  const [Bytes, setBytes] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [previousInsightIndex, setPreviousInsightIndex] = useState(0);
   const [showingInfluencer, setShowingInfluencer] = useState(false);
@@ -83,25 +83,25 @@ const Index = () => {
   
   const navigate = useNavigate();
 
-  const filteredInsights = useMemo(() => {
-    if (selectedIndustries.length === 0) return insights;
+  const filteredBytes = useMemo(() => {
+    if (selectedIndustries.length === 0) return Bytes;
     
-    return insights.filter(insight => {
+    return Bytes.filter(insight => {
       const insightIndustry = insight.industry.toLowerCase();
       return selectedIndustries.some(industry => 
         insightIndustry.includes(industry.toLowerCase())
       );
     });
-  }, [insights, selectedIndustries]);
+  }, [Bytes, selectedIndustries]);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
-    const fetchInsights = async () => {
+    const fetchBytes = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/feed`);
         const data: ApiInsight[] = await response.json();
         
-        const formattedInsights: Insight[] = data.map((item) => {
+        const formattedBytes: Insight[] = data.map((item) => {
           // Determine the source platform based on the URL
           const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
           
@@ -142,20 +142,20 @@ const Index = () => {
           };
         });
 
-        setInsights(formattedInsights);
+        setBytes(formattedBytes);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching insights:", error);
+        console.error("Error fetching Bytes:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch insights. Please try again later.",
+          description: "Failed to fetch Bytes. Please try again later.",
           variant: "destructive"
         });
         setIsLoading(false);
       }
     };
 
-    fetchInsights();
+    fetchBytes();
   }, []);
 
   // Check if tutorial should be shown
@@ -167,31 +167,31 @@ const Index = () => {
 
   useEffect(() => {
     setCurrentInsightIndex(0);
-    const positions = filteredInsights.map((_, i) => 
+    const positions = filteredBytes.map((_, i) => 
       i === 0 ? "" : "slide-down"
     );
     setInsightPositions(positions);
-  }, [filteredInsights]);
+  }, [filteredBytes]);
 
   useEffect(() => {
-    const newPositions = filteredInsights.map((_, i) => 
+    const newPositions = filteredBytes.map((_, i) => 
       i === currentInsightIndex ? "" : 
       (i < currentInsightIndex ? "slide-up" : "slide-down")
     );
     setInsightPositions(newPositions);
-  }, [currentInsightIndex, filteredInsights]);
+  }, [currentInsightIndex, filteredBytes]);
 
   useEffect(() => {
     if (showingInfluencer && selectedInfluencer) {
-      const influencerFromInsights = insights.find(i => i.influencer.id === selectedInfluencer.id);
-      if (influencerFromInsights) {
+      const influencerFromBytes = Bytes.find(i => i.influencer.id === selectedInfluencer.id);
+      if (influencerFromBytes) {
         setSelectedInfluencer({
           ...selectedInfluencer,
-          isFollowed: influencerFromInsights.influencer.isFollowed
+          isFollowed: influencerFromBytes.influencer.isFollowed
         });
       }
     }
-  }, [showingInfluencer, insights, selectedInfluencer]);
+  }, [showingInfluencer, Bytes, selectedInfluencer]);
 
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
     localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
@@ -214,21 +214,21 @@ const Index = () => {
   };
 
   const handleSaveInsight = (id: string) => {
-    setInsights(prevInsights => {
-      const updatedInsights = prevInsights.map(insight => {
+    setBytes(prevBytes => {
+      const updatedBytes = prevBytes.map(insight => {
         if (insight.id === id) {
           return { ...insight, isSaved: !insight.isSaved };
         }
         return insight;
       });
 
-      // Get current saved insights data from localStorage
-      const savedData: SavedInsightsData = JSON.parse(
-        localStorage.getItem("savedInsights") || '{"versions":{}}'
+      // Get current saved Bytes data from localStorage
+      const savedData: SavedBytesData = JSON.parse(
+        localStorage.getItem("savedBytes") || '{"versions":{}}'
       );
 
       // Find the insight being toggled
-      const insightToToggle = updatedInsights.find(i => i.id === id);
+      const insightToToggle = updatedBytes.find(i => i.id === id);
       
       if (insightToToggle) {
         // Initialize version if it doesn't exist
@@ -237,10 +237,10 @@ const Index = () => {
         }
         
         if (insightToToggle.isSaved) {
-          // Add to current version's saved insights
-          const versionInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
+          // Add to current version's saved Bytes
+          const versionBytes = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
           savedData.versions[CURRENT_INSIGHT_VERSION] = [
-            ...versionInsights.filter(i => i.id !== id), // Remove if already exists
+            ...versionBytes.filter(i => i.id !== id), // Remove if already exists
             {
               ...insightToToggle
             }
@@ -252,15 +252,15 @@ const Index = () => {
               .filter(i => i.id !== id);
         }
 
-        // Update saved insights in localStorage
-        localStorage.setItem("savedInsights", JSON.stringify(savedData));
-        localStorage.setItem("insights", JSON.stringify(updatedInsights));
+        // Update saved Bytes in localStorage
+        localStorage.setItem("savedBytes", JSON.stringify(savedData));
+        localStorage.setItem("Bytes", JSON.stringify(updatedBytes));
       }
 
-      return updatedInsights;
+      return updatedBytes;
     });
 
-    const isSaved = insights.find(i => i.id === id)?.isSaved;
+    const isSaved = Bytes.find(i => i.id === id)?.isSaved;
     toast({
       title: isSaved ? "Saved" : "Removed from saved",
       description: isSaved 
@@ -270,7 +270,7 @@ const Index = () => {
   };
 
   const handleLikeInsight = (id: string) => {
-    setInsights(insights.map(insight => {
+    setBytes(Bytes.map(insight => {
       if (insight.id === id) {
         return { ...insight, isLiked: !insight.isLiked };
       }
@@ -280,7 +280,7 @@ const Index = () => {
 
 
 const handleShareInsight = async (id: string) => {
-  const insight = insights.find(i => i.id === id);
+  const insight = Bytes.find(i => i.id === id);
   if (!insight) return;
 
   try {
@@ -304,8 +304,8 @@ const handleShareInsight = async (id: string) => {
       return;
     }
 
-    const shareUrl = `${window.location.origin}/insights/${insight.id}`;
-    const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful insights in less than 60 words, visit: ${shareUrl}`;
+    const shareUrl = `${window.location.origin}/Bytes/${insight.id}`;
+    const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
     const file = new File([blob], 'insight.png', { type: 'image/png' });
 
     // Check support for full share with image
@@ -419,7 +419,7 @@ const handleShareInsight = async (id: string) => {
 
 
   const handleFollowInfluencer = (influencerId: string) => {
-    setInsights(insights.map(insight => {
+    setBytes(Bytes.map(insight => {
       if (insight.influencer.id === influencerId) {
         return { 
           ...insight, 
@@ -441,13 +441,13 @@ const handleShareInsight = async (id: string) => {
   };
   
   const handleInfluencerClick = (influencerId: string) => {
-    const insight = insights.find(i => i.influencer.id === influencerId);
+    const insight = Bytes.find(i => i.influencer.id === influencerId);
     if (!insight) return;
     
     // Store the current index before navigating away
     setPreviousInsightIndex(currentInsightIndex);
     
-    const influencerInsights = insights
+    const influencerBytes = Bytes
       .filter(i => i.influencer.id === influencerId)
       .map(i => ({
         id: i.id,
@@ -465,7 +465,7 @@ const handleShareInsight = async (id: string) => {
       followerCount: Math.floor(Math.random() * 1000000),
       engagementScore: parseFloat((Math.random() * 5 + 5).toFixed(1)),
       isFollowed: insight.influencer.isFollowed,
-      recentInsights: influencerInsights.slice(0, 3)
+      recentBytes: influencerBytes.slice(0, 3)
     });
     
     setShowingInfluencer(true);
@@ -475,7 +475,7 @@ const handleShareInsight = async (id: string) => {
     setShowingInfluencer(false);
     // Restore the previous insight index
     // setCurrentInsightIndex(previousInsightIndex);
-      navigate(`/insights/${id}`);
+      navigate(`/bytes/${id}`);
   };
 
   const handleSourceClick = (url: string) => {
@@ -485,7 +485,7 @@ const handleShareInsight = async (id: string) => {
   };
   
 const navigateToNextInsight = () => {
-  if (currentInsightIndex < filteredInsights.length - 1 && !isAnimating) {
+  if (currentInsightIndex < filteredBytes.length - 1 && !isAnimating) {
     setIsAnimating(true);
     setDirection(1); // Forward direction
     
@@ -493,9 +493,9 @@ const navigateToNextInsight = () => {
       setCurrentInsightIndex(currentInsightIndex + 1);
       setIsAnimating(false);
     }, 300);
-  } else if (currentInsightIndex === filteredInsights.length - 1) {
+  } else if (currentInsightIndex === filteredBytes.length - 1) {
     toast({
-      title: "No more insights",
+      title: "No more Bytes",
       description: "You've reached the end of your feed",
     });
   }
@@ -514,17 +514,17 @@ const navigateToPreviousInsight = () => {
 };
 
   const navigateToInfluencerProfile = () => {
-    if (!isAnimating && filteredInsights.length > 0) {
+    if (!isAnimating && filteredBytes.length > 0) {
       setIsAnimating(true);
-      handleInfluencerClick(filteredInsights[currentInsightIndex].influencer.id);
+      handleInfluencerClick(filteredBytes[currentInsightIndex].influencer.id);
       setIsAnimating(false);
     }
   };
 
   const navigateToSourceUrl = () => {
-    if (!isAnimating && filteredInsights.length > 0) {
+    if (!isAnimating && filteredBytes.length > 0) {
       setIsAnimating(true);
-      const insight = filteredInsights[currentInsightIndex];
+      const insight = filteredBytes[currentInsightIndex];
       if (insight.sourceUrl) {
         handleSourceClick(insight.sourceUrl);
       }
@@ -592,19 +592,19 @@ const navigateToPreviousInsight = () => {
   }
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading insights..." />;
+    return <LoadingSpinner message="Loading Bytes..." />;
   }
 
-  if (filteredInsights.length === 0) {
+  if (filteredBytes.length === 0) {
     return (
       <div className="h-screen bg-background flex items-center justify-center">
         <div className="text-center p-4">
           <p className="text-primary mb-4">
-            {insights.length === 0 
-              ? "No insights available at the moment." 
-              : "No insights match your selected industries."}
+            {Bytes.length === 0 
+              ? "No Bytes available at the moment." 
+              : "No Bytes match your selected industries."}
           </p>
-          {insights.length > 0 && (
+          {Bytes.length > 0 && (
             <Button 
               onClick={() => navigate("/profile")}
               className="bg-primary hover:bg-primary/90"
@@ -648,8 +648,8 @@ const navigateToPreviousInsight = () => {
             transition={{ duration: 0.3 }}
             className="h-full w-full">
                <InsightCard 
-              key={filteredInsights[currentInsightIndex].id}
-              insight={filteredInsights[currentInsightIndex]}
+              key={filteredBytes[currentInsightIndex].id}
+              insight={filteredBytes[currentInsightIndex]}
               onSave={handleSaveInsight}
               onLike={handleLikeInsight}
               onShare={handleShareInsight}

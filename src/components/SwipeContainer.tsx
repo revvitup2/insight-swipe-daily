@@ -3,7 +3,7 @@ import React, { useContext } from 'react';
 import InsightCard, { Insight } from './InsightCard';
 
 interface SwipeContainerProps {
-  insights: Insight[];
+  Bytes: Insight[];
   positions: string[];
   onSave: (id: string) => void;
   onLike: (id: string) => void;
@@ -20,7 +20,7 @@ interface SwipeContainerProps {
 
 const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
   ({
-    insights,
+    Bytes,
     positions,
     onSave,
     onLike,
@@ -43,7 +43,7 @@ const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
         onClick={onClick}
         ref={ref}
       >
-        {insights.map((insight, index) => (
+        {Bytes.map((insight, index) => (
           <InsightCard 
             key={insight.id}
             insight={insight}

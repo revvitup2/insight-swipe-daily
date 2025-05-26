@@ -34,7 +34,7 @@ export const AdminPromptsTab = () => {
     {
       id: "cat-1",
       name: "Finance Analysis",
-      content: "Analyze this financial content by highlighting market trends, investment insights, and economic forecasts.",
+      content: "Analyze this financial content by highlighting market trends, investment Bytes, and economic forecasts.",
       category: "finance"
     },
     {

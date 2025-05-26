@@ -131,7 +131,7 @@ export const InsightCard = ({
         : `Following ${insight.influencer.name}`,
       description: insight.influencer.isFollowed 
         ? "You won't see their content in your feed"
-        : "You'll see their insights in your feed",
+        : "You'll see their Bytes in your feed",
     });
   };
 

@@ -32,7 +32,7 @@ const SwipeTutorial = ({ onComplete }: SwipeTutorialProps) => {
         
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold mb-2">Welcome to ByteMe!</h2>
-          <p className="text-muted-foreground">Learn how to navigate through insights</p>
+          <p className="text-muted-foreground">Learn how to navigate through Bytes</p>
         </div>
         
         {step === 1 && (
@@ -44,7 +44,7 @@ const SwipeTutorial = ({ onComplete }: SwipeTutorialProps) => {
               </div>
               <h3 className="font-semibold text-lg mb-2">Swipe Up & Down</h3>
               <p className="text-center text-sm text-muted-foreground">
-                Navigate between insights by swiping up for next and down for previous
+                Navigate between Bytes by swiping up for next and down for previous
               </p>
             </div>
           </div>
@@ -73,7 +73,7 @@ const SwipeTutorial = ({ onComplete }: SwipeTutorialProps) => {
               </div>
               <h3 className="font-semibold text-lg mb-2">Tap to Interact</h3>
               <p className="text-center text-sm text-muted-foreground">
-                Tap the screen to show or hide the navigation bar. Tap on buttons to like, save or share insights
+                Tap the screen to show or hide the navigation bar. Tap on buttons to like, save or share Bytes
               </p>
             </div>
           </div>

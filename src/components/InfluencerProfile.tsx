@@ -12,7 +12,7 @@ export interface Influencer {
   followerCount: number;
   engagementScore: number;
   isFollowed: boolean;
-  recentInsights: {
+  recentBytes: {
     id: string;
     title: string;
     summary: string;
@@ -42,7 +42,7 @@ export const InfluencerProfile = ({
         : `Following ${influencer.name}`,
       description: influencer.isFollowed 
         ? "You won't see their content in your feed"
-        : "You'll see their insights in your feed",
+        : "You'll see their Bytes in your feed",
     });
   };
   
@@ -93,12 +93,12 @@ export const InfluencerProfile = ({
         </Button>
       </div>
       
-      {/* Recent Insights */}
+      {/* Recent Bytes */}
       <div>
-        <h2 className="font-semibold mb-4">Recent Insights</h2>
+        <h2 className="font-semibold mb-4">Recent Bytes</h2>
         
         <div className="space-y-4">
-          {influencer.recentInsights.map(insight => (
+          {influencer.recentBytes.map(insight => (
             <div 
               key={insight.id}
               className="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"

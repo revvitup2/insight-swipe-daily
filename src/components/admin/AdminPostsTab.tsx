@@ -41,12 +41,12 @@ export const AdminPostsTab = () => {
 
   useEffect(() => {
     // In a real app, this would fetch from your actual API
-    const fetchInsights = async () => {
+    const fetchBytes = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/feed`);
         const data = await response.json();
         
-       const formattedInsights = data.map((item: any) => ({
+       const formattedBytes = data.map((item: any) => ({
   id: item.video_id,
   title: item.metadata.title,
   summary: item.analysis.summary,
@@ -68,10 +68,10 @@ export const AdminPostsTab = () => {
   sourceUrl: `https://youtube.com/watch?v=${item.video_id}`
 }));
         
-        setPosts(formattedInsights);
+        setPosts(formattedBytes);
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching bites:", error);
+        console.error("Error fetching Bytes:", error);
         toast({
           title: "Error",
           description: "Failed to fetch posts",
@@ -81,7 +81,7 @@ export const AdminPostsTab = () => {
       }
     };
     
-    fetchInsights();
+    fetchBytes();
   }, []);
   
   const handleConfirmDelete = (id: string) => {

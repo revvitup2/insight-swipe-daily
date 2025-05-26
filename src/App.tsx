@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
-import SavedInsights from "./pages/SavedInsights";
+import SavedBytes from "./pages/SavedInsights";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -54,12 +54,12 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/saved" element={<SavedInsights />} />
+            <Route path="/saved" element={<SavedBytes />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/profile" element={<Profile />} />
             
             {/* Admin Routes */}
-                <Route path="/insights/:videoId" element={<InsightDetails />} />
+                <Route path="/bytes/:videoId" element={<InsightDetails />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={
               <ProtectedRoute>

@@ -35,17 +35,23 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const toggleIndustry = (industryId: string) => {
     if (selectedIndustries.includes(industryId)) {
       setSelectedIndustries(selectedIndustries.filter(id => id !== industryId));
-      setShowSelectionWarning(false);
     } else {
-      if (selectedIndustries.length < 5) {
-        setSelectedIndustries([...selectedIndustries, industryId]);
-        setShowSelectionWarning(false);
-      }
+      setSelectedIndustries([...selectedIndustries, industryId]);
     }
+    setShowSelectionWarning(false);
+  };
+
+  const selectAllIndustries = () => {
+    setSelectedIndustries(industries.map(industry => industry.id));
+    setShowSelectionWarning(false);
+  };
+
+  const deselectAllIndustries = () => {
+    setSelectedIndustries([]);
   };
   
   const handleNextStep = () => {
-    if (selectedIndustries.length < 3) {
+    if (selectedIndustries.length < 1) {
       setShowSelectionWarning(true);
       return;
     }
@@ -61,17 +67,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     <div className="min-h-screen flex flex-col p-6">
       {step === 1 && (
         <div className="flex flex-col items-center justify-center flex-grow animate-fade-in">
-          {/* Redesigned branding with more prominent logo */}
           <div className="mb-6 flex flex-col items-center">
             <ByteMeLogo size="lg" className="mb-4" />
             <h1 className="text-3xl font-bold text-primary">{APP_NAME}</h1>
           </div>
           
           <h2 className="text-2xl font-bold text-center mb-4">
-            Daily insights from top influencers you ❤️
+            Daily Bytes from top influencers you ❤️
           </h2>
           <p className="text-center text-muted-foreground mb-8">
-            Top 10 insights. Trusted experts. Delivered daily
+            Top 10 Bytes. Trusted experts. Delivered daily
           </p>
           <Button 
             onClick={() => setStep(2)}
@@ -89,18 +94,36 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <h1 className="text-2xl font-bold mb-2">Select your interests</h1>
               <div className="flex items-center">
                 <p className="text-muted-foreground">
-                  Choose 3-5 industries you're interested in
+                  Choose categories you're interested in
                 </p>
                 {showSelectionWarning && (
                   <div className="ml-2 text-red-500 flex items-center text-sm">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    Select at least 3
+                    Select at least 1
                   </div>
                 )}
               </div>
             </div>
-            {/* Add logo to step 2 as well */}
             <ByteMeLogo size="md" />
+          </div>
+
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAllIndustries}
+              className="text-xs"
+            >
+              Select All
+            </Button>
+            {/* <Button
+              variant="outline"
+              size="sm"
+              onClick={deselectAllIndustries}
+              className="text-xs"
+            >
+              Deselect All
+            </Button> */}
           </div>
           
           <div className="grid grid-cols-2 gap-3 mb-8">
@@ -131,36 +154,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="space-y-4">
             <Button
               onClick={handleNextStep}
-              disabled={selectedIndustries.length < 3}
+              disabled={selectedIndustries.length < 1}
               className={cn(
                 "w-full",
-                selectedIndustries.length < 3 ? "bg-gray-300 hover:bg-gray-300 cursor-not-allowed" : "bg-primary hover:bg-primary/90"
+                selectedIndustries.length < 1 ? "bg-gray-300 hover:bg-gray-300 cursor-not-allowed" : "bg-primary hover:bg-primary/90"
               )}
             >
               Continue
             </Button>
             
             <div className="flex items-center justify-center">
-              <div className="bg-gray-200 h-2 rounded-full flex-1 overflow-hidden">
-                <div 
-                  className={cn(
-                    "h-full bg-primary transition-all duration-300",
-                    selectedIndustries.length < 3 ? "w-1/3" : 
-                    selectedIndustries.length < 5 ? "w-2/3" : "w-full"
-                  )}
-                ></div>
-              </div>
-              <p className="ml-2 text-xs text-muted-foreground">
-                Selected {selectedIndustries.length}/5
-                <span className="text-xs ml-1">
-                  (min 3)
-                </span>
+              <p className="text-xs text-muted-foreground">
+                Selected {selectedIndustries.length}/{industries.length}
               </p>
             </div>
             
             {showSelectionWarning && (
               <p className="text-center text-red-500 text-sm">
-                Please select at least 3 categories to continue
+                Please select at least 1 category to continue
               </p>
             )}
           </div>

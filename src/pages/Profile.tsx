@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import FeedbackForm from "@/components/FeedbackForm";
 
 const industries = [
   { id: "finance", name: "Finance", selected: true },
@@ -31,37 +33,15 @@ const Profile = () => {
   });
   const [notifications, setNotifications] = useState({
     dailyDigest: true,
-    newInsights: true,
+    newBytes: true,
     influencerUpdates: false,
   });
   
   const navigate = useNavigate();
   
   const toggleIndustry = (id: string) => {
-    const selected = userIndustries.filter(i => i.selected).length;
-    
     setUserIndustries(userIndustries.map(industry => {
       if (industry.id === id) {
-        // If currently selected and trying to deselect
-        if (industry.selected && selected <= 3) {
-          toast({
-            title: "Minimum 3 interests required",
-            description: "Please select at least 3 industries",
-            variant: "destructive"
-          });
-          return industry;
-        }
-        
-        // If not selected and trying to select but already have 5
-        if (!industry.selected && selected >= 5) {
-          toast({
-            title: "Maximum 5 interests allowed",
-            description: "Please remove an industry before adding another",
-            variant: "destructive"
-          });
-          return industry;
-        }
-        
         return { ...industry, selected: !industry.selected };
       }
       return industry;
@@ -84,10 +64,14 @@ const Profile = () => {
       description: "Your profile settings have been updated",
     });
   };
+
+  const handleFeedbackSubmit = (rating: number, feedback: string) => {
+    console.log("Feedback submitted:", { rating, feedback });
+    // In a real app, this would send to your backend
+  };
   
   const handleLogout = () => {
-    // In a real app, we would log out the user
-      localStorage.clear();
+    localStorage.clear();
     navigate("/");
     window.location.reload();
   };
@@ -100,7 +84,7 @@ const Profile = () => {
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Your Interests</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Select 3-5 industries to personalize your feed
+            Select categories to personalize your feed
           </p>
           
           <div className="grid grid-cols-1 gap-2 mb-4">
@@ -135,7 +119,7 @@ const Profile = () => {
                   Daily Digest
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Receive a daily summary of top insights
+                  Receive a daily summary of top Bytes
                 </p>
               </div>
               <Switch
@@ -147,17 +131,17 @@ const Profile = () => {
             
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="newInsights" className="block font-medium">
-                  New Insights
+                <Label htmlFor="newBytes" className="block font-medium">
+                  New Bytes
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Get notified when new insights are available
+                  Get notified when new Bytes are available
                 </p>
               </div>
               <Switch
-                id="newInsights"
-                checked={notifications.newInsights}
-                onCheckedChange={() => handleNotificationChange('newInsights')}
+                id="newBytes"
+                checked={notifications.newBytes}
+                onCheckedChange={() => handleNotificationChange('newBytes')}
               />
             </div>
             
@@ -197,6 +181,10 @@ const Profile = () => {
           >
             Reset App
           </Button>
+        </section>
+
+        <section className="mb-8 p-4 border rounded-lg bg-gray-50">
+          <FeedbackForm onSubmit={handleFeedbackSubmit} />
         </section>
       </div>
       

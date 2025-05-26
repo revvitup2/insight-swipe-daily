@@ -62,7 +62,7 @@ interface Insight {
   sourceUrl?: string;
 }
 
-interface SavedInsightsData {
+interface SavedBytesData {
   versions: {
     [version: number]: Insight[];
   };
@@ -103,11 +103,11 @@ const InsightDetails = () => {
         setInsight(data);
         
         // Check if this insight is already saved
-        const savedData: SavedInsightsData = JSON.parse(
-          localStorage.getItem("savedInsights") || '{"versions":{}}'
+        const savedData: SavedBytesData = JSON.parse(
+          localStorage.getItem("savedBytes") || '{"versions":{}}'
         );
-        const savedInsights = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
-        const isAlreadySaved = savedInsights.some(i => i.id === videoId);
+        const savedBytes = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
+        const isAlreadySaved = savedBytes.some(i => i.id === videoId);
         setIsSaved(isAlreadySaved);
       } catch (error) {
         console.error("Error fetching insight details:", error);
@@ -129,8 +129,8 @@ const InsightDetails = () => {
   const handleSaveInsight = () => {
     if (!insight) return;
 
-    const savedData: SavedInsightsData = JSON.parse(
-      localStorage.getItem("savedInsights") || '{"versions":{}}'
+    const savedData: SavedBytesData = JSON.parse(
+      localStorage.getItem("savedBytes") || '{"versions":{}}'
     );
 
     // Initialize version if it doesn't exist
@@ -160,7 +160,7 @@ const InsightDetails = () => {
     };
 
     if (!isSaved) {
-      // Add to saved insights
+      // Add to saved Bytes
       savedData.versions[CURRENT_INSIGHT_VERSION] = [
         ...savedData.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== insight.video_id),
         formattedInsight
@@ -170,7 +170,7 @@ const InsightDetails = () => {
         description: `Added to saved`,
       });
     } else {
-      // Remove from saved insights
+      // Remove from saved Bytes
       savedData.versions[CURRENT_INSIGHT_VERSION] = 
         savedData.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== insight.video_id);
       toast({
@@ -179,7 +179,7 @@ const InsightDetails = () => {
       });
     }
 
-    localStorage.setItem("savedInsights", JSON.stringify(savedData));
+    localStorage.setItem("savedBytes", JSON.stringify(savedData));
     setIsSaved(!isSaved);
   };
 
@@ -200,8 +200,8 @@ const InsightDetails = () => {
         return;
       }
 
-      const shareUrl = `${window.location.origin}/insights/${insight.video_id}`;
-      const shareText = `${insight.metadata.title}\n\n${insight.analysis.summary.substring(0, 100)}...\n\nTo read more insightful insights in less than 60 words, visit: ${shareUrl}`;
+      const shareUrl = `${window.location.origin}/Bytes/${insight.video_id}`;
+      const shareText = `${insight.metadata.title}\n\n${insight.analysis.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 
       // Check support for full share with image
