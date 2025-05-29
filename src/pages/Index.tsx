@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
-import InsightCard, { Insight } from "@/components/InsightCard";
+import InsightCard, { Insight, PlatformIcon } from "@/components/InsightCard";
 import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +11,9 @@ import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { motion, AnimatePresence } from 'framer-motion';
+import ByteMeLogo from "@/components/ByteMeLogo";
+import { cn } from "@/lib/utils";
+import { Save, Share } from "lucide-react";
 
 interface ApiInsight {
   influencer_id: string;
@@ -417,6 +420,143 @@ const handleShareInsight = async (id: string) => {
   }
 };
 
+  const handleShareDesktop = async (id: string) => {
+    const bite = Bytes.find(i => i.id === id);
+    if (!bite) return;
+
+    try {
+      setIsSharing(true); // Start loading
+
+      // Get the insight card element
+      const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
+      if (!insightCard) {
+        setIsSharing(false);
+        return;
+      }
+
+      const { toBlob } = await import('html-to-image');
+      const blob = await toBlob(insightCard, {
+        quality: 0.95,
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+      });
+
+      if (!blob) {
+        setIsSharing(false);
+        return;
+      }
+
+      const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
+      const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
+      const file = new File([blob], 'insight.png', { type: 'image/png' });
+
+      // Check support for full share with image
+      const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
+
+      if (navigator.share) {
+        if (canShareWithImage) {
+          await navigator.share({
+            title: bite.title,
+            text: shareText,
+            url: shareUrl,
+            files: [file],
+          });
+        } else {
+          // Fallback to just text and link if image share isn't supported
+          await navigator.share({
+            title: bite.title,
+            text: shareText,
+            url: shareUrl,
+          });
+        }
+
+      } else {
+        // Desktop or unsupported browser fallback
+        const imageUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = imageUrl;
+        downloadLink.download = 'byte-me-insight.png';
+        document.body.appendChild(downloadLink);
+
+        toast({
+          title: "Share this insight",
+          description: (
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={imageUrl} 
+                  alt={bite.title} 
+                  className="max-w-full h-auto rounded-lg border border-gray-200"
+                />
+              </div>
+              <p className="text-sm whitespace-pre-wrap">{shareText}</p>
+              <div className="flex flex-col space-y-2">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      downloadLink.click();
+                      URL.revokeObjectURL(imageUrl);
+                      document.body.removeChild(downloadLink);
+                    }}
+                  >
+                    Download Image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareText);
+                      toast({
+                        title: "Copied to clipboard",
+                        description: "Text with link is ready to paste",
+                      });
+                    }}
+                  >
+                    Copy Text
+                  </Button>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                    }}
+                  >
+                    Share on Twitter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                    }}
+                  >
+                    Share on LinkedIn
+                  </Button>
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    window.open(shareUrl, '_blank');
+                  }}
+                >
+                  Open Insight
+                </Button>
+              </div>
+            </div>
+          ),
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    } finally {
+      setIsSharing(false); // End loading
+    }
+  };
 
   const handleFollowInfluencer = (influencerId: string) => {
     setBytes(Bytes.map(insight => {
@@ -616,6 +756,116 @@ const navigateToPreviousInsight = () => {
       </div>
     );
   }
+    if (window.innerWidth > 768) {
+      return(
+         <div className="page-container bg-background">
+        {/* Bytes Grid */}
+              <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
+        <div className="space-y-6">
+          {filteredBytes.map((bite) => (
+            <div 
+              key={bite.id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+              data-insight-id={bite.id}
+              onClick={() => handleInsightClick(bite.id)}
+            >
+              <div className="sm:flex">
+                {/* Image Section - Full width on mobile, fixed width on desktop */}
+                <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
+                  <img
+                    src={bite.image}
+                    alt={bite.title}
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {/* ByteMe Brand Watermark - Top right */}
+                  <div className="absolute top-2 right-2">
+                    <ByteMeLogo size="sm" className="opacity-80" />
+                  </div>
+                  
+                  {/* Industry Tag - Bottom left with subtle black background */}
+                  <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+                    {bite.industry}
+                  </div>
+                  
+                  {/* Source Platform - Bottom right with subtle black background */}
+                  {bite.source && (
+                    <div 
+                      className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+                    >
+                      <PlatformIcon source={bite.source} />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Content Section */}
+                <div className="p-4 sm:w-2/3">
+                  <div className="flex items-center mb-3">
+                    <img
+                      src={bite.influencer.profileImage}
+                      alt={bite.influencer.name}
+                      className="w-8 h-8 rounded-full mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {bite.influencer.name}
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      {bite.publishedAt}
+                    </span>
+                  </div>
+                  
+                  <h3 className="font-bold text-lg mb-2 line-clamp-2">
+                    {bite.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                    {bite.summary}
+                  </p>
+                  
+                  
+                  <div className="flex items-center justify-between">
+                    {/* Sentiment Indicator */}
+                    <div className="flex items-center">
+                  
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSaveInsight(bite.id);
+                        }}
+                        className={cn(
+                          "p-2 rounded-full transition-colors",
+                        "text-gray-400 hover:text-primary"
+                        )}
+                      >
+                        <Save className={cn("w-5 h-5")} />
+                      </button>
+                      
+                      <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                          handleShareDesktop(bite.id);
+                        }}
+                        className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
+                      >
+                        <Share className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+</div>
+ 
+      <Navigation />
+  
+      </div>
+      );
+    }
   
 
   return (

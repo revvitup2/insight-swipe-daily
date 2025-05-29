@@ -394,7 +394,6 @@ const Explore = () => {
     }
   };
 
-
   // Helper function to get icon for industry
   function getIndustryIcon(industry: string): string {
     const industryLower = industry.toLowerCase();
@@ -407,24 +406,34 @@ const Explore = () => {
     if (industryLower.includes('design')) return "🎨";
     return "📌";
   }
-    const navigate = useNavigate();
-  
-    const handleClick = (id:string) => {
-   navigate(`/Bytes/${id}`);
-  };
 
+  const navigate = useNavigate();
+  
+  const handleClick = (id:string) => {
+    navigate(`/Bytes/${id}`);
+  };
 
   if (isLoading) {
     return <LoadingSpinner message="Loading Bytes..." />;
   }
 
+  
   return (
     <div className="page-container bg-background">
-      <div className="p-4 pb-20">
+             {isSharing && (
+      <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-primary">Preparing share content...</p>
+        </div>
+      </div>
+    )}
+      
+      <div className="p-4 pb-20 max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Explore Bytes</h1>
         
         {/* Search Bar */}
-        <div className="relative mb-4">
+        <div className="relative mb-4 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search Bytes..."
@@ -451,116 +460,104 @@ const Explore = () => {
         </div>
 
         {/* Bytes Grid */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {filteredBytes.map((bite) => (
             <div 
               key={bite.id} 
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
               data-insight-id={bite.id}
-              onClick={(e)=>{handleClick(bite.id)}}
+              onClick={() => handleClick(bite.id)}
             >
-            <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
-                    <img
-                      src={bite.image}
-                      alt={bite.title}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    {/* ByteMe Brand Watermark - Top right */}
-                    <div className="absolute top-2 right-2">
-                      <ByteMeLogo size="sm" className="opacity-80" />
-                    </div>
-                    
-                    {/* Industry Tag - Bottom left with subtle black background */}
-                    <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
-                      {bite.industry}
-                    </div>
-                    
-                    {/* Source Platform - Bottom right with subtle black background */}
-                    {bite.source && (
-                      <div 
-                        className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
-                        // onClick={handleSourceClick}
-                      >
-                        <PlatformIcon source={bite.source} />
-                      </div>
-                    )}
+              <div className="sm:flex">
+                {/* Image Section - Full width on mobile, fixed width on desktop */}
+                <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
+                  <img
+                    src={bite.image}
+                    alt={bite.title}
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {/* ByteMe Brand Watermark - Top right */}
+                  <div className="absolute top-2 right-2">
+                    <ByteMeLogo size="sm" className="opacity-80" />
                   </div>
                   
-              
-              <div className="p-4">
-                <div className="flex items-center mb-2">
-                  <img
-                    src={bite.influencer.profileImage}
-                    alt={bite.influencer.name}
-                    className="w-8 h-8 rounded-full mr-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    {bite.influencer.name}
-                  </span>
-                  <span className="text-xs text-gray-500 ml-auto">
-                    {bite.publishedAt}
-                  </span>
+                  {/* Industry Tag - Bottom left with subtle black background */}
+                  <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+                    {bite.industry}
+                  </div>
+                  
+                  {/* Source Platform - Bottom right with subtle black background */}
+                  {bite.source && (
+                    <div 
+                      className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+                    >
+                      <PlatformIcon source={bite.source} />
+                    </div>
+                  )}
                 </div>
                 
-                <h3 className="font-bold text-lg mb-2 line-clamp-2">
-                  {bite.title}
-                </h3>
-                
-                <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                  {bite.summary}
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                    {bite.industry}
-                  </span>
+                {/* Content Section */}
+                <div className="p-4 sm:w-2/3">
+                  <div className="flex items-center mb-3">
+                    <img
+                      src={bite.influencer.profileImage}
+                      alt={bite.influencer.name}
+                      className="w-8 h-8 rounded-full mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {bite.influencer.name}
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      {bite.publishedAt}
+                    </span>
+                  </div>
                   
-                  <div className="flex items-center gap-3">
-                    {/* <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLike(bite.id);
-                      }}
-                      className={cn(
-                        "p-2 rounded-full transition-colors",
-                        bite.isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
-                      )}
-                    >
-                      <Heart className={cn("w-5 h-5", bite.isLiked && "fill-current")} />
-                    </button> */}
+                  <h3 className="font-bold text-lg mb-2 line-clamp-2">
+                    {bite.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                    {bite.summary}
+                  </p>
+                  
+                  
+                  <div className="flex items-center justify-between">
+                    {/* Sentiment Indicator */}
+                    <div className="flex items-center">
+                  
+                    </div>
                     
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSave(bite.id);
-                      }}
-                      className={cn(
-                        "p-2 rounded-full transition-colors",
-                      "text-gray-400 hover:text-primary"
-                      )}
-                    >
-                      <Save className={cn("w-5 h-5")} />
-                    </button>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(bite.id);
-                      }}
-                      className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
-                    >
-                      <Share className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSave(bite.id);
+                        }}
+                        className={cn(
+                          "p-2 rounded-full transition-colors",
+                         "text-gray-400 hover:text-primary"
+                        )}
+                      >
+                        <Save className={cn("w-5 h-5")} />
+                      </button>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(bite.id);
+                        }}
+                        className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
+                      >
+                        <Share className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-
-        {/* Load More Button */}
-      
 
         {filteredBytes.length === 0 && (
           <div className="text-center py-8">

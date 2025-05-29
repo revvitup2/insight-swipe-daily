@@ -4,11 +4,12 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { Youtube, Twitter, Linkedin, Bookmark, Share2 } from "lucide-react";
+import { Youtube, Twitter, Linkedin, Bookmark, Share2, ArrowRight, ArrowLeft } from "lucide-react";
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { formatDistanceToNow } from "date-fns";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 interface ApiInsight {
   influencer_id: string;
@@ -91,7 +92,8 @@ const InsightDetails = () => {
   const [isSharing, setIsSharing] = useState(false);
   const insightCardRef = useRef<HTMLDivElement>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
+  const navigate = useNavigate();
+    
   useEffect(() => {
     const fetchInsightDetails = async () => {
       try {
@@ -102,7 +104,6 @@ const InsightDetails = () => {
         const data: ApiInsight = await response.json();
         setInsight(data);
         
-        // Check if this insight is already saved
         const savedData: SavedBytesData = JSON.parse(
           localStorage.getItem("savedBytes") || '{"versions":{}}'
         );
@@ -133,7 +134,6 @@ const InsightDetails = () => {
       localStorage.getItem("savedBytes") || '{"versions":{}}'
     );
 
-    // Initialize version if it doesn't exist
     if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
       savedData.versions[CURRENT_INSIGHT_VERSION] = [];
     }
@@ -160,7 +160,6 @@ const InsightDetails = () => {
     };
 
     if (!isSaved) {
-      // Add to saved Bytes
       savedData.versions[CURRENT_INSIGHT_VERSION] = [
         ...savedData.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== insight.video_id),
         formattedInsight
@@ -170,7 +169,6 @@ const InsightDetails = () => {
         description: `Added to saved`,
       });
     } else {
-      // Remove from saved Bytes
       savedData.versions[CURRENT_INSIGHT_VERSION] = 
         savedData.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== insight.video_id);
       toast({
@@ -204,7 +202,6 @@ const InsightDetails = () => {
       const shareText = `${insight.metadata.title}\n\n${insight.analysis.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 
-      // Check support for full share with image
       const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
 
       if (navigator.share) {
@@ -216,7 +213,6 @@ const InsightDetails = () => {
             files: [file],
           });
         } else {
-          // Fallback to just text and link if image share isn't supported
           await navigator.share({
             title: insight.metadata.title,
             text: shareText,
@@ -224,7 +220,6 @@ const InsightDetails = () => {
           });
         }
       } else {
-        // Desktop or unsupported browser fallback
         const imageUrl = URL.createObjectURL(blob);
         const downloadLink = document.createElement('a');
         downloadLink.href = imageUrl;
@@ -332,7 +327,7 @@ const InsightDetails = () => {
   const timeAgo = formatDistanceToNow(new Date(insight.published_at), { addSuffix: true });
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl pb-32"> {/* Added pb-32 for bottom padding */}
       {/* Hidden card for screenshot */}
       <div className="fixed top-[-9999px] left-[-9999px]">
         <div 
@@ -366,12 +361,31 @@ const InsightDetails = () => {
       </div>
 
       {/* Actual detail view */}
+              {/* Back Button */}
+<Button 
+  variant="ghost" 
+  onClick={() => {
+    // Check if we can go back (history length > 2 because:
+    // 1. Initial entry
+    // 2. Current page
+    if (window.history.length > 2) {
+      navigate(-1); // Go back if there's history
+    } else {
+      navigate("/"); // Go home if no history
+    }
+  }}
+  className="mb-4 flex items-center gap-2"
+>
+  <ArrowLeft className="w-5 h-5" />
+  Back
+</Button>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden"
       >
+
         {/* Video Thumbnail */}
         <div className="relative">
           <img
@@ -382,27 +396,26 @@ const InsightDetails = () => {
           <div className="absolute top-4 right-4">
             <ByteMeLogo size="md" />
           </div>
-      <div className="absolute bottom-4 right-4 flex space-x-2">
-  <Button
-    variant="secondary"
-    size="icon"
-    onClick={handleSaveInsight}
-    disabled={isSharing}
-    className="bg-black hover:bg-gray-800"
-  >
-    <Bookmark className="w-5 h-5 text-white" />
-  </Button>
-  <Button
-    variant="secondary"
-    size="icon"
-    onClick={handleShareInsight}
-    disabled={isSharing}
-    className="bg-black hover:bg-gray-800"
-  >
-    <Share2 className="w-5 h-5 text-white" />
-  </Button>
-</div>
-
+          <div className="absolute bottom-4 right-4 flex space-x-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={handleSaveInsight}
+              disabled={isSharing}
+              className="bg-black hover:bg-gray-800"
+            >
+              <Bookmark className="w-5 h-5 text-white" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={handleShareInsight}
+              disabled={isSharing}
+              className="bg-black hover:bg-gray-800"
+            >
+              <Share2 className="w-5 h-5 text-white" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
@@ -460,7 +473,7 @@ const InsightDetails = () => {
           )}
 
           {/* Channel Info */}
-          <div className="border-t pt-6 mt-6">
+          <div className="border-t pt-6 mt-6 mb-10">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
               About the Creator
             </h2>
@@ -479,6 +492,30 @@ const InsightDetails = () => {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Fixed bottom banner - placed here at the end of the main content */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 text-center"
+      >
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="mb-2 md:mb-0  text-center md:text-left">
+              <h2 className="text-lg md:text-xl font-bold">Discover More Insights</h2>
+              <p className="text-sm opacity-90">Get daily bytes from top influencers in your industry</p>
+            </div>
+            <Button
+              onClick={() => navigate('/')}
+              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold"
+            >
+              See More Bytes
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
           </div>
         </div>
       </motion.div>

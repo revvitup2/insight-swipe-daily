@@ -1,4 +1,3 @@
-
 "use client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +20,7 @@ const industries = [
 ];
 
 const Profile = () => {
-   const [userIndustries, setUserIndustries] = useState(() => {
+  const [userIndustries, setUserIndustries] = useState(() => {
     const stored = localStorage.getItem("selectedIndustries");
     return stored 
       ? industries.map(i => ({
@@ -79,7 +78,15 @@ const Profile = () => {
   return (
     <div className="page-container bg-background">
       <div className="p-4 pb-20">
-        <h1 className="text-2xl font-bold mb-6">Profile</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Profile</h1>
+          <Button 
+            onClick={handleSaveChanges}
+            className="px-6 py-2 rounded-sm bg-primary hover:bg-primary/90 shadow-sm"
+          >
+            Save Changes
+          </Button>
+        </div>
         
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Your Interests</h2>
@@ -165,14 +172,6 @@ const Profile = () => {
         
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Account</h2>
-          
-          <Button 
-            variant="outline" 
-            className="w-full mb-2"
-            onClick={handleSaveChanges}
-          >
-            Save Changes
-          </Button>
           
           <Button 
             variant="outline" 
