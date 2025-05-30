@@ -224,14 +224,11 @@ const Explore = () => {
         }
         
         if (insightToToggle.isSaved) {
-          // Add to current version's saved Bytes
+          // Add to current version's saved Bytes (without savedAt property)
           const versionBytes = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
           savedData.versions[CURRENT_INSIGHT_VERSION] = [
             ...versionBytes.filter(i => i.id !== id), // Remove if already exists
-            {
-              ...insightToToggle,
-              savedAt: new Date().toISOString()
-            }
+            insightToToggle
           ];
         } else {
           // Remove from current version

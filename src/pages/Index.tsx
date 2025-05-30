@@ -132,6 +132,7 @@ const Index = () => {
             influencer: {
               id: item.influencer_id,
               name: item.metadata.channel_title,
+              channel_id: item.influencer_id, // Add the missing channel_id property
               profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
               isFollowed: false
             },
