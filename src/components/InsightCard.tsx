@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ContentControl from "@/components/ContentControl";
 
 interface Influencer {
   id: string;
@@ -147,6 +148,35 @@ export const InsightCard = ({
     }
   };
 
+  const handleHideInfluencer = () => {
+    // Add to hidden influencers list
+    const hiddenInfluencers = JSON.parse(localStorage.getItem("hiddenInfluencers") || "[]");
+    if (!hiddenInfluencers.includes(insight.influencer.id)) {
+      hiddenInfluencers.push(insight.influencer.id);
+      localStorage.setItem("hiddenInfluencers", JSON.stringify(hiddenInfluencers));
+    }
+  };
+
+  const handleHideTopic = () => {
+    // Add to hidden topics list
+    const hiddenTopics = JSON.parse(localStorage.getItem("hiddenTopics") || "[]");
+    if (!hiddenTopics.includes(insight.industry)) {
+      hiddenTopics.push(insight.industry);
+      localStorage.setItem("hiddenTopics", JSON.stringify(hiddenTopics));
+    }
+  };
+
+  const handleReport = () => {
+    // Store report (in real app, this would send to backend)
+    const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+    reports.push({
+      insightId: insight.id,
+      reportedAt: new Date().toISOString(),
+      reason: "user_report"
+    });
+    localStorage.setItem("reports", JSON.stringify(reports));
+  };
+
   const timeAgo = insight.publishedAt 
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
@@ -157,7 +187,6 @@ export const InsightCard = ({
     }
   };
 
-
   return (
    <div 
   className={cn(
@@ -165,10 +194,10 @@ export const InsightCard = ({
     "border border-gray-200 dark:border-gray-800",
     position
   )}
-    onClick={handleCardClick} // Add this click handler
-      style={{ cursor: 'pointer' }} // Add pointer cursor
+    onClick={handleCardClick}
+      style={{ cursor: 'pointer' }}
 >
-       <div className="flex-1 flex flex-col overflow-hidden"> {/* Add overflow-hidden here */}
+       <div className="flex-1 flex flex-col overflow-hidden">
     {/* Image Section */}
     <div className="relative mb-4 rounded-xl overflow-hidden">
       <img
@@ -180,6 +209,17 @@ export const InsightCard = ({
       {/* ByteMe Brand Watermark - Top right */}
       <div className="absolute top-2 right-2">
         <ByteMeLogo size="sm" className="opacity-80" />
+      </div>
+      
+      {/* Content Control - Top right corner */}
+      <div className="absolute top-2 left-2" onClick={(e) => e.stopPropagation()}>
+        <ContentControl
+          influencerName={insight.influencer.name}
+          topic={insight.industry}
+          onHideInfluencer={handleHideInfluencer}
+          onHideTopic={handleHideTopic}
+          onReport={handleReport}
+        />
       </div>
       
       {/* Industry Tag - Subtle black background */}
@@ -204,18 +244,14 @@ export const InsightCard = ({
     </h2>
         
         {/* Scrollable Summary Content */}
-
-        
-          <ScrollArea className="flex-1 mb-4 pr-2 max-h-[250px]"> {/* Added max height */}
+          <ScrollArea className="flex-1 mb-4 pr-2 max-h-[250px]">
       <p className="text-base text-gray-700 dark:text-gray-300">
         {insight.summary}
       </p>
     </ScrollArea>
 
-
   </div>
    <div>
-
  <div className="flex items-center justify-between mb-4">
       <div className="flex items-center">
         <div 
@@ -231,15 +267,6 @@ export const InsightCard = ({
             {insight.influencer.name}
           </span>
         </div>
-{/*         
-        <Button 
-          variant={insight.influencer.isFollowed ? "default" : "outline"}
-          size="sm" 
-          onClick={handleFollowInfluencer}
-          className="text-xs h-7 px-2"
-        >
-          {insight.influencer.isFollowed ? "Following" : "Follow"}
-        </Button> */}
       </div>
       
       {timeAgo && (
@@ -249,18 +276,6 @@ export const InsightCard = ({
     
     {/* Interaction Buttons */}
     <div className="flex items-center space-x-4">
-      {/* <button 
-        className="interaction-btn flex items-center gap-1 text-sm" 
-        onClick={handleLike}
-        aria-label="Like"
-      >
-        <Heart 
-          className={cn("w-5 h-5", 
-            insight.isLiked ? "fill-red-500 text-red-500" : "text-gray-500 dark:text-gray-400"
-          )} 
-        />
-      </button> */}
-      
       <button 
         className="interaction-btn flex items-center gap-1 text-sm" 
         onClick={handleSave}
