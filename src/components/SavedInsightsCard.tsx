@@ -4,6 +4,8 @@ import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import ByteMeLogo from "@/components/ByteMeLogo";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SavedInsightCardProps {
   insight: Insight;
@@ -12,6 +14,7 @@ interface SavedInsightCardProps {
 
 export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) => {
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -19,20 +22,24 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
   };
 
   const handleClick = () => {
-   navigate(`/bytes/${insight.id}`);
+    navigate(`/bytes/${insight.id}`);
   };
 
   const handleSourceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (insight.sourceUrl) {
-      // Handle source click - open URL or whatever logic you need
       window.open(insight.sourceUrl, '_blank');
     }
   };
 
   return (
     <div 
-      className="flex flex-col sm:flex-row border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow cursor-pointer h-full"
+      className={cn(
+        "flex flex-col sm:flex-row border rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full",
+        isDarkMode 
+          ? "bg-gray-800 border-gray-700 hover:shadow-gray-700/30" 
+          : "bg-white border-gray-200 hover:shadow-md"
+      )}
       onClick={handleClick}
     >
       <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
@@ -48,14 +55,24 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
         </div>
         
         {/* Industry Tag - Bottom left with subtle black background */}
-        <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+        <div className={cn(
+          "absolute bottom-2 left-2 flex items-center px-2 py-1 rounded-md text-xs font-medium",
+          isDarkMode 
+            ? "bg-gray-700/90 backdrop-blur-sm text-white" 
+            : "bg-black/70 backdrop-blur-sm text-white"
+        )}>
           {insight.industry}
         </div>
         
         {/* Source Platform - Bottom right with subtle black background */}
         {insight.source && (
           <div 
-            className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+            className={cn(
+              "absolute bottom-2 right-2 p-2 rounded-full cursor-pointer transition-colors text-white",
+              isDarkMode 
+                ? "bg-gray-700/90 hover:bg-gray-600/90" 
+                : "bg-black/70 hover:bg-black/80"
+            )}
             onClick={handleSourceClick}
           >
             <PlatformIcon source={insight.source} />
@@ -65,10 +82,16 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
       
       <div className="sm:w-2/3 p-4 flex flex-col">
         <div className="flex-grow">
-          <h3 className="font-semibold text-lg line-clamp-2 mb-2">
+          <h3 className={cn(
+            "font-semibold text-lg line-clamp-2 mb-2",
+            isDarkMode ? "text-white" : "text-gray-900"
+          )}>
             {insight.title}
           </h3>
-          <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
+          <p className={cn(
+            "text-sm line-clamp-3 mb-4",
+            isDarkMode ? "text-gray-300" : "text-muted-foreground"
+          )}>
             {insight.summary}
           </p>
         </div>
@@ -80,14 +103,22 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
               alt={insight.influencer.name}
               className="w-6 h-6 rounded-full mr-2"
             />
-            <span className="text-sm">{insight.influencer.name}</span>
+            <span className={cn(
+              "text-sm",
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            )}>
+              {insight.influencer.name}
+            </span>
           </div>
           
           <Button
             variant="outline"
             size="sm"
             onClick={handleRemove}
-            className="text-xs h-8"
+            className={cn(
+              "text-xs h-8",
+              isDarkMode ? "border-gray-600 hover:bg-gray-700" : ""
+            )}
           >
             Remove
           </Button>

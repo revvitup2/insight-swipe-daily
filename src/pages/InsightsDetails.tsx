@@ -181,130 +181,159 @@ const InsightDetails = () => {
     setIsSaved(!isSaved);
   };
 
-  const handleShareInsight = async () => {
-    if (!insight || !insightCardRef.current) return;
+const handleShareInsight = async () => {
+  if (!insight || !insightCardRef.current) return;
 
-    try {
-      setIsSharing(true);
-      const { toBlob } = await import('html-to-image');
-      const blob = await toBlob(insightCardRef.current, {
-        quality: 0.95,
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-      });
+  try {
+    setIsSharing(true);
+    const { toBlob } = await import('html-to-image');
+    
+    // Check if we're in dark mode by checking the document's class or a theme context
+    const isDarkMode = document.documentElement.classList.contains('dark') || 
+                      document.body.classList.contains('dark-mode') ||
+                      window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    const blob = await toBlob(insightCardRef.current, {
+      quality: 0.95,
+      backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', // Respect dark mode
+      cacheBust: true,
+    });
 
-      if (!blob) {
-        setIsSharing(false);
-        return;
-      }
+    if (!blob) {
+      setIsSharing(false);
+      return;
+    }
 
-      const shareUrl = `${window.location.origin}/Bytes/${insight.video_id}`;
-      const shareText = `${insight.metadata.title}\n\n${insight.analysis.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
-      const file = new File([blob], 'insight.png', { type: 'image/png' });
+    const shareUrl = `${window.location.origin}/Bytes/${insight.video_id}`;
+    const shareText = `${insight.metadata.title}\n\n${insight.analysis.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
+    const file = new File([blob], 'insight.png', { type: 'image/png' });
 
-      const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
+    const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
 
-      if (navigator.share) {
-        if (canShareWithImage) {
-          await navigator.share({
-            title: insight.metadata.title,
-            text: shareText,
-            url: shareUrl,
-            files: [file],
-          });
-        } else {
-          await navigator.share({
-            title: insight.metadata.title,
-            text: shareText,
-            url: shareUrl,
-          });
-        }
+    if (navigator.share) {
+      if (canShareWithImage) {
+        await navigator.share({
+          title: insight.metadata.title,
+          text: shareText,
+          url: shareUrl,
+          files: [file],
+        });
       } else {
-        const imageUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = imageUrl;
-        downloadLink.download = 'byte-me-insight.png';
-        document.body.appendChild(downloadLink);
-
-        toast({
-          title: "Share this insight",
-          description: (
-            <div className="flex flex-col space-y-4">
-              <div className="flex justify-center">
-                <img 
-                  src={imageUrl} 
-                  alt={insight.metadata.title} 
-                  className="max-w-full h-auto rounded-lg border border-gray-200"
-                />
-              </div>
-              <p className="text-sm whitespace-pre-wrap">{shareText}</p>
-              <div className="flex flex-col space-y-2">
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      downloadLink.click();
-                      URL.revokeObjectURL(imageUrl);
-                      document.body.removeChild(downloadLink);
-                    }}
-                  >
-                    Download Image
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(shareText);
-                      toast({
-                        title: "Copied to clipboard",
-                        description: "Text with link is ready to paste",
-                      });
-                    }}
-                  >
-                    Copy Text
-                  </Button>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
-                    }}
-                  >
-                    Share on Twitter
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
-                    }}
-                  >
-                    Share on LinkedIn
-                  </Button>
-                </div>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    window.open(shareUrl, '_blank');
-                  }}
-                >
-                  Open Insight
-                </Button>
-              </div>
-            </div>
-          ),
+        await navigator.share({
+          title: insight.metadata.title,
+          text: shareText,
+          url: shareUrl,
         });
       }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    } finally {
-      setIsSharing(false);
+    } else {
+      const imageUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = imageUrl;
+      downloadLink.download = 'byte-me-insight.png';
+      document.body.appendChild(downloadLink);
+
+      toast({
+        title: "Share this insight",
+        description: (
+          <div className="flex flex-col space-y-4">
+            <div className="flex justify-center">
+              <img 
+                src={imageUrl} 
+                alt={insight.metadata.title} 
+                className={`max-w-full h-auto rounded-lg border ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                }`}
+              />
+            </div>
+            <p className={`text-sm whitespace-pre-wrap ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              {shareText}
+            </p>
+            <div className="flex flex-col space-y-2">
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={
+                    isDarkMode 
+                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  }
+                  onClick={() => {
+                    downloadLink.click();
+                    URL.revokeObjectURL(imageUrl);
+                    document.body.removeChild(downloadLink);
+                  }}
+                >
+                  Download Image
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={
+                    isDarkMode 
+                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  }
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareText);
+                    toast({
+                      title: "Copied to clipboard",
+                      description: "Text with link is ready to paste",
+                    });
+                  }}
+                >
+                  Copy Text
+                </Button>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`border-blue-500 text-blue-500 hover:bg-blue-50 ${
+                    isDarkMode ? 'hover:bg-blue-900/20' : ''
+                  }`}
+                  onClick={() => {
+                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                  }}
+                >
+                  Share on Twitter
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`border-blue-600 text-blue-600 hover:bg-blue-50 ${
+                    isDarkMode ? 'hover:bg-blue-900/20' : ''
+                  }`}
+                  onClick={() => {
+                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                  }}
+                >
+                  Share on LinkedIn
+                </Button>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  window.open(shareUrl, '_blank');
+                }}
+              >
+                Open Insight
+              </Button>
+            </div>
+          </div>
+        ),
+      });
     }
-  };
+  } catch (error) {
+    console.error('Error sharing:', error);
+  } finally {
+    setIsSharing(false);
+  }
+};
 
   if (isLoading) {
     return <LoadingSpinner message="Loading insight details..." />;
@@ -327,7 +356,7 @@ const InsightDetails = () => {
   const timeAgo = formatDistanceToNow(new Date(insight.published_at), { addSuffix: true });
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl pb-32"> {/* Added pb-32 for bottom padding */}
+    <div className="container mx-auto px-4 py-8 max-w-4xl"> {/* Added pb-32 for bottom padding */}
       {/* Hidden card for screenshot */}
       <div className="fixed top-[-9999px] left-[-9999px]">
         <div 
@@ -402,7 +431,7 @@ const InsightDetails = () => {
               size="icon"
               onClick={handleSaveInsight}
               disabled={isSharing}
-              className="bg-black hover:bg-gray-800"
+              className="bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
               <Bookmark className="w-5 h-5 text-white" />
             </Button>
@@ -411,7 +440,7 @@ const InsightDetails = () => {
               size="icon"
               onClick={handleShareInsight}
               disabled={isSharing}
-              className="bg-black hover:bg-gray-800"
+              className="bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
               <Share2 className="w-5 h-5 text-white" />
             </Button>
@@ -473,13 +502,13 @@ const InsightDetails = () => {
           )}
 
           {/* Channel Info */}
-          <div className="border-t pt-6 mt-6 mb-10">
+          <div className="border-t pt-6 mt-6 mb-10 border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
               About the Creator
             </h2>
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <span className="text-lg">
+                <span className="text-lg text-gray-900 dark:text-white">
                   {insight.metadata.channel_title.charAt(0)}
                 </span>
               </div>
@@ -497,28 +526,27 @@ const InsightDetails = () => {
       </motion.div>
 
       {/* Fixed bottom banner - placed here at the end of the main content */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 text-center"
-      >
-        <div className="container mx-auto max-w-4xl">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="mb-2 md:mb-0  text-center md:text-left">
-              <h2 className="text-lg md:text-xl font-bold">Discover More Insights</h2>
-              <p className="text-sm opacity-90">Get daily bytes from top influencers in your industry</p>
-            </div>
-            <Button
-              onClick={() => navigate('/')}
-              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold"
-            >
-              See More Bytes
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </motion.div>
+      {/* Replace the fixed bottom banner with this */}
+<motion.div
+  initial={{ opacity: 0, y: -20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3 }}
+  className="mt-8 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg"
+>
+  <div className="flex flex-col md:flex-row items-center justify-between">
+    <div className="mb-4 md:mb-0 text-center md:text-left">
+      <h2 className="text-lg md:text-xl font-bold">Discover More Insights</h2>
+      <p className="text-sm opacity-90">Get daily bytes from top influencers in your industry</p>
+    </div>
+    <Button
+      onClick={() => navigate('/')}
+      className="bg-white text-blue-600 hover:bg-gray-100 font-semibold"
+    >
+      See More Bytes
+      <ArrowRight className="ml-2 w-4 h-4" />
+    </Button>
+  </div>
+</motion.div>
 
       {/* Sharing loading overlay */}
       {isSharing && (
