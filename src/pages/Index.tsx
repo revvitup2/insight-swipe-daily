@@ -690,10 +690,11 @@ const navigateToNextInsight = () => {
     setIsAnimating(true);
     setDirection(1); // Forward direction
     
+    // Remove timeout delay for instant transition
     setTimeout(() => {
       setCurrentInsightIndex(currentInsightIndex + 1);
       setIsAnimating(false);
-    }, 300);
+    }, 150); // Reduced from 300ms
   } else if (currentInsightIndex === filteredBytes.length - 1) {
     toast({
       title: "No more Bytes",
@@ -707,10 +708,11 @@ const navigateToPreviousInsight = () => {
     setIsAnimating(true);
     setDirection(-1); // Backward direction
     
+    // Remove timeout delay for instant transition
     setTimeout(() => {
       setCurrentInsightIndex(currentInsightIndex - 1);
       setIsAnimating(false);
-    }, 300);
+    }, 150); // Reduced from 300ms
   }
 };
 
@@ -748,7 +750,8 @@ const navigateToPreviousInsight = () => {
     const verticalDistance = Math.abs(touchMoveY - touchStartY);
     const horizontalDistance = Math.abs(touchMoveX - touchStartX);
     
-    if (horizontalDistance > verticalDistance && horizontalDistance > 30) {
+    // Reduced threshold for more sensitive swipe detection
+    if (horizontalDistance > verticalDistance && horizontalDistance > 20) {
       setIsHorizontalSwipe(true);
     }
   };
@@ -758,7 +761,8 @@ const navigateToPreviousInsight = () => {
   const horizontalSwipeDistance = touchStartX - touchMoveX;
   
   if (isHorizontalSwipe) {
-    if (Math.abs(horizontalSwipeDistance) > 100) {
+    // Reduced threshold for more responsive horizontal swipes
+    if (Math.abs(horizontalSwipeDistance) > 60) {
       if (horizontalSwipeDistance > 0) {
         navigateToInfluencerProfile();
       } else {
@@ -766,7 +770,8 @@ const navigateToPreviousInsight = () => {
       }
     }
   } else {
-    if (Math.abs(verticalSwipeDistance) > 100) {
+    // Reduced threshold for more responsive vertical swipes
+    if (Math.abs(verticalSwipeDistance) > 60) {
       if (verticalSwipeDistance > 0) {
         setDirection(1); // Forward
         navigateToNextInsight();
@@ -981,7 +986,7 @@ const navigateToPreviousInsight = () => {
             initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.15, ease: "easeOut" }} // Faster, smoother transition
             className="h-full w-full">
                <InsightCard 
               key={filteredBytes[currentInsightIndex].id}
@@ -1006,12 +1011,12 @@ const navigateToPreviousInsight = () => {
             initial={{ x: 300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -300, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.15, ease: "easeOut" }} // Faster transition
             onTouchStart={handleTouchStart} 
             onTouchMove={handleTouchMove} 
             onTouchEnd={() => {
-              const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
-                                   touchMoveX - touchStartX > 100 ? 'right' : null;
+              const swipeDirection = touchStartX - touchMoveX > 60 ? 'left' : 
+                                   touchMoveX - touchStartX > 60 ? 'right' : null;
               if (swipeDirection) {
                 handleInfluencerProfileSwipe(swipeDirection);
               }
