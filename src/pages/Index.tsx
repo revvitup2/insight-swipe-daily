@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { cn } from "@/lib/utils";
 import { Save, Share } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { formatDistanceToNow } from "date-fns";
 
 interface ApiInsight {
   influencer_id: string;
@@ -83,6 +85,7 @@ const Index = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
     const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
+    const { isDarkMode } = useTheme();
   
   const navigate = useNavigate();
 
@@ -283,12 +286,13 @@ const Index = () => {
   };
 
 
+// Fixed handleShareInsight function for mobile with dark mode support
 const handleShareInsight = async (id: string) => {
   const insight = Bytes.find(i => i.id === id);
   if (!insight) return;
 
   try {
-    setIsSharing(true); // Start loading
+    setIsSharing(true);
 
     const insightCard = document.querySelector(`.insight-card`) as HTMLElement;
     if (!insightCard) {
@@ -299,7 +303,7 @@ const handleShareInsight = async (id: string) => {
     const { toBlob } = await import('html-to-image');
     const blob = await toBlob(insightCard, {
       quality: 0.95,
-      backgroundColor: '#ffffff',
+      backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', // Respect dark mode
       cacheBust: true,
     });
 
@@ -312,7 +316,6 @@ const handleShareInsight = async (id: string) => {
     const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
     const file = new File([blob], 'insight.png', { type: 'image/png' });
 
-    // Check support for full share with image
     const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
 
     if (navigator.share) {
@@ -324,16 +327,14 @@ const handleShareInsight = async (id: string) => {
           files: [file],
         });
       } else {
-        // Fallback to just text and link if image share isn't supported
         await navigator.share({
           title: insight.title,
           text: shareText,
           url: shareUrl,
         });
       }
-
     } else {
-      // Desktop or unsupported browser fallback
+      // Mobile/Desktop fallback with dark mode support
       const imageUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
       downloadLink.href = imageUrl;
@@ -348,15 +349,28 @@ const handleShareInsight = async (id: string) => {
               <img 
                 src={imageUrl} 
                 alt={insight.title} 
-                className="max-w-full h-auto rounded-lg border border-gray-200"
+                className={cn(
+                  "max-w-full h-auto rounded-lg border",
+                  isDarkMode ? "border-gray-600" : "border-gray-200"
+                )}
               />
             </div>
-            <p className="text-sm whitespace-pre-wrap">{shareText}</p>
+            <p className={cn(
+              "text-sm whitespace-pre-wrap",
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            )}>
+              {shareText}
+            </p>
             <div className="flex flex-col space-y-2">
               <div className="flex space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
+                  className={cn(
+                    isDarkMode 
+                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
                   onClick={() => {
                     downloadLink.click();
                     URL.revokeObjectURL(imageUrl);
@@ -368,6 +382,11 @@ const handleShareInsight = async (id: string) => {
                 <Button
                   variant="outline"
                   size="sm"
+                  className={cn(
+                    isDarkMode 
+                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
                   onClick={() => {
                     navigator.clipboard.writeText(shareText);
                     toast({
@@ -383,6 +402,10 @@ const handleShareInsight = async (id: string) => {
                 <Button
                   variant="outline"
                   size="sm"
+                  className={cn(
+                    "border-blue-500 text-blue-500 hover:bg-blue-50",
+                    isDarkMode && "hover:bg-blue-900/20"
+                  )}
                   onClick={() => {
                     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
                   }}
@@ -392,6 +415,10 @@ const handleShareInsight = async (id: string) => {
                 <Button
                   variant="outline"
                   size="sm"
+                  className={cn(
+                    "border-blue-600 text-blue-600 hover:bg-blue-50",
+                    isDarkMode && "hover:bg-blue-900/20"
+                  )}
                   onClick={() => {
                     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
                   }}
@@ -402,6 +429,9 @@ const handleShareInsight = async (id: string) => {
               <Button
                 variant="default"
                 size="sm"
+                className={cn(
+                  "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
                 onClick={() => {
                   window.open(shareUrl, '_blank');
                 }}
@@ -415,149 +445,174 @@ const handleShareInsight = async (id: string) => {
     }
   } catch (error) {
     console.error('Error sharing:', error);
-
   } finally {
-    setIsSharing(false); // End loading
+    setIsSharing(false);
   }
 };
 
-  const handleShareDesktop = async (id: string) => {
-    const bite = Bytes.find(i => i.id === id);
-    if (!bite) return;
+// Fixed handleShareDesktop function with dark mode support
+const handleShareDesktop = async (id: string) => {
+  const bite = Bytes.find(i => i.id === id);
+  if (!bite) return;
 
-    try {
-      setIsSharing(true); // Start loading
+  try {
+    setIsSharing(true);
 
-      // Get the insight card element
-      const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
-      if (!insightCard) {
-        setIsSharing(false);
-        return;
-      }
+    const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
+    if (!insightCard) {
+      setIsSharing(false);
+      return;
+    }
 
-      const { toBlob } = await import('html-to-image');
-      const blob = await toBlob(insightCard, {
-        quality: 0.95,
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-      });
+    const { toBlob } = await import('html-to-image');
+    const blob = await toBlob(insightCard, {
+      quality: 0.95,
+      backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', // Respect dark mode
+      cacheBust: true,
+    });
 
-      if (!blob) {
-        setIsSharing(false);
-        return;
-      }
+    if (!blob) {
+      setIsSharing(false);
+      return;
+    }
 
-      const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
-      const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
-      const file = new File([blob], 'insight.png', { type: 'image/png' });
+    const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
+    const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
+    const file = new File([blob], 'insight.png', { type: 'image/png' });
 
-      // Check support for full share with image
-      const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
+    const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
 
-      if (navigator.share) {
-        if (canShareWithImage) {
-          await navigator.share({
-            title: bite.title,
-            text: shareText,
-            url: shareUrl,
-            files: [file],
-          });
-        } else {
-          // Fallback to just text and link if image share isn't supported
-          await navigator.share({
-            title: bite.title,
-            text: shareText,
-            url: shareUrl,
-          });
-        }
-
+    if (navigator.share) {
+      if (canShareWithImage) {
+        await navigator.share({
+          title: bite.title,
+          text: shareText,
+          url: shareUrl,
+          files: [file],
+        });
       } else {
-        // Desktop or unsupported browser fallback
-        const imageUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = imageUrl;
-        downloadLink.download = 'byte-me-insight.png';
-        document.body.appendChild(downloadLink);
-
-        toast({
-          title: "Share this insight",
-          description: (
-            <div className="flex flex-col space-y-4">
-              <div className="flex justify-center">
-                <img 
-                  src={imageUrl} 
-                  alt={bite.title} 
-                  className="max-w-full h-auto rounded-lg border border-gray-200"
-                />
-              </div>
-              <p className="text-sm whitespace-pre-wrap">{shareText}</p>
-              <div className="flex flex-col space-y-2">
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      downloadLink.click();
-                      URL.revokeObjectURL(imageUrl);
-                      document.body.removeChild(downloadLink);
-                    }}
-                  >
-                    Download Image
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(shareText);
-                      toast({
-                        title: "Copied to clipboard",
-                        description: "Text with link is ready to paste",
-                      });
-                    }}
-                  >
-                    Copy Text
-                  </Button>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
-                    }}
-                  >
-                    Share on Twitter
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
-                    }}
-                  >
-                    Share on LinkedIn
-                  </Button>
-                </div>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    window.open(shareUrl, '_blank');
-                  }}
-                >
-                  Open Insight
-                </Button>
-              </div>
-            </div>
-          ),
+        await navigator.share({
+          title: bite.title,
+          text: shareText,
+          url: shareUrl,
         });
       }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    } finally {
-      setIsSharing(false); // End loading
+    } else {
+      // Desktop fallback with dark mode support
+      const imageUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = imageUrl;
+      downloadLink.download = 'byte-me-insight.png';
+      document.body.appendChild(downloadLink);
+
+      toast({
+        title: "Share this insight",
+        description: (
+          <div className="flex flex-col space-y-4">
+            <div className="flex justify-center">
+              <img 
+                src={imageUrl} 
+                alt={bite.title} 
+                className={cn(
+                  "max-w-full h-auto rounded-lg border",
+                  isDarkMode ? "border-gray-600" : "border-gray-200"
+                )}
+              />
+            </div>
+            <p className={cn(
+              "text-sm whitespace-pre-wrap",
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            )}>
+              {shareText}
+            </p>
+            <div className="flex flex-col space-y-2">
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    isDarkMode 
+                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
+                  onClick={() => {
+                    downloadLink.click();
+                    URL.revokeObjectURL(imageUrl);
+                    document.body.removeChild(downloadLink);
+                  }}
+                >
+                  Download Image
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    isDarkMode 
+                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareText);
+                    toast({
+                      title: "Copied to clipboard",
+                      description: "Text with link is ready to paste",
+                    });
+                  }}
+                >
+                  Copy Text
+                </Button>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "border-blue-500 text-blue-500 hover:bg-blue-50",
+                    isDarkMode && "hover:bg-blue-900/20"
+                  )}
+                  onClick={() => {
+                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                  }}
+                >
+                  Share on Twitter
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "border-blue-600 text-blue-600 hover:bg-blue-50",
+                    isDarkMode && "hover:bg-blue-900/20"
+                  )}
+                  onClick={() => {
+                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                  }}
+                >
+                  Share on LinkedIn
+                </Button>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className={cn(
+                  "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+                onClick={() => {
+                  window.open(shareUrl, '_blank');
+                }}
+              >
+                Open Insight
+              </Button>
+            </div>
+          </div>
+        ),
+      });
     }
-  };
+  } catch (error) {
+    console.error('Error sharing:', error);
+  } finally {
+    setIsSharing(false);
+  }
+};
 
   const handleFollowInfluencer = (influencerId: string) => {
     setBytes(Bytes.map(insight => {
@@ -624,6 +679,11 @@ const handleShareInsight = async (id: string) => {
     setPreviousInsightIndex(currentInsightIndex);
     window.open(url, '_blank');
   };
+  const getTimeAgo = (publishedAt: string) => {
+  return publishedAt 
+    ? formatDistanceToNow(new Date(publishedAt), { addSuffix: false })
+    : '';
+};
   
 const navigateToNextInsight = () => {
   if (currentInsightIndex < filteredBytes.length - 1 && !isAnimating) {
@@ -759,15 +819,25 @@ const navigateToPreviousInsight = () => {
   }
     if (window.innerWidth > 768) {
       return(
-         <div className="page-container bg-background">
+         <div className={cn(
+  "page-container",
+  isDarkMode ? "bg-gray-900" : "bg-background"
+)}>
         {/* Bytes Grid */}
               <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
         <div className="space-y-6">
-          {filteredBytes.map((bite) => (
-            <div 
+          {filteredBytes.map((bite) => {
+ const timeAgo = getTimeAgo(bite.publishedAt);
+            
+            return (<div 
               key={bite.id} 
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-              data-insight-id={bite.id}
+              className={cn(
+    "rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer",
+    isDarkMode 
+      ? "bg-gray-800 border-gray-700 hover:shadow-gray-700/30" 
+      : "bg-white border-gray-200 hover:shadow-md"
+  )}
+      data-insight-id={bite.id}
               onClick={() => handleInsightClick(bite.id)}
             >
               <div className="sm:flex">
@@ -807,19 +877,34 @@ const navigateToPreviousInsight = () => {
                       alt={bite.influencer.name}
                       className="w-8 h-8 rounded-full mr-2"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                  <span className={cn(
+  "text-sm font-medium",
+  isDarkMode ? "text-gray-300" : "text-gray-700"
+)}>
                       {bite.influencer.name}
                     </span>
-                    <span className="text-xs text-gray-500 ml-auto">
-                      {bite.publishedAt}
-                    </span>
+                    <span className="mr-2"></span>
+                <span className={cn(
+                    "text-xs",
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  )}>
+                    {timeAgo} ago
+                  </span>
                   </div>
                   
-                  <h3 className="font-bold text-lg mb-2 line-clamp-2">
+                <h3 className={cn(
+  "font-bold text-lg mb-2 line-clamp-2",
+  isDarkMode ? "text-white" : "text-gray-900"
+)}>
+
                     {bite.title}
                   </h3>
                   
-                  <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                <p className={cn(
+  "text-sm line-clamp-3 mb-4",
+  isDarkMode ? "text-gray-300" : "text-gray-600"
+)}>
+
                     {bite.summary}
                   </p>
                   
@@ -858,7 +943,7 @@ const navigateToPreviousInsight = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )})};
         </div>
 </div>
  

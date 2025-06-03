@@ -10,6 +10,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import Navigation from "@/components/Navigation";
 import FeedbackForm from "@/components/FeedbackForm";
 import UserUpload from "@/components/UserUpload";
+import { cn } from "@/lib/utils";
 
 const industries = [
   { id: "finance", name: "Finance", selected: true },
@@ -104,31 +105,9 @@ const Profile = () => {
         </div>
         
         <Tabs defaultValue="settings" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="uploads">My Uploads</TabsTrigger>
-          </TabsList>
           
           <TabsContent value="settings" className="space-y-8">
-            <section>
-              <h2 className="text-xl font-semibold mb-4">Appearance</h2>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="darkMode" className="block font-medium">
-                    Dark Mode
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Switch between light and dark themes
-                  </p>
-                </div>
-                <Switch
-                  id="darkMode"
-                  checked={isDarkMode}
-                  onCheckedChange={toggleDarkMode}
-                />
-              </div>
-            </section>
-
+      
             <section className="mb-8">
               <h2 className="text-xl font-semibold mb-4">Your Interests</h2>
               <p className="text-sm text-muted-foreground mb-4">
@@ -138,10 +117,12 @@ const Profile = () => {
               <div className="grid grid-cols-1 gap-2 mb-4">
                 {userIndustries.map(industry => (
                   <div 
-                    key={industry.id}
-                    className={`flex items-center justify-between p-3 border rounded-md ${
-                      industry.selected ? 'border-primary bg-primary/5' : 'border-gray-200'
-                    }`}
+                      key={industry.id}
+  className={`flex items-center justify-between p-3 border rounded-md transition-colors ${
+    industry.selected 
+      ? 'border-primary bg-primary/10 dark:bg-primary/20' 
+      : 'border-border bg-card hover:bg-accent'
+  }`}
                   >
                     <span className="font-medium">{industry.name}</span>
                     <Button
@@ -158,70 +139,71 @@ const Profile = () => {
             </section>
             
             <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="dailyDigest" className="block font-medium">
-                      Daily Digest
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Receive a daily summary of top Bytes
-                    </p>
-                  </div>
-                  <Switch
-                    id="dailyDigest"
-                    checked={notifications.dailyDigest}
-                    onCheckedChange={() => handleNotificationChange('dailyDigest')}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="newBytes" className="block font-medium">
-                      New Bytes
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Get notified when new Bytes are available
-                    </p>
-                  </div>
-                  <Switch
-                    id="newBytes"
-                    checked={notifications.newBytes}
-                    onCheckedChange={() => handleNotificationChange('newBytes')}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="influencerUpdates" className="block font-medium">
-                      Influencer Updates
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Notifications about influencers you follow
-                    </p>
-                  </div>
-                  <Switch
-                    id="influencerUpdates"
-                    checked={notifications.influencerUpdates}
-                    onCheckedChange={() => handleNotificationChange('influencerUpdates')}
-                  />
-                </div>
-              </div>
+            <div className="space-y-4">
+  {Object.entries(notifications).map(([key, value]) => (
+    <div 
+      key={key} 
+      className="flex items-center justify-between p-4 rounded-lg bg-card"
+    >
+      <div>
+        <Label htmlFor={key} className="block font-medium">
+          {key
+    .split(/(?=[A-Z])/)         // Split camelCase: 'dailyDigest' → ['daily', 'Digest']
+    .join(' ')                  // Join with space: ['daily', 'Digest'] → 'daily Digest'
+    .replace(/^\w/, c => c.toUpperCase())}
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          {key === 'dailyDigest' && 'Receive a daily summary of top Bytes'}
+          {key === 'newBytes' && 'Get notified when new Bytes are available'}
+          {key === 'influencerUpdates' && 'Notifications about influencers you follow'}
+        </p>
+      </div>
+      <Switch
+        id={key}
+        checked={value}
+        onCheckedChange={() => handleNotificationChange(key)}
+      />
+    </div>
+  ))}
+</div>
             </section>
-            
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Account</h2>
-              
-              <Button 
-                variant="outline" 
-                className="w-full text-destructive hover:text-destructive border-destructive/20 hover:border-destructive/40 hover:bg-destructive/10"
-                onClick={handleLogout}
-              >
-                Reset App
-              </Button>
-            </section>
+            <section className="mb-8 p-4 rounded-lg bg-card border border-border">
+  <h2 className="text-xl font-semibold mb-4">Appearance</h2>
+  <div className="flex items-center justify-between p-4 rounded-lg bg-background">
+    <div>
+      <Label htmlFor="darkMode" className="block font-medium">
+        Dark Mode
+      </Label>
+      <p className="text-xs text-muted-foreground">
+        Switch between light and dark themes
+      </p>
+    </div>
+    <Switch
+      id="darkMode"
+      checked={isDarkMode}
+      onCheckedChange={toggleDarkMode}
+      className="data-[state=checked]:bg-primary"
+    />
+  </div>
+</section>
+         <section className="mb-8 p-4 rounded-lg bg-card border border-border">
+  <h2 className="text-xl font-semibold mb-4">Account</h2>
+  
+  <Button 
+    variant="outline" 
+    className={cn(
+      "w-full",
+      "text-destructive hover:text-destructive",
+      "border-destructive/20 hover:border-destructive/40",
+      "hover:bg-destructive/10 dark:hover:bg-destructive/20",
+      "dark:border-destructive/30 dark:hover:border-destructive/50"
+    )}
+    onClick={handleLogout}
+  >
+    Reset App
+  </Button>
+</section>
+
 
             <section className="mb-8 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
               <FeedbackForm onSubmit={handleFeedbackSubmit} />
@@ -257,7 +239,7 @@ const Profile = () => {
         </Tabs>
       </div>
       
-      <UserUpload variant="processing" onUploadComplete={handleUploadComplete} />
+      {/* <UserUpload variant="processing" onUploadComplete={handleUploadComplete} /> */}
       <Navigation />
     </div>
   );
