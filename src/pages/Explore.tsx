@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-import { SavedInsightsCard } from "@/components/SavedInsightsCard";
+import { SavedInsightCard } from "@/components/SavedInsightsCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ const industries = [
   "Technology",
   "Marketing",
   "Design",
+  "Others",
 ];
 
 const Explore = () => {
@@ -101,7 +103,7 @@ const Explore = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredInsights.length > 0 ? (
               filteredInsights.map((insight) => (
-                <SavedInsightsCard
+                <SavedInsightCard
                   key={insight.id}
                   insight={insight}
                   onClick={() => navigate(`/bytes/${insight.id}`)}
@@ -109,7 +111,7 @@ const Explore = () => {
               ))
             ) : (
               savedInsights.map((insight) => (
-                <SavedInsightsCard
+                <SavedInsightCard
                   key={insight.id}
                   insight={insight}
                   onClick={() => navigate(`/bytes/${insight.id}`)}
