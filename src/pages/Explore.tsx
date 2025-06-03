@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
@@ -14,6 +13,19 @@ interface SavedInsight {
   image: string;
   industry: string;
   publishedAt: string;
+  influencer: {
+    id: string;
+    name: string;
+    channel_id: string;
+    profileImage: string;
+    isFollowed: boolean;
+  };
+  isSaved: boolean;
+  isLiked: boolean;
+  keyPoints: string[];
+  sentiment: string;
+  source: "youtube" | "twitter" | "linkedin" | "other";
+  sourceUrl: string;
 }
 
 const industries = [
