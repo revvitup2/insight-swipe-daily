@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ const industries = [
   { id: "technology", name: "Technology", selected: false },
   { id: "marketing", name: "Marketing", selected: false },
   { id: "design", name: "Design", selected: false },
+  { id: "others", name: "Others", selected: false },
 ];
 
 const Profile = () => {

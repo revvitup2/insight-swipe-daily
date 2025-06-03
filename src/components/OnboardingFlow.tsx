@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, AlertCircle } from "lucide-react";
@@ -21,6 +20,7 @@ const industries: Industry[] = [
   { id: "technology", name: "Technology", icon: "💻" },
   { id: "marketing", name: "Marketing", icon: "📢" },
   { id: "design", name: "Design", icon: "🎨" },
+  { id: "others", name: "Others", icon: "📌" },
 ];
 
 interface OnboardingFlowProps {

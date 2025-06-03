@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -429,6 +430,7 @@ const handleShare = async (id: string) => {
     if (industryLower.includes('business')) return "💼";
     if (industryLower.includes('market')) return "📢";
     if (industryLower.includes('design')) return "🎨";
+    if (industryLower.includes('others') || industryLower.includes('other')) return "📌";
     return "📌";
   }
 
