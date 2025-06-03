@@ -1,5 +1,6 @@
 
-import React, { useContext } from 'react';
+
+import React from 'react';
 import InsightCard, { Insight } from './InsightCard';
 
 interface SwipeContainerProps {
@@ -65,3 +66,4 @@ const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
 SwipeContainer.displayName = "SwipeContainer";
 
 export default SwipeContainer;
+

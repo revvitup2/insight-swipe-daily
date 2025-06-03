@@ -1,649 +1,451 @@
 
+
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import Navigation from "@/components/Navigation";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Search, Heart, Share, Save } from "lucide-react";
+import Navigation from "@/components/Navigation";
+import SavedInsightsCard from "@/components/SavedInsightsCard";
 import { cn } from "@/lib/utils";
-import LoadingSpinner from "@/components/LoadingSpinner";
-import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
-import ByteMeLogo from "@/components/ByteMeLogo";
-import { PlatformIcon } from "@/components/InsightCard";
-import { useNavigate } from "react-router-dom";
-import { useTheme } from "@/contexts/ThemeContext";
-import { formatDistanceToNow } from "date-fns";
 
-interface ApiInsight {
-  influencer_id: string;
-  video_id: string;
-  published_at: string;
-  industry: string;
-  metadata: {
-    title: string;
-    description: string;
-    channel_title: string;
-    thumbnails: {
-      high: {
-        url: string;
-      };
-    };
-    tags: string[];
-  };
-  analysis: {
-    summary: string;
-    key_points: string[];
-    sentiment: string;
-    topics: string[];
-  };
-  source?: {
-    platform: "youtube" | "twitter" | "linkedin" | "other";
-    url: string;
-  };
-}
+// Mock data for saved insights
+const mockSavedInsights = [
+  {
+    id: "1",
+    title: "The Future of AI in Finance",
+    summary: "Exploring how artificial intelligence is revolutionizing the financial sector with automated trading, risk assessment, and personalized banking experiences.",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop",
+    industry: "AI",
+    influencer: {
+      id: "inf1",
+      name: "Dr. Sarah Chen",
+      channel_id: "ai_finance_expert",
+      profileImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+      isFollowed: true,
+    },
+    isSaved: true,
+    isLiked: false,
+    keyPoints: [
+      "AI reduces fraud by 40%",
+      "Automated trading increases efficiency",
+      "Personalized banking improves customer satisfaction"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-15T10:30:00Z",
+    source: "youtube" as const,
+    sourceUrl: "https://youtube.com/watch?v=example1",
+  },
+  {
+    id: "2",
+    title: "Startup Funding Strategies for 2024",
+    summary: "Key insights on securing venture capital, understanding market trends, and building investor relationships in the current economic climate.",
+    image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&h=600&fit=crop",
+    industry: "Startups",
+    influencer: {
+      id: "inf2",
+      name: "Alex Rodriguez",
+      channel_id: "startup_guru",
+      profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+      isFollowed: false,
+    },
+    isSaved: true,
+    isLiked: true,
+    keyPoints: [
+      "Pre-seed funding increased 25%",
+      "Focus on sustainable growth metrics",
+      "Build relationships before you need funding"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-14T14:20:00Z",
+    source: "twitter" as const,
+    sourceUrl: "https://twitter.com/example/status/123",
+  },
+  {
+    id: "3",
+    title: "Healthcare Innovation Through Technology",
+    summary: "How telemedicine, AI diagnostics, and wearable devices are transforming patient care and medical research methodologies.",
+    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=600&fit=crop",
+    industry: "Healthcare",
+    influencer: {
+      id: "inf3",
+      name: "Dr. Emily Watson",
+      channel_id: "healthtech_insights",
+      profileImage: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face",
+      isFollowed: true,
+    },
+    isSaved: true,
+    isLiked: false,
+    keyPoints: [
+      "Telemedicine adoption up 300%",
+      "AI diagnostics reduce errors by 50%",
+      "Wearables enable preventive care"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-13T09:45:00Z",
+    source: "linkedin" as const,
+    sourceUrl: "https://linkedin.com/posts/example",
+  },
+  {
+    id: "4",
+    title: "Marketing Trends for Digital Businesses",
+    summary: "Understanding consumer behavior shifts, social media algorithms, and emerging platforms for effective digital marketing strategies.",
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop",
+    industry: "Marketing",
+    influencer: {
+      id: "inf4",
+      name: "Jessica Kim",
+      channel_id: "digital_marketing_pro",
+      profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+      isFollowed: false,
+    },
+    isSaved: true,
+    isLiked: true,
+    keyPoints: [
+      "Video content drives 80% engagement",
+      "Micro-influencers outperform celebrities",
+      "Personalization increases conversion 15%"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-12T16:30:00Z",
+    source: "youtube" as const,
+    sourceUrl: "https://youtube.com/watch?v=example4",
+  },
+  {
+    id: "5",
+    title: "Design Systems and User Experience",
+    summary: "Building scalable design systems, understanding user psychology, and creating intuitive interfaces for modern applications.",
+    image: "https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800&h=600&fit=crop",
+    industry: "Design",
+    influencer: {
+      id: "inf5",
+      name: "Carlos Mendoza",
+      channel_id: "ux_design_master",
+      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+      isFollowed: true,
+    },
+    isSaved: true,
+    isLiked: false,
+    keyPoints: [
+      "Design systems improve consistency 60%",
+      "User testing reduces development costs",
+      "Accessibility drives inclusive growth"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-11T11:15:00Z",
+    source: "twitter" as const,
+    sourceUrl: "https://twitter.com/example/status/456",
+  },
+  {
+    id: "6",
+    title: "Blockchain and Cryptocurrency Updates",
+    summary: "Latest developments in blockchain technology, cryptocurrency regulations, and decentralized finance opportunities for investors.",
+    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop",
+    industry: "Finance",
+    influencer: {
+      id: "inf6", 
+      name: "Michael Chang",
+      channel_id: "crypto_analyst",
+      profileImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face",
+      isFollowed: false,
+    },
+    isSaved: true,
+    isLiked: true,
+    keyPoints: [
+      "DeFi protocols show 200% growth",
+      "Regulatory clarity improves adoption",
+      "Layer 2 solutions reduce transaction costs"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-10T13:00:00Z",
+    source: "linkedin" as const,
+    sourceUrl: "https://linkedin.com/posts/crypto-example",
+  },
+  {
+    id: "7",
+    title: "Business Strategy in Remote Work Era",
+    summary: "Adapting business models for remote-first environments, managing distributed teams, and maintaining company culture digitally.",
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop",
+    industry: "Business",
+    influencer: {
+      id: "inf7",
+      name: "Lisa Thompson",
+      channel_id: "business_strategist",
+      profileImage: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop&crop=face",
+      isFollowed: true,
+    },
+    isSaved: true,
+    isLiked: false,
+    keyPoints: [
+      "Remote work productivity up 35%",
+      "Digital collaboration tools essential",
+      "Company culture requires intentional design"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-09T15:45:00Z",
+    source: "youtube" as const,
+    sourceUrl: "https://youtube.com/watch?v=business-remote",
+  },
+  {
+    id: "8",
+    title: "Technology Infrastructure and Cloud Computing",
+    summary: "Exploring cloud architecture, serverless computing, and infrastructure as code for scalable application development.",
+    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=600&fit=crop",
+    industry: "Technology",
+    influencer: {
+      id: "inf8",
+      name: "David Park",
+      channel_id: "cloud_architect",
+      profileImage: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=face",
+      isFollowed: false,
+    },
+    isSaved: true,
+    isLiked: true,
+    keyPoints: [
+      "Serverless reduces costs by 70%",
+      "Multi-cloud strategies increase reliability",
+      "Infrastructure as code improves deployment"
+    ],
+    sentiment: "positive",
+    publishedAt: "2024-01-08T10:20:00Z",
+    source: "twitter" as const,
+    sourceUrl: "https://twitter.com/tech-example",
+  }
+];
 
-interface ExploreBite {
-  id: string;
-  title: string;
-  summary: string;
-  image: string;
-  industry: string;
-  influencer: {
-    id: string;
-    name: string;
-    profileImage: string;
-    isFollowed: boolean;
-  };
-  publishedAt: string;
-  isLiked: boolean;
-  isSaved: boolean;
-  sourceUrl: string;
-  source: "youtube" | "twitter" | "linkedin" | "other";
-  keyPoints: string[];
-  sentiment: string;
-}
-
-export interface VersionedInsight extends ExploreBite {
-  version: number;
-  savedAt: string;
-}
-
-export interface SavedBytesData {
-  versions: {
-    [version: number]: ExploreBite[];
-  };
-}
+const industries = [
+  "All",
+  "Finance", 
+  "AI",
+  "Healthcare",
+  "Startups",
+  "Business",
+  "Technology",
+  "Marketing",
+  "Design",
+  "Others"
+];
 
 const Explore = () => {
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [Bytes, setBytes] = useState<ExploreBite[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  const { isDarkMode } = useTheme();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>(["All"]);
+  const [savedInsights, setSavedInsights] = useState(mockSavedInsights);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch Bytes from API
+  // Load saved insights from localStorage on component mount
   useEffect(() => {
-    const fetchBytes = async () => {
+    const storedSaved = localStorage.getItem("savedInsights");
+    if (storedSaved) {
       try {
-        const response = await fetch(`${API_BASE_URL}/feed`);
-        const data: ApiInsight[] = await response.json();
-        
-        const formattedBytes: ExploreBite[] = data.map((item) => {
-          const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
-          let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
-          
-          if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
-            sourcePlatform = "youtube";
-          } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
-            sourcePlatform = "twitter";
-          } else if (sourceUrl.includes('linkedin.com')) {
-            sourcePlatform = "linkedin";
-          } else {
-            sourcePlatform = "other";
-          }
-          
-          // Check if this bite is already saved
-          const savedData: SavedBytesData = JSON.parse(
-            localStorage.getItem("savedBytes") || '{"versions":{}}'
-          );
-          const isSaved = Object.values(savedData.versions).some(version => 
-            version.some(bite => bite.id === item.video_id)
-          );
-          
-          return {
-            id: item.video_id,
-            title: item.metadata.title,
-            summary: item.analysis.summary,
-            image: item.metadata.thumbnails.high.url,
-            industry: item.industry || "General",
-            influencer: {
-              id: item.influencer_id,
-              name: item.metadata.channel_title,
-              profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
-              isFollowed: false
-            },
-            isSaved,
-            isLiked: false,
-            publishedAt: new Date(item.published_at).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            }),
-            sourceUrl: sourceUrl,
-            source: sourcePlatform,
-            keyPoints: item.analysis.key_points,
-            sentiment: item.analysis.sentiment
-          };
-        });
-
-        setBytes(formattedBytes);
-        setIsLoading(false);
+        const parsed = JSON.parse(storedSaved);
+        setSavedInsights(parsed);
       } catch (error) {
-        console.error("Error fetching Bytes:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch Bytes. Please try again later.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
+        console.error("Error parsing saved insights:", error);
+        setSavedInsights(mockSavedInsights);
       }
-    };
-
-    fetchBytes();
+    }
   }, []);
 
-  // Get unique industries for categories
-  const categories = useMemo(() => {
-    const industrySet = new Set<string>();
-    Bytes.forEach(bite => {
-      if (bite.industry) {
-        industrySet.add(bite.industry);
-      }
+  const filteredInsights = useMemo(() => {
+    return savedInsights.filter(insight => {
+      const matchesSearch = insight.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          insight.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          insight.influencer.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesIndustry = selectedIndustries.includes("All") || 
+                            selectedIndustries.some(selected => 
+                              insight.industry.toLowerCase().includes(selected.toLowerCase())
+                            );
+      
+      return matchesSearch && matchesIndustry;
     });
+  }, [savedInsights, searchTerm, selectedIndustries]);
 
-    const industryCategories = Array.from(industrySet).map(industry => ({
-      id: industry.toLowerCase().replace(/\s+/g, '-'),
-      name: industry,
-      icon: getIndustryIcon(industry)
-    }));
-
-    // Add "All" category at the beginning
-    return [
-      { id: "all", name: "All", icon: "🌟" },
-      ...industryCategories
-    ];
-  }, [Bytes]);
-
-  // Filter Bytes based on selected category and search query
-  const filteredBytes = useMemo(() => {
-    let filtered = Bytes;
-    
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(bite => 
-        bite.industry.toLowerCase().replace(/\s+/g, '-') === selectedCategory
-      );
+  const handleIndustryToggle = (industry: string) => {
+    if (industry === "All") {
+      setSelectedIndustries(["All"]);
+    } else {
+      setSelectedIndustries(prev => {
+        const filtered = prev.filter(i => i !== "All");
+        if (filtered.includes(industry)) {
+          const newSelection = filtered.filter(i => i !== industry);
+          return newSelection.length === 0 ? ["All"] : newSelection;
+        } else {
+          return [...filtered, industry];
+        }
+      });
     }
+  };
+
+  const clearFilters = () => {
+    setSelectedIndustries(["All"]);
+    setSearchTerm("");
+  };
+
+  const handleUnsave = (id: string) => {
+    const updatedInsights = savedInsights.filter(insight => insight.id !== id);
+    setSavedInsights(updatedInsights);
+    localStorage.setItem("savedInsights", JSON.stringify(updatedInsights));
     
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(bite => 
-        bite.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bite.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bite.influencer.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return filtered;
-  }, [selectedCategory, searchQuery, Bytes]);
+    toast({
+      title: "Insight removed",
+      description: "The insight has been removed from your saved items",
+    });
+  };
 
   const handleLike = (id: string) => {
-    setBytes(prev => prev.map(bite => 
-      bite.id === id ? { ...bite, isLiked: !bite.isLiked } : bite
-    ));
+    const updatedInsights = savedInsights.map(insight => {
+      if (insight.id === id) {
+        return { ...insight, isLiked: !insight.isLiked };
+      }
+      return insight;
+    });
+    setSavedInsights(updatedInsights);
+    localStorage.setItem("savedInsights", JSON.stringify(updatedInsights));
   };
 
-  const handleSave = (id: string) => {
-    setBytes(prevBytes => {
-      const updatedBytes = prevBytes.map(insight => {
-        if (insight.id === id) {
-          return { ...insight, isSaved: !insight.isSaved };
-        }
-        return insight;
+  const handleShare = (id: string) => {
+    const insight = savedInsights.find(i => i.id === id);
+    if (insight && navigator.share) {
+      navigator.share({
+        title: insight.title,
+        text: insight.summary,
+        url: window.location.href,
       });
-
-      // Get current saved Bytes data from localStorage
-      const savedData: SavedBytesData = JSON.parse(
-        localStorage.getItem("savedBytes") || '{"versions":{}}'
-      );
-
-      // Find the insight being toggled
-      const insightToToggle = updatedBytes.find(i => i.id === id);
-      
-      if (insightToToggle) {
-        // Initialize version if it doesn't exist
-        if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
-          savedData.versions[CURRENT_INSIGHT_VERSION] = [];
-        }
-        
-        if (insightToToggle.isSaved) {
-          // Add to current version's saved Bytes (without savedAt property)
-          const versionBytes = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
-          savedData.versions[CURRENT_INSIGHT_VERSION] = [
-            ...versionBytes.filter(i => i.id !== id), // Remove if already exists
-            insightToToggle
-          ];
-        } else {
-          // Remove from current version
-          savedData.versions[CURRENT_INSIGHT_VERSION] = 
-            (savedData.versions[CURRENT_INSIGHT_VERSION] || [])
-              .filter(i => i.id !== id);
-        }
-
-        // Update saved Bytes in localStorage
-        localStorage.setItem("savedBytes", JSON.stringify(savedData));
-      }
-
-      return updatedBytes;
-    });
-
-    const isSaved = Bytes.find(i => i.id === id)?.isSaved;
-    toast({
-      title: isSaved ? "Saved" : "Removed from saved",
-      description: isSaved 
-        ? `Added to version ${CURRENT_INSIGHT_VERSION} collection` 
-        : "Removed from your saved items",
-    });
-  };
-
-const handleShare = async (id: string) => {
-  const bite = Bytes.find(i => i.id === id);
-  if (!bite) return;
-
-  try {
-    setIsSharing(true);
-
-    const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
-    if (!insightCard) {
-      setIsSharing(false);
-      return;
-    }
-
-    const { toBlob } = await import('html-to-image');
-    const blob = await toBlob(insightCard, {
-      quality: 0.95,
-      backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', // Respect dark mode
-      cacheBust: true,
-    });
-
-    if (!blob) {
-      setIsSharing(false);
-      return;
-    }
-
-    const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
-    const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
-    const file = new File([blob], 'insight.png', { type: 'image/png' });
-
-    const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
-
-    if (navigator.share) {
-      if (canShareWithImage) {
-        await navigator.share({
-          title: bite.title,
-          text: shareText,
-          url: shareUrl,
-          files: [file],
-        });
-      } else {
-        await navigator.share({
-          title: bite.title,
-          text: shareText,
-          url: shareUrl,
-        });
-      }
     } else {
-      // Desktop fallback with dark mode support
-      const imageUrl = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = imageUrl;
-      downloadLink.download = 'byte-me-insight.png';
-      document.body.appendChild(downloadLink);
-
+      navigator.clipboard.writeText(window.location.href);
       toast({
-        title: "Share this insight",
-        description: (
-          <div className="flex flex-col space-y-4">
-            <div className="flex justify-center">
-              <img 
-                src={imageUrl} 
-                alt={bite.title} 
-                className={cn(
-                  "max-w-full h-auto rounded-lg border",
-                  isDarkMode ? "border-gray-600" : "border-gray-200"
-                )}
-              />
-            </div>
-            <p className={cn(
-              "text-sm whitespace-pre-wrap",
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            )}>
-              {shareText}
-            </p>
-            <div className="flex flex-col space-y-2">
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    isDarkMode 
-                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                  onClick={() => {
-                    downloadLink.click();
-                    URL.revokeObjectURL(imageUrl);
-                    document.body.removeChild(downloadLink);
-                  }}
-                >
-                  Download Image
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    isDarkMode 
-                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareText);
-                    toast({
-                      title: "Copied to clipboard",
-                      description: "Text with link is ready to paste",
-                    });
-                  }}
-                >
-                  Copy Text
-                </Button>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-blue-500 text-blue-500 hover:bg-blue-50",
-                    isDarkMode && "hover:bg-blue-900/20"
-                  )}
-                  onClick={() => {
-                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
-                  }}
-                >
-                  Share on Twitter
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-blue-600 text-blue-600 hover:bg-blue-50",
-                    isDarkMode && "hover:bg-blue-900/20"
-                  )}
-                  onClick={() => {
-                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
-                  }}
-                >
-                  Share on LinkedIn
-                </Button>
-              </div>
-              <Button
-                variant="default"
-                size="sm"
-                className={cn(
-                  "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
-                onClick={() => {
-                  window.open(shareUrl, '_blank');
-                }}
-              >
-                Open Insight
-              </Button>
-            </div>
-          </div>
-        ),
+        title: "Link copied",
+        description: "Insight link has been copied to clipboard",
       });
     }
-  } catch (error) {
-    console.error('Error sharing:', error);
-  } finally {
-    setIsSharing(false);
-  }
-};
+  };
 
-  // Helper function to get icon for industry
-  function getIndustryIcon(industry: string): string {
+  const getIndustryIcon = (industry: string) => {
     const industryLower = industry.toLowerCase();
-    if (industryLower.includes('finance') || industryLower.includes('money')) return "💰";
-    if (industryLower.includes('tech') || industryLower.includes('ai')) return "🤖";
+    if (industryLower.includes('finance')) return "💰";
+    if (industryLower.includes('ai') || industryLower.includes('artificial')) return "🤖";
     if (industryLower.includes('health')) return "🏥";
     if (industryLower.includes('startup')) return "🚀";
     if (industryLower.includes('business')) return "💼";
     if (industryLower.includes('market')) return "📢";
     if (industryLower.includes('design')) return "🎨";
+    if (industryLower.includes('technology') || industryLower.includes('tech')) return "💻";
     if (industryLower.includes('others') || industryLower.includes('other')) return "📌";
     return "📌";
   }
 
-  const navigate = useNavigate();
-  
-  const handleClick = (id:string) => {
-    navigate(`/Bytes/${id}`);
-  };
-    const getTimeAgo = (publishedAt: string) => {
-    return publishedAt 
-      ? formatDistanceToNow(new Date(publishedAt), { addSuffix: false })
-      : '';
-  };
+  const hasActiveFilters = selectedIndustries.length > 1 || !selectedIndustries.includes("All") || searchTerm;
 
-  if (isLoading) {
-    return <LoadingSpinner message="Loading Bytes..." />;
-  }
-
-  
   return (
     <div className="page-container bg-background">
-             {isSharing && (
-      <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-primary">Preparing share content...</p>
-        </div>
-      </div>
-    )}
-      
-      <div className="p-4 pb-20 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">Explore Bytes</h1>
-        
-        {/* Search Bar */}
-        <div className="relative mb-4 max-w-md">
-  <Search className={cn(
-    "absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4",
-    isDarkMode ? "text-gray-400" : "text-muted-foreground"
-  )} />
-  <Input
-    placeholder="Search Bytes..."
-    className={cn(
-      "pl-10",
-      isDarkMode ? "bg-gray-800 border-gray-700 text-white" : ""
-    )}
-    value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
-  />
-</div>
-
-        {/* Category Filter */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {categories.map((category) => (
-           <Button
-  key={category.id}
-  variant={selectedCategory === category.id ? "default" : "outline"}
-  size="sm"
-  onClick={() => setSelectedCategory(category.id)}
-  className={cn(
-    "flex items-center gap-1 whitespace-nowrap",
-    isDarkMode && selectedCategory !== category.id ? "border-gray-700" : ""
-  )}
->
-              <span>{category.icon}</span>
-              <span>{category.name}</span>
-            </Button>
-          ))}
+      <div className="p-4 pb-20">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Explore</h1>
         </div>
 
-        {/* Bytes Grid */}
-        <div className="space-y-6">
-          {filteredBytes.map((bite) => {
-             const timeAgo = getTimeAgo(bite.publishedAt);
-            return (<div 
-              key={bite.id} 
-              className={cn(
-    "rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer",
-    isDarkMode 
-      ? "bg-gray-800 border-gray-700 hover:shadow-gray-700/30" 
-      : "bg-white border-gray-200 hover:shadow-md"
-  )}
-    data-insight-id={bite.id}
-              onClick={() => handleClick(bite.id)}
+        {/* Search and Filter Section */}
+        <div className="space-y-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search insights, influencers, or topics..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
             >
-              <div className="sm:flex">
-                {/* Image Section - Full width on mobile, fixed width on desktop */}
-                <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
-                  <img
-                    src={bite.image}
-                    alt={bite.title}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* ByteMe Brand Watermark - Top right */}
-                  <div className="absolute top-2 right-2">
-                    <ByteMeLogo size="sm" className="opacity-80" />
-                  </div>
-                  
-                  {/* Industry Tag - Bottom left with subtle black background */}
-                  <div className={cn(
-  "absolute bottom-2 left-2 flex items-center px-2 py-1 rounded-md text-xs font-medium",
-  isDarkMode 
-    ? "bg-gray-700/90 backdrop-blur-sm text-white" 
-    : "bg-black/70 backdrop-blur-sm text-white"
-)}>
-  {bite.industry}
-</div>
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+            
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="flex items-center gap-2 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
+          </div>
 
-{bite.source && (
-  <div className={cn(
-    "absolute bottom-2 right-2 p-2 rounded-full cursor-pointer transition-colors text-white",
-    isDarkMode 
-      ? "bg-gray-700/90 hover:bg-gray-600/90" 
-      : "bg-black/70 hover:bg-black/80"
-  )}>
-    <PlatformIcon source={bite.source} />
-  </div>
-)}
-                </div>
-                
-                {/* Content Section */}
-                <div className="p-4 sm:w-2/3">
-                  <div className="flex items-center mb-3">
-                    <img
-                      src={bite.influencer.profileImage}
-                      alt={bite.influencer.name}
-                      className="w-8 h-8 rounded-full mr-2"
-                    />
-                   <span className={cn(
-  "text-sm font-medium",
-  isDarkMode ? "text-gray-300" : "text-gray-700"
-)}>
-
-                      {bite.influencer.name}
-                    </span>
-                      <span className="mr-2"></span>
-              
-                  </div>
-                  
-                 <h3 className={cn(
-  "font-bold text-lg mb-2 line-clamp-2",
-  isDarkMode ? "text-white" : "text-gray-900"
-)}>
-
-                    {bite.title}
-                  </h3>
-                  
-                <p className={cn(
-  "text-sm line-clamp-3 mb-4",
-  isDarkMode ? "text-gray-300" : "text-gray-600"
-)}>
-                    {bite.summary}
-                  </p>
-                  
-                  
-                  <div className="flex items-center justify-between">
-                    {/* Sentiment Indicator */}
-                    <div className="flex items-center">
-                  
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSave(bite.id);
-                        }}
-                        className={cn(
-                          "p-2 rounded-full transition-colors",
-                         "text-gray-400 hover:text-primary"
-                        )}
-                      >
-                        <Save className={cn("w-5 h-5")} />
-                      </button>
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleShare(bite.id);
-                        }}
-                        className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
-                      >
-                        <Share className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Filter Tags */}
+          {showFilters && (
+            <div className="flex flex-wrap gap-2">
+              {industries.map((industry) => (
+                <Badge
+                  key={industry}
+                  variant={selectedIndustries.includes(industry) ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    selectedIndustries.includes(industry) 
+                      ? "bg-primary text-primary-foreground" 
+                      : "hover:bg-accent"
+                  )}
+                  onClick={() => handleIndustryToggle(industry)}
+                >
+                  {industry !== "All" && getIndustryIcon(industry)} {industry}
+                </Badge>
+              ))}
             </div>
-              )})};
+          )}
         </div>
 
-        {filteredBytes.length === 0 && (
-        <div className="text-center py-8">
-  <p className={cn(
-    isDarkMode ? "text-gray-400" : "text-gray-500"
-  )}>
-    No Bytes found matching your criteria.
-  </p>
-  <Button 
-    variant="ghost"
-    onClick={() => {
-      setSelectedCategory("all");
-      setSearchQuery("");
-    }}
-    className={cn(
-      "mt-2",
-      isDarkMode ? "text-gray-300 hover:bg-gray-700" : ""
-    )}
-  >
-    Clear filters
-  </Button>
-</div>
+        {/* Results Summary */}
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground">
+            {filteredInsights.length} insight{filteredInsights.length !== 1 ? 's' : ''} found
+            {hasActiveFilters && (
+              <span className="ml-2">
+                • {selectedIndustries.includes("All") ? "All categories" : selectedIndustries.join(", ")}
+                {searchTerm && ` • "${searchTerm}"`}
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Insights Grid */}
+        {filteredInsights.length > 0 ? (
+          <div className="space-y-4">
+            {filteredInsights.map((insight) => (
+              <SavedInsightsCard
+                key={insight.id}
+                insight={insight}
+                onUnsave={handleUnsave}
+                onLike={handleLike}
+                onShare={handleShare}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-lg font-semibold mb-2">No insights found</h3>
+            <p className="text-muted-foreground mb-4">
+              {hasActiveFilters 
+                ? "Try adjusting your search terms or filters"
+                : "Start saving insights to see them here"
+              }
+            </p>
+            {hasActiveFilters && (
+              <Button onClick={clearFilters} variant="outline">
+                Clear filters
+              </Button>
+            )}
+          </div>
         )}
       </div>
       
@@ -653,3 +455,4 @@ const handleShare = async (id: string) => {
 };
 
 export default Explore;
+

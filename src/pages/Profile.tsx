@@ -1,4 +1,5 @@
 
+
 "use client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -163,7 +164,7 @@ const Profile = () => {
       <Switch
         id={key}
         checked={value}
-        onCheckedChange={() => handleNotificationChange(key)}
+        onCheckedChange={() => handleNotificationChange(key as keyof typeof notifications)}
       />
     </div>
   ))}
@@ -241,10 +242,10 @@ const Profile = () => {
         </Tabs>
       </div>
       
-      {/* <UserUpload variant="processing" onUploadComplete={handleUploadComplete} /> */}
       <Navigation />
     </div>
   );
 };
 
 export default Profile;
+
