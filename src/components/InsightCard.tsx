@@ -183,9 +183,9 @@ export const InsightCard = ({
     : '';
 
       const handleCardClick = () => {
-    if (onClick) {
-      onClick(insight.id);
-    }
+    // if (onClick) {
+    //   onClick(insight.id);
+    // }
   };
 
   return (

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import Smartlook from 'smartlook-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -92,6 +93,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const newToken = await firebaseUser.getIdToken();
           setToken(newToken);
+
+          Smartlook.identify('USER_ID', {
+  name: firebaseUser.displayName,
+  email: firebaseUser.email,
+});
         } catch (error) {
           console.error("Error getting token:", error);
           setToken(null);
