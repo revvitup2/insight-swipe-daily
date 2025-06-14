@@ -59,11 +59,11 @@ export const InfluencerProfile = ({
       {/* Influencer Header */}
       <div className="mb-6">
         <div className="flex items-center">
-          <img 
+          {/* <img 
             src={influencer.profileImage}
             alt={influencer.name}
             className="w-20 h-20 rounded-full object-cover mr-4"
-          />
+          /> */}
           <div>
             <h1 className="text-xl font-bold">{influencer.name}</h1>
             <span className="industry-tag mt-1">{influencer.industry}</span>

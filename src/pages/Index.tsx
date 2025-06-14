@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 import { Save, Share } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatDistanceToNow } from "date-fns";
+import { getCurrentUserToken } from "@/lib/firebase";
+import { removeSavedFeedItem, saveFeedItem } from "@/lib/api";
+import { useSavedInsights } from "@/components/savedInsightUtils";
 
 interface ApiInsight {
   influencer_id: string;
@@ -45,7 +48,6 @@ interface ApiInsight {
   };
 }
 
-// Add this to your types file or at the top of your component
 export interface VersionedInsight extends Insight {
   version: number;
   savedAt: string;
@@ -63,13 +65,19 @@ const Index = () => {
     return stored ? JSON.parse(stored) : [];
   });
 
+  // const [activeTab, setActiveTab] = useState<"trending" | "following">("trending"); // Changed default to trending
+
   const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
   const [direction, setDirection] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
   const [Bytes, setBytes] = useState<Insight[]>([]);
-  const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
+  const [currentInsightIndex, setCurrentInsightIndex] = useState(() => {
+    const saved = localStorage.getItem("homePageIndex");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const { handleSaveInsightInApi } = useSavedInsights();
   const [previousInsightIndex, setPreviousInsightIndex] = useState(0);
   const [showingInfluencer, setShowingInfluencer] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
@@ -78,27 +86,47 @@ const Index = () => {
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchMoveY, setTouchMoveY] = useState(0);
   const [showNavbar, setShowNavbar] = useState(true);
+  const [showTabNavigation, setShowTabNavigation] = useState(true);
   const [insightPositions, setInsightPositions] = useState<string[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
-    const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
-    const { isDarkMode } = useTheme();
+  const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
+  const { isDarkMode } = useTheme();
   
   const navigate = useNavigate();
 
+  // Save current index to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("homePageIndex", currentInsightIndex.toString());
+  }, [currentInsightIndex]);
+
+  // Save active tab to localStorage
+  // useEffect(() => {
+  //   localStorage.setItem("activeHomeTab", activeTab);
+  // }, [activeTab]);
+
   const filteredBytes = useMemo(() => {
-    if (selectedIndustries.length === 0) return Bytes;
+    const baseBytes = Bytes;
     
-    return Bytes.filter(insight => {
+    // Filter by tab (trending vs following)
+    // if (activeTab === "following") {
+    //   baseBytes = Bytes.filter(insight => insight.influencer.isFollowed);
+    // }
+    
+    // Filter by selected industries
+    if (selectedIndustries.length === 0) return baseBytes;
+    
+    return baseBytes.filter(insight => {
       const insightIndustry = insight.industry.toLowerCase();
       return selectedIndustries.some(industry => 
         insightIndustry.includes(industry.toLowerCase())
       );
     });
   }, [Bytes, selectedIndustries]);
+  
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
@@ -108,14 +136,10 @@ const Index = () => {
         const data: ApiInsight[] = await response.json();
         
         const formattedBytes: Insight[] = data.map((item) => {
-          // Determine the source platform based on the URL
           const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
           
-          // Default to YouTube as the platform since you mentioned all are YouTube links
-          // But still check URL pattern to be safe
           let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
           
-          // To be extra safe, check URL pattern
           if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
             sourcePlatform = "youtube";
           } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
@@ -135,8 +159,8 @@ const Index = () => {
             influencer: {
               id: item.influencer_id,
               name: item.metadata.channel_title,
-              channel_id: item.influencer_id, // Add the missing channel_id property
-              profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.metadata.channel_title),
+              channel_id: item.influencer_id,
+              profileImage: "",
               isFollowed: false
             },
             isSaved: false,
@@ -165,7 +189,6 @@ const Index = () => {
     fetchBytes();
   }, []);
 
-  // Check if tutorial should be shown
   useEffect(() => {
     if (onboarded && !localStorage.getItem("tutorialShown")) {
       setShowTutorial(true);
@@ -211,7 +234,6 @@ const Index = () => {
       description: "We've personalized your feed based on your interests.",
     });
     
-    // Show tutorial after onboarding
     setShowTutorial(true);
   };
   
@@ -220,62 +242,11 @@ const Index = () => {
     localStorage.setItem("tutorialShown", "true");
   };
 
-  const handleSaveInsight = (id: string) => {
-    setBytes(prevBytes => {
-      const updatedBytes = prevBytes.map(insight => {
-        if (insight.id === id) {
-          return { ...insight, isSaved: !insight.isSaved };
-        }
-        return insight;
-      });
+const handleSaveInsight = async (id: string) => {
+    
+    const newSavedStatus = await handleSaveInsightInApi(id);
 
-      // Get current saved Bytes data from localStorage
-      const savedData: SavedBytesData = JSON.parse(
-        localStorage.getItem("savedBytes") || '{"versions":{}}'
-      );
-
-      // Find the insight being toggled
-      const insightToToggle = updatedBytes.find(i => i.id === id);
-      
-      if (insightToToggle) {
-        // Initialize version if it doesn't exist
-        if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
-          savedData.versions[CURRENT_INSIGHT_VERSION] = [];
-        }
-        
-        if (insightToToggle.isSaved) {
-          // Add to current version's saved Bytes
-          const versionBytes = savedData.versions[CURRENT_INSIGHT_VERSION] || [];
-          savedData.versions[CURRENT_INSIGHT_VERSION] = [
-            ...versionBytes.filter(i => i.id !== id), // Remove if already exists
-            {
-              ...insightToToggle
-            }
-          ];
-        } else {
-          // Remove from current version
-          savedData.versions[CURRENT_INSIGHT_VERSION] = 
-            (savedData.versions[CURRENT_INSIGHT_VERSION] || [])
-              .filter(i => i.id !== id);
-        }
-
-        // Update saved Bytes in localStorage
-        localStorage.setItem("savedBytes", JSON.stringify(savedData));
-        localStorage.setItem("Bytes", JSON.stringify(updatedBytes));
-      }
-
-      return updatedBytes;
-    });
-
-    const isSaved = Bytes.find(i => i.id === id)?.isSaved;
-    toast({
-      title: isSaved ? "Saved" : "Removed from saved",
-      description: isSaved 
-        ? `Added to version ${CURRENT_INSIGHT_VERSION} collection` 
-        : "Removed from your saved items",
-    });
-  };
-
+};
   const handleLikeInsight = (id: string) => {
     setBytes(Bytes.map(insight => {
       if (insight.id === id) {
@@ -285,334 +256,329 @@ const Index = () => {
     }));
   };
 
+  const handleShareInsight = async (id: string) => {
+    const insight = Bytes.find(i => i.id === id);
+    if (!insight) return;
 
-// Fixed handleShareInsight function for mobile with dark mode support
-const handleShareInsight = async (id: string) => {
-  const insight = Bytes.find(i => i.id === id);
-  if (!insight) return;
+    try {
+      setIsSharing(true);
 
-  try {
-    setIsSharing(true);
+      const insightCard = document.querySelector(`.insight-card`) as HTMLElement;
+      if (!insightCard) {
+        setIsSharing(false);
+        return;
+      }
 
-    const insightCard = document.querySelector(`.insight-card`) as HTMLElement;
-    if (!insightCard) {
-      setIsSharing(false);
-      return;
-    }
+      const { toBlob } = await import('html-to-image');
+      const blob = await toBlob(insightCard, {
+        quality: 0.95,
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+        cacheBust: true,
+      });
 
-    const { toBlob } = await import('html-to-image');
-    const blob = await toBlob(insightCard, {
-      quality: 0.95,
-      backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', // Respect dark mode
-      cacheBust: true,
-    });
+      if (!blob) {
+        setIsSharing(false);
+        return;
+      }
 
-    if (!blob) {
-      setIsSharing(false);
-      return;
-    }
+      const shareUrl = `${window.location.origin}/Bytes/${insight.id}`;
+      const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
+      const file = new File([blob], 'insight.png', { type: 'image/png' });
 
-    const shareUrl = `${window.location.origin}/Bytes/${insight.id}`;
-    const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
-    const file = new File([blob], 'insight.png', { type: 'image/png' });
+      const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
 
-    const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
-
-    if (navigator.share) {
-      if (canShareWithImage) {
-        await navigator.share({
-          title: insight.title,
-          text: shareText,
-          url: shareUrl,
-          files: [file],
-        });
+      if (navigator.share) {
+        if (canShareWithImage) {
+          await navigator.share({
+            title: insight.title,
+            text: shareText,
+            url: shareUrl,
+            files: [file],
+          });
+        } else {
+          await navigator.share({
+            title: insight.title,
+            text: shareText,
+            url: shareUrl,
+          });
+        }
       } else {
-        await navigator.share({
-          title: insight.title,
-          text: shareText,
-          url: shareUrl,
+        const imageUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = imageUrl;
+        downloadLink.download = 'byte-me-insight.png';
+        document.body.appendChild(downloadLink);
+
+        toast({
+          title: "Share this insight",
+          description: (
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={imageUrl} 
+                  alt={insight.title} 
+                  className={cn(
+                    "max-w-full h-auto rounded-lg border",
+                    isDarkMode ? "border-gray-600" : "border-gray-200"
+                  )}
+                />
+              </div>
+              <p className={cn(
+                "text-sm whitespace-pre-wrap",
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              )}>
+                {shareText}
+              </p>
+              <div className="flex flex-col space-y-2">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      isDarkMode 
+                        ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    )}
+                    onClick={() => {
+                      downloadLink.click();
+                      URL.revokeObjectURL(imageUrl);
+                      document.body.removeChild(downloadLink);
+                    }}
+                  >
+                    Download Image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      isDarkMode 
+                        ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    )}
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareText);
+                      toast({
+                        title: "Copied to clipboard",
+                        description: "Text with link is ready to paste",
+                      });
+                    }}
+                  >
+                    Copy Text
+                  </Button>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "border-blue-500 text-blue-500 hover:bg-blue-50",
+                      isDarkMode && "hover:bg-blue-900/20"
+                    )}
+                    onClick={() => {
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                    }}
+                  >
+                    Share on Twitter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "border-blue-600 text-blue-600 hover:bg-blue-50",
+                      isDarkMode && "hover:bg-blue-900/20"
+                    )}
+                    onClick={() => {
+                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                    }}
+                  >
+                    Share on LinkedIn
+                  </Button>
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={cn(
+                    "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                  onClick={() => {
+                    window.open(shareUrl, '_blank');
+                  }}
+                >
+                  Open Insight
+                </Button>
+              </div>
+            </div>
+          ),
         });
       }
-    } else {
-      // Mobile/Desktop fallback with dark mode support
-      const imageUrl = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = imageUrl;
-      downloadLink.download = 'byte-me-insight.png';
-      document.body.appendChild(downloadLink);
+    } catch (error) {
+      console.error('Error sharing:', error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
-      toast({
-        title: "Share this insight",
-        description: (
-          <div className="flex flex-col space-y-4">
-            <div className="flex justify-center">
-              <img 
-                src={imageUrl} 
-                alt={insight.title} 
-                className={cn(
-                  "max-w-full h-auto rounded-lg border",
-                  isDarkMode ? "border-gray-600" : "border-gray-200"
-                )}
-              />
-            </div>
-            <p className={cn(
-              "text-sm whitespace-pre-wrap",
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            )}>
-              {shareText}
-            </p>
-            <div className="flex flex-col space-y-2">
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    isDarkMode 
-                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                  onClick={() => {
-                    downloadLink.click();
-                    URL.revokeObjectURL(imageUrl);
-                    document.body.removeChild(downloadLink);
-                  }}
-                >
-                  Download Image
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    isDarkMode 
-                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareText);
-                    toast({
-                      title: "Copied to clipboard",
-                      description: "Text with link is ready to paste",
-                    });
-                  }}
-                >
-                  Copy Text
-                </Button>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-blue-500 text-blue-500 hover:bg-blue-50",
-                    isDarkMode && "hover:bg-blue-900/20"
-                  )}
-                  onClick={() => {
-                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
-                  }}
-                >
-                  Share on Twitter
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-blue-600 text-blue-600 hover:bg-blue-50",
-                    isDarkMode && "hover:bg-blue-900/20"
-                  )}
-                  onClick={() => {
-                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
-                  }}
-                >
-                  Share on LinkedIn
-                </Button>
-              </div>
-              <Button
-                variant="default"
-                size="sm"
-                className={cn(
-                  "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
-                onClick={() => {
-                  window.open(shareUrl, '_blank');
-                }}
-              >
-                Open Insight
-              </Button>
-            </div>
-          </div>
-        ),
+  const handleShareDesktop = async (id: string) => {
+    const bite = Bytes.find(i => i.id === id);
+    if (!bite) return;
+
+    try {
+      setIsSharing(true);
+
+      const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
+      if (!insightCard) {
+        setIsSharing(false);
+        return;
+      }
+
+      const { toBlob } = await import('html-to-image');
+      const blob = await toBlob(insightCard, {
+        quality: 0.95,
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+        cacheBust: true,
       });
-    }
-  } catch (error) {
-    console.error('Error sharing:', error);
-  } finally {
-    setIsSharing(false);
-  }
-};
 
-// Fixed handleShareDesktop function with dark mode support
-const handleShareDesktop = async (id: string) => {
-  const bite = Bytes.find(i => i.id === id);
-  if (!bite) return;
+      if (!blob) {
+        setIsSharing(false);
+        return;
+      }
 
-  try {
-    setIsSharing(true);
+      const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
+      const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
+      const file = new File([blob], 'insight.png', { type: 'image/png' });
 
-    const insightCard = document.querySelector(`[data-insight-id="${id}"]`) as HTMLElement;
-    if (!insightCard) {
-      setIsSharing(false);
-      return;
-    }
+      const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
 
-    const { toBlob } = await import('html-to-image');
-    const blob = await toBlob(insightCard, {
-      quality: 0.95,
-      backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', // Respect dark mode
-      cacheBust: true,
-    });
-
-    if (!blob) {
-      setIsSharing(false);
-      return;
-    }
-
-    const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
-    const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
-    const file = new File([blob], 'insight.png', { type: 'image/png' });
-
-    const canShareWithImage = navigator.canShare && navigator.canShare({ files: [file] });
-
-    if (navigator.share) {
-      if (canShareWithImage) {
-        await navigator.share({
-          title: bite.title,
-          text: shareText,
-          url: shareUrl,
-          files: [file],
-        });
+      if (navigator.share) {
+        if (canShareWithImage) {
+          await navigator.share({
+            title: bite.title,
+            text: shareText,
+            url: shareUrl,
+            files: [file],
+          });
+        } else {
+          await navigator.share({
+            title: bite.title,
+            text: shareText,
+            url: shareUrl,
+          });
+        }
       } else {
-        await navigator.share({
-          title: bite.title,
-          text: shareText,
-          url: shareUrl,
+        const imageUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = imageUrl;
+        downloadLink.download = 'byte-me-insight.png';
+        document.body.appendChild(downloadLink);
+
+        toast({
+          title: "Share this insight",
+          description: (
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={imageUrl} 
+                  alt={bite.title} 
+                  className={cn(
+                    "max-w-full h-auto rounded-lg border",
+                    isDarkMode ? "border-gray-600" : "border-gray-200"
+                  )}
+                />
+              </div>
+              <p className={cn(
+                "text-sm whitespace-pre-wrap",
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              )}>
+                {shareText}
+              </p>
+              <div className="flex flex-col space-y-2">
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      isDarkMode 
+                        ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    )}
+                    onClick={() => {
+                      downloadLink.click();
+                      URL.revokeObjectURL(imageUrl);
+                      document.body.removeChild(downloadLink);
+                    }}
+                  >
+                    Download Image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      isDarkMode 
+                        ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
+                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    )}
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareText);
+                      toast({
+                        title: "Copied to clipboard",
+                        description: "Text with link is ready to paste",
+                      });
+                    }}
+                  >
+                    Copy Text
+                  </Button>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "border-blue-500 text-blue-500 hover:bg-blue-50",
+                      isDarkMode && "hover:bg-blue-900/20"
+                    )}
+                    onClick={() => {
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+                    }}
+                  >
+                    Share on Twitter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "border-blue-600 text-blue-600 hover:bg-blue-50",
+                      isDarkMode && "hover:bg-blue-900/20"
+                    )}
+                    onClick={() => {
+                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                    }}
+                  >
+                    Share on LinkedIn
+                  </Button>
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={cn(
+                    "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                  onClick={() => {
+                    window.open(shareUrl, '_blank');
+                  }}
+                >
+                  Open Insight
+                </Button>
+              </div>
+            </div>
+          ),
         });
       }
-    } else {
-      // Desktop fallback with dark mode support
-      const imageUrl = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = imageUrl;
-      downloadLink.download = 'byte-me-insight.png';
-      document.body.appendChild(downloadLink);
-
-      toast({
-        title: "Share this insight",
-        description: (
-          <div className="flex flex-col space-y-4">
-            <div className="flex justify-center">
-              <img 
-                src={imageUrl} 
-                alt={bite.title} 
-                className={cn(
-                  "max-w-full h-auto rounded-lg border",
-                  isDarkMode ? "border-gray-600" : "border-gray-200"
-                )}
-              />
-            </div>
-            <p className={cn(
-              "text-sm whitespace-pre-wrap",
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            )}>
-              {shareText}
-            </p>
-            <div className="flex flex-col space-y-2">
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    isDarkMode 
-                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                  onClick={() => {
-                    downloadLink.click();
-                    URL.revokeObjectURL(imageUrl);
-                    document.body.removeChild(downloadLink);
-                  }}
-                >
-                  Download Image
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    isDarkMode 
-                      ? "border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700" 
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareText);
-                    toast({
-                      title: "Copied to clipboard",
-                      description: "Text with link is ready to paste",
-                    });
-                  }}
-                >
-                  Copy Text
-                </Button>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-blue-500 text-blue-500 hover:bg-blue-50",
-                    isDarkMode && "hover:bg-blue-900/20"
-                  )}
-                  onClick={() => {
-                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
-                  }}
-                >
-                  Share on Twitter
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-blue-600 text-blue-600 hover:bg-blue-50",
-                    isDarkMode && "hover:bg-blue-900/20"
-                  )}
-                  onClick={() => {
-                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
-                  }}
-                >
-                  Share on LinkedIn
-                </Button>
-              </div>
-              <Button
-                variant="default"
-                size="sm"
-                className={cn(
-                  "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
-                onClick={() => {
-                  window.open(shareUrl, '_blank');
-                }}
-              >
-                Open Insight
-              </Button>
-            </div>
-          </div>
-        ),
-      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    } finally {
+      setIsSharing(false);
     }
-  } catch (error) {
-    console.error('Error sharing:', error);
-  } finally {
-    setIsSharing(false);
-  }
-};
+  };
 
   const handleFollowInfluencer = (influencerId: string) => {
     setBytes(Bytes.map(insight => {
@@ -640,7 +606,6 @@ const handleShareDesktop = async (id: string) => {
     const insight = Bytes.find(i => i.influencer.id === influencerId);
     if (!insight) return;
     
-    // Store the current index before navigating away
     setPreviousInsightIndex(currentInsightIndex);
     
     const influencerBytes = Bytes
@@ -655,7 +620,7 @@ const handleShareDesktop = async (id: string) => {
     setSelectedInfluencer({
       id: influencerId,
       name: insight.influencer.name,
-      profileImage: insight.influencer.profileImage,
+      profileImage: "",
       bio: `Content creator on ${insight.influencer.name}`,
       industry: insight.industry,
       followerCount: Math.floor(Math.random() * 1000000),
@@ -669,50 +634,42 @@ const handleShareDesktop = async (id: string) => {
   
   const handleInsightClick = (id:string) => {
     setShowingInfluencer(false);
-    // Restore the previous insight index
-    // setCurrentInsightIndex(previousInsightIndex);
-      navigate(`/bytes/${id}`);
+    navigate(`/bytes/${id}`);
   };
 
   const handleSourceClick = (url: string) => {
-    // Store the current index before navigating away
     setPreviousInsightIndex(currentInsightIndex);
     window.open(url, '_blank');
   };
-  const getTimeAgo = (publishedAt: string) => {
-  return publishedAt 
-    ? formatDistanceToNow(new Date(publishedAt), { addSuffix: false })
-    : '';
-};
   
-const navigateToNextInsight = () => {
-  if (currentInsightIndex < filteredBytes.length - 1 && !isAnimating) {
-    setIsAnimating(true);
-    setDirection(1); // Forward direction
-    
-    setTimeout(() => {
+  const getTimeAgo = (publishedAt: string) => {
+    return publishedAt 
+      ? formatDistanceToNow(new Date(publishedAt), { addSuffix: false })
+      : '';
+  };
+  
+  const navigateToNextInsight = () => {
+    if (currentInsightIndex < filteredBytes.length - 1 && !isAnimating) {
+      setIsAnimating(true);
+      setDirection(1);
       setCurrentInsightIndex(currentInsightIndex + 1);
-      setIsAnimating(false);
-    }, 300);
-  } else if (currentInsightIndex === filteredBytes.length - 1) {
-    toast({
-      title: "No more Bytes",
-      description: "You've reached the end of your feed",
-    });
-  }
-};
+      setTimeout(() => setIsAnimating(false), 50);
+    } else if (currentInsightIndex === filteredBytes.length - 1) {
+      toast({
+        title: "No more Bytes",
+        description: "You've reached the end of your feed",
+      });
+    }
+  };
 
-const navigateToPreviousInsight = () => {
-  if (currentInsightIndex > 0 && !isAnimating) {
-    setIsAnimating(true);
-    setDirection(-1); // Backward direction
-    
-    setTimeout(() => {
+  const navigateToPreviousInsight = () => {
+    if (currentInsightIndex > 0 && !isAnimating) {
+      setIsAnimating(true);
+      setDirection(-1);
       setCurrentInsightIndex(currentInsightIndex - 1);
-      setIsAnimating(false);
-    }, 300);
-  }
-};
+      setTimeout(() => setIsAnimating(false), 50);
+    }
+  };
 
   const navigateToInfluencerProfile = () => {
     if (!isAnimating && filteredBytes.length > 0) {
@@ -748,44 +705,48 @@ const navigateToPreviousInsight = () => {
     const verticalDistance = Math.abs(touchMoveY - touchStartY);
     const horizontalDistance = Math.abs(touchMoveX - touchStartX);
     
-    if (horizontalDistance > verticalDistance && horizontalDistance > 30) {
+    if (horizontalDistance > verticalDistance && horizontalDistance > 15) {
       setIsHorizontalSwipe(true);
     }
   };
 
   const handleTouchEnd = () => {
-  const verticalSwipeDistance = touchStartY - touchMoveY;
-  const horizontalSwipeDistance = touchStartX - touchMoveX;
-  
-  if (isHorizontalSwipe) {
-    if (Math.abs(horizontalSwipeDistance) > 100) {
-      if (horizontalSwipeDistance > 0) {
-        navigateToInfluencerProfile();
-      } else {
-        navigateToSourceUrl();
-      }
-    }
-  } else {
-    if (Math.abs(verticalSwipeDistance) > 100) {
-      if (verticalSwipeDistance > 0) {
-        setDirection(1); // Forward
-        navigateToNextInsight();
-      } else {
-        setDirection(-1); // Backward
-        navigateToPreviousInsight();
+    const verticalSwipeDistance = touchStartY - touchMoveY;
+    const horizontalSwipeDistance = touchStartX - touchMoveX;
+    
+    if (isHorizontalSwipe) {
+      if (Math.abs(horizontalSwipeDistance) > 40) {
+        if (horizontalSwipeDistance > 0) {
+          navigateToInfluencerProfile();
+        } else {
+          navigateToSourceUrl();
+        }
       }
     } else {
-      setShowNavbar(!showNavbar);
+      if (Math.abs(verticalSwipeDistance) > 30) {
+        if (verticalSwipeDistance > 0) {
+          setDirection(1);
+          navigateToNextInsight();
+        } else {
+          setDirection(-1);
+          navigateToPreviousInsight();
+        }
+      } else {
+        setShowNavbar(!showNavbar);
+        setShowTabNavigation(!showTabNavigation);
+      }
     }
-  }
-};
-  // Return to feed from influencer profile with horizontal swipe
+  };
+
   const handleInfluencerProfileSwipe = (direction: 'left' | 'right') => {
     if (direction === 'right') {
       setShowingInfluencer(false);
-      // Restore the previous insight index
       setCurrentInsightIndex(previousInsightIndex);
     }
+  };
+
+  const navigateToInfluencerDirectory = () => {
+    navigate("/influencers");
   };
 
   if (!onboarded) {
@@ -801,11 +762,24 @@ const navigateToPreviousInsight = () => {
       <div className="h-screen bg-background flex items-center justify-center">
         <div className="text-center p-4">
           <p className="text-primary mb-4">
-            {Bytes.length === 0 
+            {
+            // activeTab === "following" && Bytes.filter(b => b.influencer.isFollowed).length === 0
+            //   ? "You're not following any influencers yet."
+            //   :
+               Bytes.length === 0 
               ? "No Bytes available at the moment." 
               : "No Bytes match your selected industries."}
           </p>
-          {Bytes.length > 0 && (
+          {
+          // activeTab === "following" && Bytes.filter(b => b.influencer.isFollowed).length === 0 ? (
+          //   <Button 
+          //     onClick={navigateToInfluencerDirectory}
+          //     className="bg-primary hover:bg-primary/90"
+          //   >
+          //     Start Following
+          //   </Button>
+          // ) : 
+          Bytes.length > 0 && (
             <Button 
               onClick={() => navigate("/profile")}
               className="bg-primary hover:bg-primary/90"
@@ -817,222 +791,265 @@ const navigateToPreviousInsight = () => {
       </div>
     );
   }
-    if (window.innerWidth > 768) {
-      return(
-         <div className={cn(
-  "page-container",
-  isDarkMode ? "bg-gray-900" : "bg-background"
-)}>
-        {/* Bytes Grid */}
-              <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
-        <div className="space-y-6">
-          {filteredBytes.map((bite) => {
- const timeAgo = getTimeAgo(bite.publishedAt);
-            
-            return (<div 
-              key={bite.id} 
+
+  if (window.innerWidth > 768) {
+    return(
+      <div className={cn(
+        "page-container",
+        isDarkMode ? "bg-gray-900" : "bg-background"
+      )}>
+        <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
+          {/* Tab Navigation */}
+          {/* <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab("trending")}
               className={cn(
-    "rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer",
-    isDarkMode 
-      ? "bg-gray-800 border-gray-700 hover:shadow-gray-700/30" 
-      : "bg-white border-gray-200 hover:shadow-md"
-  )}
-      data-insight-id={bite.id}
-              onClick={() => handleInsightClick(bite.id)}
+                "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
+                activeTab === "trending"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              <div className="sm:flex">
-                {/* Image Section - Full width on mobile, fixed width on desktop */}
-                <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
-                  <img
-                    src={bite.image}
-                    alt={bite.title}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* ByteMe Brand Watermark - Top right */}
-                  <div className="absolute top-2 right-2">
-                    <ByteMeLogo size="sm" className="opacity-80" />
-                  </div>
-                  
-                  {/* Industry Tag - Bottom left with subtle black background */}
-                  <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
-                    {bite.industry}
-                  </div>
-                  
-                  {/* Source Platform - Bottom right with subtle black background */}
-                  {bite.source && (
-                    <div 
-                      className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
-                    >
-                      <PlatformIcon source={bite.source} />
-                    </div>
-                  )}
-                </div>
-                
-                {/* Content Section */}
-                <div className="p-4 sm:w-2/3">
-                  <div className="flex items-center mb-3">
+              Trending
+            </button>
+            <button
+              onClick={() => setActiveTab("following")}
+              className={cn(
+                "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
+                activeTab === "following"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Following
+            </button>
+          </div> */}
+
+          <div className="space-y-6">
+            {filteredBytes.map((bite, index) => {
+              const timeAgo = getTimeAgo(bite.publishedAt);
+              
+              return (<div 
+                key={bite.id} 
+                className={cn(
+                  "rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer",
+                  isDarkMode 
+                    ? "bg-gray-800 border-gray-700 hover:shadow-gray-700/30" 
+                    : "bg-white border-gray-200 hover:shadow-md"
+                )}
+                data-insight-id={bite.id}
+                onClick={() => navigate(`/bytes/${bite.id}`)}
+              >
+                <div className="sm:flex">
+                  <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
                     <img
-                      src={bite.influencer.profileImage}
-                      alt={bite.influencer.name}
-                      className="w-8 h-8 rounded-full mr-2"
+                      src={bite.image}
+                      alt={bite.title}
+                      className="w-full h-full object-cover"
                     />
-                  <span className={cn(
-  "text-sm font-medium",
-  isDarkMode ? "text-gray-300" : "text-gray-700"
-)}>
-                      {bite.influencer.name}
-                    </span>
-                    <span className="mr-2"></span>
-                <span className={cn(
-                    "text-xs",
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  )}>
-                    {timeAgo} ago
-                  </span>
-                  </div>
-                  
-                <h3 className={cn(
-  "font-bold text-lg mb-2 line-clamp-2",
-  isDarkMode ? "text-white" : "text-gray-900"
-)}>
-
-                    {bite.title}
-                  </h3>
-                  
-                <p className={cn(
-  "text-sm line-clamp-3 mb-4",
-  isDarkMode ? "text-gray-300" : "text-gray-600"
-)}>
-
-                    {bite.summary}
-                  </p>
-                  
-                  
-                  <div className="flex items-center justify-between">
-                    {/* Sentiment Indicator */}
-                    <div className="flex items-center">
-                  
+                    
+                    <div className="absolute top-2 right-2">
+                      <ByteMeLogo size="sm" className="opacity-80" />
                     </div>
                     
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSaveInsight(bite.id);
-                        }}
-                        className={cn(
-                          "p-2 rounded-full transition-colors",
-                        "text-gray-400 hover:text-primary"
-                        )}
+                    <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+                      {bite.industry}
+                    </div>
+                    
+                    {bite.source && (
+                      <div 
+                        className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
                       >
-                        <Save className={cn("w-5 h-5")} />
-                      </button>
+                        <PlatformIcon source={bite.source} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-4 sm:w-2/3">
+                    <div className="flex items-center mb-3">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      )}>
+                        {bite.influencer.name}
+                      </span>
+                      <span className="mr-2"></span>
+                      <span className={cn(
+                        "text-xs",
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      )}>
+                        {timeAgo} ago
+                      </span>
+                    </div>
+                    
+                    <h3 className={cn(
+                      "font-bold text-lg mb-2 line-clamp-2",
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    )}>
+                      {bite.title}
+                    </h3>
+                    
+                    <p className={cn(
+                      "text-sm line-clamp-3 mb-4",
+                      isDarkMode ? "text-gray-300" : "text-gray-600"
+                    )}>
+                      {bite.summary}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                      </div>
                       
-                      <button
-                        onClick={(e) => {
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => {
                             e.stopPropagation();
-                          handleShareDesktop(bite.id);
-                        }}
-                        className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
-                      >
-                        <Share className="w-5 h-5" />
-                      </button>
+                            handleSaveInsight(bite.id);
+                          }}
+                          className={cn(
+                            "p-2 rounded-full transition-colors",
+                            "text-gray-400 hover:text-primary"
+                          )}
+                        >
+                          <Save className={cn("w-5 h-5")} />
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                              e.stopPropagation();
+                            handleShareDesktop(bite.id);
+                          }}
+                          className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
+                        >
+                          <Share className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )})};
+            )})};
+          </div>
         </div>
-</div>
- 
-      <Navigation />
-  
-      </div>
-      );
-    }
-  
+       
+        <Navigation />
+    
+        </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-background relative">
-       {isSharing && (
-      <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-primary">Preparing share content...</p>
+      {isSharing && (
+        <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-primary">Preparing share content...</p>
+          </div>
         </div>
-      </div>
-    )}
-      {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />}
-          {!showingInfluencer ? (
-      <div 
-        className="swipe-container h-full w-full"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={() => setShowNavbar(!showNavbar)}
-        ref={swipeContainerRef}
-      >
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={currentInsightIndex}
-            custom={direction}
-            initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="h-full w-full">
-               <InsightCard 
-              key={filteredBytes[currentInsightIndex].id}
-              insight={filteredBytes[currentInsightIndex]}
-              onSave={handleSaveInsight}
-              onLike={handleLikeInsight}
-              onShare={handleShareInsight}
-              onFollowInfluencer={handleFollowInfluencer}
-              onInfluencerClick={handleInfluencerClick}
-              onSourceClick={handleSourceClick}
-              userIndustries={selectedIndustries} 
-              position={""}
-                onClick={handleInsightClick}
-            
-            />
-          </motion.div>
-          </AnimatePresence>
-        </div>
-      ) : (
-        selectedInfluencer && (
-          <motion.div
-            initial={{ x: 300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onTouchStart={handleTouchStart} 
-            onTouchMove={handleTouchMove} 
-            onTouchEnd={() => {
-              const swipeDirection = touchStartX - touchMoveX > 100 ? 'left' : 
-                                   touchMoveX - touchStartX > 100 ? 'right' : null;
-              if (swipeDirection) {
-                handleInfluencerProfileSwipe(swipeDirection);
-              }
-            }}
-          >
-            <InfluencerProfile 
-              influencer={selectedInfluencer}
-              onFollowToggle={handleFollowInfluencer}
-              onInsightClick={handleInsightClick}
-              onBack={() => {
-                setShowingInfluencer(false);
-                setCurrentInsightIndex(previousInsightIndex);
-              }}
-            />
-          </motion.div>
-        )
       )}
+      {/* {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />} */}
       
-      <Navigation />
-    </div>
-  );
+      {!showingInfluencer ? (
+        <>
+          {/* Mobile Tab Navigation - with conditional visibility */}
+          {/* {showTabNavigation && (
+            <div className="absolute top-4 left-4 right-4 z-10 flex space-x-1 bg-background/80 backdrop-blur-sm p-1 rounded-lg transition-opacity duration-300">
+              <button
+                onClick={() => setActiveTab("trending")}
+                className={cn(
+                  "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
+                  activeTab === "trending"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                Trending
+              </button>
+              <button
+                onClick={() => setActiveTab("following")}
+                className={cn(
+                  "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
+                  activeTab === "following"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                Following
+              </button>
+            </div>
+          )} */}
+
+          <div 
+            className="swipe-container h-full w-full"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onClick={() => {
+              setShowNavbar(!showNavbar);
+              setShowTabNavigation(!showTabNavigation);
+            }}
+            ref={swipeContainerRef}
+          >
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={currentInsightIndex}
+                custom={direction}
+                initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="h-full w-full">
+                   <InsightCard 
+                  key={filteredBytes[currentInsightIndex].id}
+                  insight={filteredBytes[currentInsightIndex]}
+                  onSave={handleSaveInsight}
+                  onLike={handleLikeInsight}
+                  onShare={handleShareInsight}
+                  onFollowInfluencer={handleFollowInfluencer}
+                  onInfluencerClick={handleInfluencerClick}
+                  onSourceClick={handleSourceClick}
+                  userIndustries={selectedIndustries} 
+                  position={""}
+                  onClick={handleInsightClick}
+                />
+              </motion.div>
+              </AnimatePresence>
+            </div>
+        </>
+        ) : (
+          selectedInfluencer && (
+            <motion.div
+              initial={{ x: 300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ duration: 0.1, ease: "easeOut" }}
+              onTouchStart={handleTouchStart} 
+              onTouchMove={handleTouchMove} 
+              onTouchEnd={() => {
+                const swipeDirection = touchStartX - touchMoveX > 40 ? 'left' : 
+                                     touchMoveX - touchStartX > 40 ? 'right' : null;
+                if (swipeDirection) {
+                  handleInfluencerProfileSwipe(swipeDirection);
+                }
+              }}
+            >
+              <InfluencerProfile 
+                influencer={selectedInfluencer}
+                onFollowToggle={handleFollowInfluencer}
+                onInsightClick={handleInsightClick}
+                onBack={() => {
+                  setShowingInfluencer(false);
+                  setCurrentInsightIndex(previousInsightIndex);
+                }}
+              />
+            </motion.div>
+          )
+        )}
+        
+        <Navigation />
+      </div>
+    );
 };
 
 export default Index;

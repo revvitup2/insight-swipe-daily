@@ -1,245 +1,262 @@
-"use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Moon, Sun, LogOut, Settings } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
-import Navigation from "@/components/Navigation";
-import FeedbackForm from "@/components/FeedbackForm";
-import UserUpload from "@/components/UserUpload";
-import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext"; // Update this import
+import { getUserPreferences, saveUserPreferences } from "@/lib/api";
+import { useAuthActions } from "@/contexts/authUtils";
 
 const industries = [
-  { id: "finance", name: "Finance", selected: true },
-  { id: "ai", name: "Artificial Intelligence", selected: true },
-  { id: "healthcare", name: "Healthcare", selected: false },
-  { id: "startups", name: "Startups", selected: true },
-  { id: "business", name: "Business", selected: true },
-  { id: "technology", name: "Technology", selected: false },
-  { id: "marketing", name: "Marketing", selected: false },
-  { id: "design", name: "Design", selected: false },
+  { id: "finance", name: "Finance" },
+  { id: "ai", name: "AI" },
+  { id: "healthcare", name: "Healthcare" },
+  { id: "startups", name: "Startups" },
+  { id: "business", name: "Business" },
+  { id: "technology", name: "Technology" },
+  { id: "marketing", name: "Marketing" },
+  { id: "design", name: "Design" },
+  { id: "others", name: "Others" },
 ];
 
 const Profile = () => {
-  const [userIndustries, setUserIndustries] = useState(() => {
-    const stored = localStorage.getItem("selectedIndustries");
-    return stored 
-      ? industries.map(i => ({
-          id: i.id,
-          name: i.name,
-          selected: JSON.parse(stored).includes(i.id)
-        }))
-      : industries.map(i => ({ ...i, selected: false }));
-  });
-  const [notifications, setNotifications] = useState({
-    dailyDigest: true,
-    newBytes: true,
-    influencerUpdates: false,
-  });
-  const [myUploads, setMyUploads] = useState<any[]>(() => {
-    const stored = localStorage.getItem("myUploads");
-    return stored ? JSON.parse(stored) : [];
-  });
-  
-  const navigate = useNavigate();
-  
+  const { user, loading, token } = useAuth(); // Use the auth context
+    const { handleGoogleSignIn, handleSignOut } = useAuthActions();
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const { isDarkMode, toggleDarkMode } = useTheme();
-  
-  const toggleIndustry = (id: string) => {
-    setUserIndustries(userIndustries.map(industry => {
-      if (industry.id === id) {
-        return { ...industry, selected: !industry.selected };
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (user && token) {
+        try {
+          const preferences = await getUserPreferences(token);
+          setSelectedIndustries(preferences.selected_categories || []);
+        } catch (error) {
+          console.error('Error loading preferences:', error);
+        }
+      } else {
+        const stored = localStorage.getItem("selectedIndustries");
+        setSelectedIndustries(stored ? JSON.parse(stored) : []);
       }
-      return industry;
-    }));
-  };
-  
-  const handleNotificationChange = (key: keyof typeof notifications) => {
-    setNotifications({
-      ...notifications,
-      [key]: !notifications[key]
-    });
-  };
-  
-  const handleSaveChanges = () => {
-    const selected = userIndustries.filter(i => i.selected).map(i => i.id);
-    localStorage.setItem("selectedIndustries", JSON.stringify(selected));
-    
-    toast({
-      title: "Settings saved",
-      description: "Your profile settings have been updated",
-    });
-  };
+    };
 
-  const handleUploadComplete = (content: any) => {
-    const updatedUploads = [...myUploads, content];
-    setMyUploads(updatedUploads);
-    localStorage.setItem("myUploads", JSON.stringify(updatedUploads));
-  };
+    loadPreferences();
+  }, [user, token]);
 
-  const handleFeedbackSubmit = (rating: number, feedback: string) => {
-    console.log("Feedback submitted:", { rating, feedback });
-    // In a real app, this would send to your backend
-  };
-  
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
-    window.location.reload();
-  };
-  
-  return (
-    <div className="page-container bg-background">
-      <div className="p-4 pb-20">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Profile</h1>
-          <Button 
-            onClick={handleSaveChanges}
-            className="px-6 py-2 rounded-sm bg-primary hover:bg-primary/90 shadow-sm"
-          >
-            Save Changes
-          </Button>
-        </div>
-        
-        <Tabs defaultValue="settings" className="w-full">
-          
-          <TabsContent value="settings" className="space-y-8">
+  const toggleIndustry = async (industryId: string) => {
+    setSelectedIndustries(prev => {
+      const updated = prev.includes(industryId)
+        ? prev.filter(id => id !== industryId)
+        : [...prev, industryId];
       
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Your Interests</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Select categories to personalize your feed
-              </p>
-              
-              <div className="grid grid-cols-1 gap-2 mb-4">
-                {userIndustries.map(industry => (
-                  <div 
-                      key={industry.id}
-  className={`flex items-center justify-between p-3 border rounded-md transition-colors ${
-    industry.selected 
-      ? 'border-primary bg-primary/10 dark:bg-primary/20' 
-      : 'border-border bg-card hover:bg-accent'
-  }`}
-                  >
-                    <span className="font-medium">{industry.name}</span>
-                    <Button
-                      variant={industry.selected ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleIndustry(industry.id)}
-                      className="text-xs"
-                    >
-                      {industry.selected ? "Selected" : "Add"}
-                    </Button>
+      if (!user) {
+        localStorage.setItem("selectedIndustries", JSON.stringify(updated));
+      } else if (token) {
+        // Save to backend if user is signed in
+        saveUserPreferences(token, {
+          selected_categories: updated
+        }).catch(error => {
+          console.error('Error saving preferences:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save preferences",
+            variant: "destructive",
+          });
+        });
+      }
+      return updated;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto py-6 md:py-12 px-4 pb-20 md:pb-6">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
+        <Navigation />
+      </div>
+    );
+  }
+
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-6 md:py-12 px-4 pb-20 md:pb-6">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-primary mb-2">Profile & Settings</h1>
+            <p className="text-muted-foreground">Customize your ByteMe experience</p>
+          </div>
+
+          {/* User Profile Section */}
+          {user ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Profile</CardTitle>
+              </CardHeader>
+              <CardContent>
+                
+                <div>
+                   <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.photoURL || undefined} />
+                    <AvatarFallback>
+                      {user.displayName?.charAt(0) || user.email?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-medium">{user.displayName || "User"}</h3>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
+                 
+                </div>
+                   <Button 
+                    variant="outline" 
+                    className="ml-auto mt-10 items-center justify-center"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+               
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Account</CardTitle>
+                <CardDescription>
+                  Sign in to save your preferences across devices
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleGoogleSignIn}
+                  className="w-full bg-primary hover:bg-primary text-white"
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                    <path 
+                      fill="currentColor" 
+                      d="M12 12h5.5v2.5H12V22h-3v-7.5H3.5v-2.5H9V2h3v10z"
+                    />
+                  </svg>
+                  Sign in with Google
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Interests Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Industry Interests
+              </CardTitle>
+              <CardDescription>
+                Select the industries you're interested in to personalize your feed
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {industries.map((industry) => (
+                  <Badge
+                    key={industry.id}
+                    variant={selectedIndustries.includes(industry.id) ? "default" : "outline"}
+                    className="cursor-pointer px-3 py-1 text-sm"
+                    onClick={() => toggleIndustry(industry.id)}
+                  >
+                    {industry.name}
+                  </Badge>
                 ))}
               </div>
-            </section>
-            
-            <section className="mb-8">
-            <div className="space-y-4">
-  {Object.entries(notifications).map(([key, value]) => (
-    <div 
-      key={key} 
-      className="flex items-center justify-between p-4 rounded-lg bg-card"
-    >
-      <div>
-        <Label htmlFor={key} className="block font-medium">
-          {key
-    .split(/(?=[A-Z])/)         // Split camelCase: 'dailyDigest' → ['daily', 'Digest']
-    .join(' ')                  // Join with space: ['daily', 'Digest'] → 'daily Digest'
-    .replace(/^\w/, c => c.toUpperCase())}
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          {key === 'dailyDigest' && 'Receive a daily summary of top Bytes'}
-          {key === 'newBytes' && 'Get notified when new Bytes are available'}
-          {key === 'influencerUpdates' && 'Notifications about influencers you follow'}
-        </p>
-      </div>
-      <Switch
-        id={key}
-        checked={value}
-        onCheckedChange={() => handleNotificationChange(key)}
-      />
-    </div>
-  ))}
-</div>
-            </section>
-            <section className="mb-8 p-4 rounded-lg bg-card border border-border">
-  <h2 className="text-xl font-semibold mb-4">Appearance</h2>
-  <div className="flex items-center justify-between p-4 rounded-lg bg-background">
-    <div>
-      <Label htmlFor="darkMode" className="block font-medium">
-        Dark Mode
-      </Label>
-      <p className="text-xs text-muted-foreground">
-        Switch between light and dark themes
-      </p>
-    </div>
-    <Switch
-      id="darkMode"
-      checked={isDarkMode}
-      onCheckedChange={toggleDarkMode}
-      className="data-[state=checked]:bg-primary"
-    />
-  </div>
-</section>
-         <section className="mb-8 p-4 rounded-lg bg-card border border-border">
-  <h2 className="text-xl font-semibold mb-4">Account</h2>
-  
-  <Button 
-    variant="outline" 
-    className={cn(
-      "w-full",
-      "text-destructive hover:text-destructive",
-      "border-destructive/20 hover:border-destructive/40",
-      "hover:bg-destructive/10 dark:hover:bg-destructive/20",
-      "dark:border-destructive/30 dark:hover:border-destructive/50"
-    )}
-    onClick={handleLogout}
-  >
-    Reset App
-  </Button>
-</section>
+              {/* <Button onClick={handleSavePreferences} className="w-full">
+                Save Preferences
+              </Button> */}
+            </CardContent>
+          </Card>
 
+          {/* Follow Preferences */}
+          {/* <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Follow Preferences
+              </CardTitle>
+              <CardDescription>
+                Manage the influencers you follow
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between"
+                onClick={() => navigate("/influencers")}
+              >
+                <span>Manage Following</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card> */}
 
-            <section className="mb-8 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
-              <FeedbackForm onSubmit={handleFeedbackSubmit} />
-            </section>
-          </TabsContent>
-          
-          <TabsContent value="uploads" className="space-y-4">
-            <div className="text-center py-8">
-              {myUploads.length === 0 ? (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">No uploads yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Upload content using the + button to see your processed bytes here
-                  </p>
+          {/* Theme Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Display Settings</CardTitle>
+              <CardDescription>
+                Customize how ByteMe looks and feels
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  <span className="font-medium">Dark Mode</span>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Your Processed Content</h3>
-                  {myUploads.map((upload) => (
-                    <div key={upload.id} className="p-4 border rounded-lg bg-card">
-                      <h4 className="font-medium">{upload.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{upload.summary}</p>
-                      <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-                        <span>Source: {upload.source}</span>
-                        <span>{new Date(upload.processedAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+                <Switch
+                  checked={isDarkMode}
+                  onCheckedChange={toggleDarkMode}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <div className="mt-20"></div>
+
+          {/* App Info */}
+          {/* <Card>
+            <CardHeader>
+              <CardTitle>About ByteMe</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Version</span>
+                <span>1.0.0</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Build</span>
+                <span>2024.1</span>
+              </div>
+            </CardContent>
+          </Card> */}
+        </div>
       </div>
       
-      {/* <UserUpload variant="processing" onUploadComplete={handleUploadComplete} /> */}
       <Navigation />
     </div>
   );

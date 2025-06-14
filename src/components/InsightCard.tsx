@@ -1,3 +1,4 @@
+
 "use client";
 import { useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
@@ -256,14 +257,9 @@ export const InsightCard = ({
       <div className="flex items-center">
         <div 
           className="flex items-center cursor-pointer" 
-          onClick={handleInfluencerClick}
+          // onClick={handleInfluencerClick}
         >
-          <img
-            src={insight.influencer.profileImage}
-            alt={insight.influencer.name}
-            className="w-8 h-8 rounded-full mr-2 object-cover"
-          />
-          <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[180px]">
+          <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[220px]">
             {insight.influencer.name}
           </span>
         </div>

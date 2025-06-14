@@ -253,11 +253,11 @@ const handleDeletePost = async () => {
                       </div>
                       
                       <div className="flex items-center mb-2">
-                        <img
+                        {/* <img
                           src={post.influencer.profileImage}
                           alt={post.influencer.name}
                           className="w-6 h-6 rounded-full mr-2"
-                        />
+                        /> */}
                         <span className="text-sm text-muted-foreground">
                           {post.influencer.name}
                         </span>

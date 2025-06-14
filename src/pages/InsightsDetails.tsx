@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useSavedInsights } from "@/components/savedInsightUtils";
 
 interface ApiInsight {
   influencer_id: string;
@@ -93,6 +94,7 @@ const InsightDetails = () => {
   const insightCardRef = useRef<HTMLDivElement>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const navigate = useNavigate();
+    const { handleSaveInsightInApi } = useSavedInsights();
     
   useEffect(() => {
     const fetchInsightDetails = async () => {
@@ -127,59 +129,10 @@ const InsightDetails = () => {
     }
   }, [videoId]);
 
-  const handleSaveInsight = () => {
-    if (!insight) return;
+const handleSaveInsight = async (id: string) => {
+    const newSavedStatus = await handleSaveInsightInApi(id);
 
-    const savedData: SavedBytesData = JSON.parse(
-      localStorage.getItem("savedBytes") || '{"versions":{}}'
-    );
-
-    if (!savedData.versions[CURRENT_INSIGHT_VERSION]) {
-      savedData.versions[CURRENT_INSIGHT_VERSION] = [];
-    }
-
-    const formattedInsight: Insight = {
-      id: insight.video_id,
-      title: insight.metadata.title,
-      summary: insight.analysis.summary,
-      image: insight.metadata.thumbnails.high.url,
-      industry: insight.industry || "General",
-      influencer: {
-        id: insight.influencer_id,
-        name: insight.metadata.channel_title,
-        profileImage: "https://ui-avatars.com/api/?name=" + encodeURIComponent(insight.metadata.channel_title),
-        isFollowed: false
-      },
-      isSaved: true,
-      isLiked: false,
-      keyPoints: insight.analysis.key_points,
-      sentiment: insight.analysis.sentiment,
-      publishedAt: insight.published_at,
-      source: insight.source?.platform,
-      sourceUrl: insight.source?.url || `https://youtube.com/watch?v=${insight.video_id}`
-    };
-
-    if (!isSaved) {
-      savedData.versions[CURRENT_INSIGHT_VERSION] = [
-        ...savedData.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== insight.video_id),
-        formattedInsight
-      ];
-      toast({
-        title: "Saved",
-        description: `Added to saved`,
-      });
-    } else {
-      savedData.versions[CURRENT_INSIGHT_VERSION] = 
-        savedData.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== insight.video_id);
-      toast({
-        title: "Removed from saved",
-        description: "Removed from your saved",
-      });
-    }
-
-    localStorage.setItem("savedBytes", JSON.stringify(savedData));
-    setIsSaved(!isSaved);
-  };
+};
 
 const handleShareInsight = async () => {
   if (!insight || !insightCardRef.current) return;
@@ -429,7 +382,7 @@ const handleShareInsight = async () => {
             <Button
               variant="secondary"
               size="icon"
-              onClick={handleSaveInsight}
+              onClick={() => handleSaveInsight(insight.video_id)}
               disabled={isSharing}
               className="bg-black hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
             >

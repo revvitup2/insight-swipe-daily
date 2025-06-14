@@ -1,3 +1,4 @@
+
 "use client";
 import { Home, Bookmark, Search, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -41,7 +42,7 @@ export const Navigation = () => {
   return (
     <div 
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around py-3 border-t bg-background transition-transform duration-300",
+        "md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around py-3 border-t bg-background transition-transform duration-300",
         !isVisible && "translate-y-full",
         isDarkMode ? "border-gray-800" : "border-gray-200"
       )}

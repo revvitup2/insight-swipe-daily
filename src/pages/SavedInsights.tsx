@@ -1,4 +1,3 @@
-// pages/SavedBytes.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,104 +5,187 @@ import Navigation from "@/components/Navigation";
 import { Insight } from "@/components/InsightCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { SavedInsightCard } from "@/components/SavedInsightsCard";
-import { SavedBytesData, VersionedInsight } from "./Index";
-import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
+import { ByteCard } from "@/components/ui/bytmecard";
+import { useTheme } from "@/contexts/ThemeContext";
+import { getSavedFeedItems, removeSavedFeedItem } from "@/lib/api";
+import { auth, getCurrentUserToken } from "@/lib/firebase";
+import { useAuthActions } from "@/contexts/authUtils";
 
 const SavedBytes = () => {
   const [savedBytes, setSavedBytes] = useState<Insight[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
+   const { handleGoogleSignIn, user } = useAuthActions();
   
-    useEffect(() => {
-    const loadSavedBytes = () => {
-      try {
-        const saved = localStorage.getItem("savedBytes");
-        if (saved) {
-          const parsed: SavedBytesData = JSON.parse(saved);
-          // Get only current version Bytes
-          const currentVersionBytes = parsed.versions?.[CURRENT_INSIGHT_VERSION] || [];
-          
-          // Ensure we have valid Bytes with all required fields
-          const validBytes = currentVersionBytes.filter((insight: Insight) => 
-            insight?.id && insight?.title && insight?.summary
-          );
-          setSavedBytes(validBytes);
-        }
-      } catch (error) {
-        console.error("Error loading saved Bytes:", error);
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        await loadSavedBytes();
+      } else {
+        setLoading(false);
+        setError("Please sign in to view saved items");
       }
-    };
+    });
 
-    loadSavedBytes();
-    window.addEventListener('storage', loadSavedBytes);
-    return () => window.removeEventListener('storage', loadSavedBytes);
+    return () => unsubscribe();
   }, []);
 
-   const handleRemoveInsight = (id: string) => {
-    const saved = localStorage.getItem("savedBytes");
-    if (!saved) return;
-    
-    const parsed: SavedBytesData = JSON.parse(saved);
-    if (!parsed.versions[CURRENT_INSIGHT_VERSION]) return;
-    
-    // Remove from current version
-    parsed.versions[CURRENT_INSIGHT_VERSION] = 
-      parsed.versions[CURRENT_INSIGHT_VERSION].filter(i => i.id !== id);
-    
-    // Update storage
-    localStorage.setItem("savedBytes", JSON.stringify(parsed));
-    setSavedBytes(prev => prev.filter(i => i.id !== id));
-    
-    // Update main Bytes
-    const allBytes = localStorage.getItem("Bytes");
-    if (allBytes) {
-      const parsedBytes = JSON.parse(allBytes);
-       const updatedBytes = parsedBytes.map((insight: Insight) => 
-        insight.id === id ? { ...insight, isSaved: false } : insight
-      );
-      localStorage.setItem("Bytes", JSON.stringify(updatedBytes));
-    }
+  const loadSavedBytes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = await getCurrentUserToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
 
-    toast({
-      title: "Removed from saved",
-      description: "This insight has been removed from your collection",
-    });
+      const response = await getSavedFeedItems(token);
+      
+      const formattedBytes: Insight[] = response.saved_feeds.map((item: any) => {
+        const sourceUrl = item.metadata?.url || `https://youtube.com/watch?v=${item.video_id}`;
+        
+        let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
+        
+        if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
+          sourcePlatform = "youtube";
+        } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
+          sourcePlatform = "twitter";
+        } else if (sourceUrl.includes('linkedin.com')) {
+          sourcePlatform = "linkedin";
+        } else {
+          sourcePlatform = "other";
+        }
+        
+        return {
+          id: item.video_id,
+          title: item.metadata?.title || 'Untitled',
+          summary: item.analysis?.summary || '',
+          image: item.metadata?.thumbnails?.high?.url || '',
+          industry: item.industry || "General",
+          influencer: {
+            id: item.influencer_id,
+            name: item.metadata?.channel_title || 'Unknown Creator',
+            channel_id: item.influencer_id,
+            profileImage: item.metadata?.thumbnails?.default?.url || '',
+            isFollowed: false
+          },
+          isSaved: true, // All items in saved bytes are saved by definition
+          isLiked: false,
+          keyPoints: item.analysis?.key_points || [],
+          sentiment: item.analysis?.sentiment || 'neutral',
+          publishedAt: item.published_at || new Date().toISOString(),
+          source: sourcePlatform,
+          sourceUrl: sourceUrl
+        };
+      });
+
+      setSavedBytes(formattedBytes);
+    } catch (err) {
+      console.error("Error loading saved Bytes:", err);
+      setError(err.message || "Failed to load saved items");
+      toast({
+        title: "Error",
+        description: err.message || "Failed to load saved items",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleRemoveInsight = async (id: string) => {
+    try {
+      const token = await getCurrentUserToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
 
+      await removeSavedFeedItem(token, id);
+      setSavedBytes(prev => prev.filter(i => i.id !== id));
+      
+      toast({
+        title: "Removed from saved",
+        description: "This insight has been removed from your collection",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to remove item",
+        variant: "destructive",
+      });
+    }
+  };
 
-     return (
+  const handleClick = (id: string) => {
+    navigate(`/bytes/${id}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex justify-center items-center h-64">
+            <p>Loading your saved items...</p>
+          </div>
+        </div>
+        <Navigation />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold mb-2">Authentication Required</h3>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Button onClick={handleGoogleSignIn}>Sign In with Google</Button>
+          </div>
+        </div>
+        <Navigation />
+      </div>
+    );
+
+  }
+
+  return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Saved Bytes</h1>
           {savedBytes.length > 0 && (
             <div className="flex items-center gap-4">
-              {/* <span className="text-sm text-muted-foreground">
-                {savedBytes.length} {savedBytes.length === 1 ? "item" : "items"}
-              </span> */}
-        
+              <Button onClick={loadSavedBytes} variant="outline">
+                Refresh
+              </Button>
             </div>
           )}
         </div>
         
         {savedBytes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-6">
             {savedBytes.map(insight => (
-                  <SavedInsightCard
+              <ByteCard
                 key={insight.id}
-                insight={insight}
-            
+                bite={insight}
+                isDarkMode={isDarkMode}
                 onRemove={handleRemoveInsight}
+                onClick={handleClick}
+                variant="saved"
               />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-xl font-semibold mb-2">Your saved Bytes will appear here</h3>
+            <h3 className="text-xl font-semibold mb-2">No saved items yet</h3>
             <p className="text-muted-foreground mb-6 max-w-md">
-              When you save interesting Bytes, they'll be collected here for easy access later.
+              When you save interesting Bytes, they'll appear here
             </p>
             <Button onClick={() => navigate("/")}>
               Browse Bytes
@@ -111,7 +193,6 @@ const SavedBytes = () => {
           </div>
         )}
       </div>
-      
       <Navigation />
     </div>
   );

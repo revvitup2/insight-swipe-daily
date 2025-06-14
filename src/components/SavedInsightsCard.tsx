@@ -98,11 +98,11 @@ export const SavedInsightCard = ({ insight, onRemove }: SavedInsightCardProps) =
         
         <div className="flex items-center justify-between mt-auto">
           <div className="flex items-center">
-            <img
+            {/* <img
               src={insight.influencer.profileImage}
               alt={insight.influencer.name}
               className="w-6 h-6 rounded-full mr-2"
-            />
+            /> */}
             <span className={cn(
               "text-sm",
               isDarkMode ? "text-gray-300" : "text-gray-700"
