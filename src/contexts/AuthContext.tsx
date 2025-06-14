@@ -3,6 +3,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 type AuthContextType = {
   user: User | null;
   loading: boolean;
@@ -45,6 +47,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+
+        const firebaseToken = await result.user.getIdToken();
+    
+    // Send to your backend for verification
+    const backendResponse = await fetch(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token: firebaseToken }),
+    });
+
+    if (!backendResponse.ok) {
+      throw new Error('Backend authentication failed');
+    }
+
+    const backendData = await backendResponse.json();
+
       await refreshToken();
       return result.user;
     } catch (error) {
