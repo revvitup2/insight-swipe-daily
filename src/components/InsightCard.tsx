@@ -189,39 +189,48 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
-  // Helper to determine if user is at edge of scroll for summary view
+  // Improved touch handling for summary scroll area
   const handleSummaryTouchMove = (e: React.TouchEvent) => {
-    if (!summaryRef.current) return;
-    const el = summaryRef.current;
-    const { scrollTop, scrollHeight, clientHeight } = el;
+    if (!summaryRef.current || !onSummaryEdgeAttempt) return;
+    
+    const scrollArea = summaryRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (!scrollArea) return;
 
+    const { scrollTop, scrollHeight, clientHeight } = scrollArea;
     const touch = e.touches[0];
-    const deltaY = touch.clientY - (el as any)._lastTouchY || 0;
-    (el as any)._lastTouchY = touch.clientY;
-    if (deltaY === 0) return;
+    const deltaY = touch.clientY - ((scrollArea as any)._lastTouchY || touch.clientY);
+    (scrollArea as any)._lastTouchY = touch.clientY;
 
-    // Scrolling down (finger moves down, scrolling up in content)
-    if (deltaY > 0 && scrollTop === 0) {
-      // at top, try to scroll further up
-      onSummaryEdgeAttempt && onSummaryEdgeAttempt("down");
+    // Check if we're at scroll boundaries and user is trying to scroll further
+    const isAtTop = scrollTop <= 1;
+    const isAtBottom = Math.abs(scrollTop + clientHeight - scrollHeight) <= 1;
+    
+    // If trying to scroll up when already at top
+    if (deltaY > 10 && isAtTop) {
+      onSummaryEdgeAttempt("up");
     }
-    // Scrolling up (finger moves up, scrolling down in content)
-    else if (deltaY < 0 && Math.abs(scrollTop + clientHeight - scrollHeight) < 2) {
-      // at bottom, try to scroll further down
-      onSummaryEdgeAttempt && onSummaryEdgeAttempt("up");
+    // If trying to scroll down when already at bottom  
+    else if (deltaY < -10 && isAtBottom) {
+      onSummaryEdgeAttempt("down");
     }
   };
 
   const handleSummaryTouchStartInner = (e: React.TouchEvent) => {
     if (summaryRef.current) {
-      (summaryRef.current as any)._lastTouchY = e.touches[0].clientY;
+      const scrollArea = summaryRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollArea) {
+        (scrollArea as any)._lastTouchY = e.touches[0].clientY;
+      }
     }
     if (onSummaryTouchStart) onSummaryTouchStart();
   };
 
   const handleSummaryTouchEndInner = (e: React.TouchEvent) => {
     if (summaryRef.current) {
-      delete (summaryRef.current as any)._lastTouchY;
+      const scrollArea = summaryRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollArea) {
+        delete (scrollArea as any)._lastTouchY;
+      }
     }
     if (onSummaryTouchEnd) onSummaryTouchEnd();
   };
@@ -289,18 +298,19 @@ export const InsightCard = ({
       </h2>
       
       {/* Scrollable Summary Content */}
-      <ScrollArea
-        className="flex-1 mb-4 pr-2 max-h-[250px]"
+      <div
+        ref={summaryRef}
+        className="flex-1 mb-4 pr-2 max-h-[250px] overflow-hidden"
         onTouchStart={handleSummaryTouchStartInner}
         onTouchEnd={handleSummaryTouchEndInner}
         onTouchMove={handleSummaryTouchMove}
       >
-        <div ref={summaryRef}>
+        <ScrollArea className="h-full">
           <p className="text-base text-gray-700 dark:text-gray-300">
             {insight.summary}
           </p>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
     </div>
     <div>
       <div className="flex items-center justify-between mb-4">

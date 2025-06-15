@@ -95,6 +95,7 @@ const Index = () => {
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
   const [isSummaryScrolling, setIsSummaryScrolling] = useState(false);
+  const [allowCardSwipe, setAllowCardSwipe] = useState(true);
   const [summaryEdgeState, setSummaryEdgeState] = useState<{atTop: boolean, atBottom: boolean}>({ atTop: true, atBottom: true });
   const summaryScrollSwipeDirectionRef = useRef<null | "up" | "down">(null);
   const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
@@ -718,7 +719,10 @@ const handleSaveInsight = async (id: string) => {
   };
 
   const handleTouchEnd = () => {
-    if (isSummaryScrolling && !summaryScrollSwipeDirectionRef.current) return; // Still scrolling summary, not at an edge
+    // Only process card swipes if not currently scrolling summary or if explicitly allowed
+    if (isSummaryScrolling && !allowCardSwipe) {
+      return;
+    }
 
     const verticalSwipeDistance = touchStartY - touchMoveY;
     const horizontalSwipeDistance = touchStartX - touchMoveX;
@@ -733,7 +737,7 @@ const handleSaveInsight = async (id: string) => {
       }
     } else {
       if (Math.abs(verticalSwipeDistance) > 30) {
-        // If user is scrolling summary and not at summary edge, block card swipe
+        // If user is scrolling summary and not at an edge, block card swipe
         if (isSummaryScrolling && !summaryScrollSwipeDirectionRef.current) {
           // User is still reading summary, don't swipe post
           return;
@@ -765,19 +769,27 @@ const handleSaveInsight = async (id: string) => {
 
   const handleSummaryTouchStart = () => {
     setIsSummaryScrolling(true);
+    setAllowCardSwipe(false);
   };
 
   const handleSummaryTouchEnd = () => {
-    // Short timeout to allow momentum scroll after finger lifted
-    setTimeout(() => setIsSummaryScrolling(false), 100);
+    // Allow a brief delay before re-enabling card swipe
+    setTimeout(() => {
+      setIsSummaryScrolling(false);
+      setAllowCardSwipe(true);
+    }, 100);
   };
 
   const handleSummaryEdgeAttempt = (direction: "up" | "down") => {
-    // On edge attempt, mark user is trying to swipe
-    summaryScrollSwipeDirectionRef.current = direction;
-    setTimeout(() => {
-      summaryScrollSwipeDirectionRef.current = null;
-    }, 250); // Reset after a short time; prevents accidental double trigger
+    // When user reaches scroll edge and tries to continue, allow card swipe
+    setAllowCardSwipe(true);
+    
+    // Trigger the appropriate navigation
+    if (direction === "down") {
+      navigateToNextInsight();
+    } else {
+      navigateToPreviousInsight();
+    }
   };
 
   if (!onboarded) {
@@ -1043,10 +1055,8 @@ const handleSaveInsight = async (id: string) => {
                   userIndustries={selectedIndustries} 
                   position={""}
                   onClick={handleInsightClick}
-                  // Pass touch handlers to summary scroll area
                   onSummaryTouchStart={handleSummaryTouchStart}
                   onSummaryTouchEnd={handleSummaryTouchEnd}
-                  // New: pass edge attempt handler
                   onSummaryEdgeAttempt={handleSummaryEdgeAttempt}
                 />
               </motion.div>
