@@ -65,8 +65,7 @@ const Index = () => {
     const { user, token } = useAuth();
 const { selectedIndustries, setSelectedIndustries } = useSelectedIndustries(user, token)
   // const [activeTab, setActiveTab] = useState<"trending" | "following">("trending"); // Changed default to trending
-
-  const [onboarded, setOnboarded] = useState<boolean>(() => {
+const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
   const [direction, setDirection] = useState(1);
@@ -93,6 +92,12 @@ const { selectedIndustries, setSelectedIndustries } = useSelectedIndustries(user
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
+  const [isSummaryScrolling, setIsSummaryScrolling] = useState(false);
+  const [allowCardSwipe, setAllowCardSwipe] = useState(true);
+  const [summaryEdgeState, setSummaryEdgeState] = useState<{atTop: boolean, atBottom: boolean}>({ atTop: true, atBottom: true });
+  const summaryScrollSwipeDirectionRef = useRef<null | "up" | "down">(null);
+  const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
+  const [isSummaryEdgeAttemptedDirection, setIsSummaryEdgeAttemptedDirection] = useState<"up" | "down" | null>(null);
   const { isDarkMode } = useTheme();
   
   const navigate = useNavigate();
@@ -107,22 +112,24 @@ const { selectedIndustries, setSelectedIndustries } = useSelectedIndustries(user
   //   localStorage.setItem("activeHomeTab", activeTab);
   // }, [activeTab]);
 
-const filteredBytes = useMemo(() => {
-  const baseBytes = Bytes;
-  if (selectedIndustries.length === 0) {
-    return baseBytes;
-  }
-
-  const result = baseBytes.filter(insight => {
-    const insightIndustry = insight.industry.toLowerCase();
-    return selectedIndustries.some(industry =>
-      insightIndustry.includes(industry.toLowerCase())
-    );
-  });
-
-  return result;
-}, [Bytes, selectedIndustries]);
-
+  const filteredBytes = useMemo(() => {
+    const baseBytes = Bytes;
+    
+    // Filter by tab (trending vs following)
+    // if (activeTab === "following") {
+    //   baseBytes = Bytes.filter(insight => insight.influencer.isFollowed);
+    // }
+    
+    // Filter by selected industries
+    if (selectedIndustries.length === 0) return baseBytes;
+    
+    return baseBytes.filter(insight => {
+      const insightIndustry = insight.industry.toLowerCase();
+      return selectedIndustries.some(industry => 
+        insightIndustry.includes(industry.toLowerCase())
+      );
+    });
+  }, [Bytes, selectedIndustries]);
   
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -307,7 +314,7 @@ const handleSaveInsight = async (id: string) => {
         document.body.appendChild(downloadLink);
 
         toast({
-          title: "Share this byte",
+          title: "Share this insight",
           description: (
             <div className="flex flex-col space-y-4">
               <div className="flex justify-center">
@@ -469,7 +476,7 @@ const handleSaveInsight = async (id: string) => {
         document.body.appendChild(downloadLink);
 
         toast({
-          title: "Share this Byte",
+          title: "Share this insight",
           description: (
             <div className="flex flex-col space-y-4">
               <div className="flex justify-center">
@@ -688,6 +695,7 @@ const handleSaveInsight = async (id: string) => {
   };
   
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isSummaryScrolling) return; // Prevent handling if in summary scroll
     setTouchStartY(e.targetTouches[0].clientY);
     setTouchMoveY(e.targetTouches[0].clientY);
     setTouchStartX(e.targetTouches[0].clientX);
@@ -696,6 +704,7 @@ const handleSaveInsight = async (id: string) => {
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (isSummaryScrolling) return; // Prevent swipe if summary is being scrolled
     setTouchMoveY(e.targetTouches[0].clientY);
     setTouchMoveX(e.targetTouches[0].clientX);
     
@@ -708,9 +717,14 @@ const handleSaveInsight = async (id: string) => {
   };
 
   const handleTouchEnd = () => {
+    // Only process card swipes if not currently scrolling summary or if explicitly allowed
+    if (isSummaryScrolling && !allowCardSwipe) {
+      return;
+    }
+
     const verticalSwipeDistance = touchStartY - touchMoveY;
     const horizontalSwipeDistance = touchStartX - touchMoveX;
-    
+
     if (isHorizontalSwipe) {
       if (Math.abs(horizontalSwipeDistance) > 40) {
         if (horizontalSwipeDistance > 0) {
@@ -722,6 +736,11 @@ const handleSaveInsight = async (id: string) => {
       }
     } else {
       if (Math.abs(verticalSwipeDistance) > 30) {
+        // If user is scrolling summary and not at an edge, block card swipe
+        if (isSummaryScrolling && !summaryScrollSwipeDirectionRef.current) {
+          // User is still reading summary, don't swipe post
+          return;
+        }
         if (verticalSwipeDistance > 0) {
           setDirection(1);
           navigateToNextInsight();
@@ -745,6 +764,31 @@ const handleSaveInsight = async (id: string) => {
 
   const navigateToInfluencerDirectory = () => {
     navigate("/influencers");
+  };
+
+  const handleSummaryTouchStart = () => {
+    setIsSummaryScrolling(true);
+    setAllowCardSwipe(false);
+  };
+
+  const handleSummaryTouchEnd = () => {
+    // Allow a brief delay before re-enabling card swipe
+    setTimeout(() => {
+      setIsSummaryScrolling(false);
+      setAllowCardSwipe(true);
+    }, 100);
+  };
+
+  const handleSummaryEdgeAttempt = (direction: "up" | "down") => {
+    // When user reaches scroll edge and tries to continue, allow card swipe
+    setAllowCardSwipe(true);
+    
+    // Trigger the appropriate navigation
+    if (direction === "down") {
+      navigateToNextInsight();
+    } else {
+      navigateToPreviousInsight();
+    }
   };
 
   if (!onboarded) {
@@ -1010,10 +1054,13 @@ const handleSaveInsight = async (id: string) => {
                   userIndustries={selectedIndustries} 
                   position={""}
                   onClick={handleInsightClick}
+                  onSummaryTouchStart={handleSummaryTouchStart}
+                  onSummaryTouchEnd={handleSummaryTouchEnd}
+                  onSummaryEdgeAttempt={handleSummaryEdgeAttempt}
                 />
               </motion.div>
-              </AnimatePresence>
-            </div>
+            </AnimatePresence>
+          </div>
         </>
         ) : (
           selectedInfluencer && (
