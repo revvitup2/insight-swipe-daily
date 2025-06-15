@@ -64,7 +64,8 @@ interface InsightCardProps {
   position: string;
   onSourceClick?: (url: string) => void;
   userIndustries?: string[];
-    onClick?: (id: string) => void;
+  onClick?: (id: string) => void;
+  onSummaryEdgeAttempt?: (direction: "up" | "down") => void;
 }
 
 export const PlatformIcon = ({ source }: { source: string }) => {
@@ -93,6 +94,7 @@ export const InsightCard = ({
   onSourceClick,
   onClick,
   userIndustries = [],
+  onSummaryEdgeAttempt,
   onSummaryTouchStart,
   onSummaryTouchEnd,
 }: InsightCardProps & {
@@ -100,6 +102,7 @@ export const InsightCard = ({
   onSummaryTouchEnd?: () => void,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
@@ -186,7 +189,44 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
-      const handleCardClick = () => {
+  // Helper to determine if user is at edge of scroll for summary view
+  const handleSummaryTouchMove = (e: React.TouchEvent) => {
+    if (!summaryRef.current) return;
+    const el = summaryRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - (el as any)._lastTouchY || 0;
+    (el as any)._lastTouchY = touch.clientY;
+    if (deltaY === 0) return;
+
+    // Scrolling down (finger moves down, scrolling up in content)
+    if (deltaY > 0 && scrollTop === 0) {
+      // at top, try to scroll further up
+      onSummaryEdgeAttempt && onSummaryEdgeAttempt("down");
+    }
+    // Scrolling up (finger moves up, scrolling down in content)
+    else if (deltaY < 0 && Math.abs(scrollTop + clientHeight - scrollHeight) < 2) {
+      // at bottom, try to scroll further down
+      onSummaryEdgeAttempt && onSummaryEdgeAttempt("up");
+    }
+  };
+
+  const handleSummaryTouchStartInner = (e: React.TouchEvent) => {
+    if (summaryRef.current) {
+      (summaryRef.current as any)._lastTouchY = e.touches[0].clientY;
+    }
+    if (onSummaryTouchStart) onSummaryTouchStart();
+  };
+
+  const handleSummaryTouchEndInner = (e: React.TouchEvent) => {
+    if (summaryRef.current) {
+      delete (summaryRef.current as any)._lastTouchY;
+    }
+    if (onSummaryTouchEnd) onSummaryTouchEnd();
+  };
+
+  const handleCardClick = () => {
     // if (onClick) {
     //   onClick(insight.id);
     // }
@@ -194,114 +234,116 @@ export const InsightCard = ({
 
   return (
    <div 
-  className={cn(
-    "insight-card w-full p-4 flex flex-col overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow",
-    "border border-gray-200 dark:border-gray-800",
-    position
-  )}
+    className={cn(
+      "insight-card w-full p-4 flex flex-col overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow",
+      "border border-gray-200 dark:border-gray-800",
+      position
+    )}
     onClick={handleCardClick}
-      style={{ cursor: 'pointer' }}
->
-       <div className="flex-1 flex flex-col overflow-hidden">
-    {/* Image Section */}
-    <div className="relative mb-4 rounded-xl overflow-hidden">
-      <img
-        src={insight.image}
-        alt={insight.title}
-        className="insight-image rounded-xl"
-      />
-      
-      {/* ByteMe Brand Watermark - Top right */}
-      <div className="absolute top-2 right-2">
-        <ByteMeLogo size="sm" className="opacity-80" />
-      </div>
-      
-      {/* Content Control - Top right corner */}
-      <div className="absolute top-2 left-2" onClick={(e) => e.stopPropagation()}>
-        <ContentControl
-          influencerName={insight.influencer.name}
-          topic={insight.industry}
-          onHideInfluencer={handleHideInfluencer}
-          onHideTopic={handleHideTopic}
-          onReport={handleReport}
+    style={{ cursor: 'pointer' }}
+  >
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Image Section */}
+      <div className="relative mb-4 rounded-xl overflow-hidden">
+        <img
+          src={insight.image}
+          alt={insight.title}
+          className="insight-image rounded-xl"
         />
+        
+        {/* ByteMe Brand Watermark - Top right */}
+        <div className="absolute top-2 right-2">
+          <ByteMeLogo size="sm" className="opacity-80" />
+        </div>
+        
+        {/* Content Control - Top right corner */}
+        <div className="absolute top-2 left-2" onClick={(e) => e.stopPropagation()}>
+          <ContentControl
+            influencerName={insight.influencer.name}
+            topic={insight.industry}
+            onHideInfluencer={handleHideInfluencer}
+            onHideTopic={handleHideTopic}
+            onReport={handleReport}
+          />
+        </div>
+        
+        {/* Industry Tag - Subtle black background */}
+        <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
+          {insight.industry}
+        </div>
+          
+        {/* Source Platform - Subtle black background */}
+        {insight.source && (
+          <div 
+            className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
+            onClick={handleSourceClick}
+          >
+            <PlatformIcon source={insight.source} />
+          </div>
+        )}
       </div>
       
-      {/* Industry Tag - Subtle black background */}
-      <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
-        {insight.industry}
-      </div>
-          
-          {/* Source Platform - Subtle black background */}
-            {insight.source && (
-        <div 
-          className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
-          onClick={handleSourceClick}
-        >
-          <PlatformIcon source={insight.source} />
-        </div>
-      )}
-    </div>
-    
-    {/* Title Section */}
-    <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white">
-      {insight.title}
-    </h2>
-          
+      {/* Title Section */}
+      <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white">
+        {insight.title}
+      </h2>
+      
       {/* Scrollable Summary Content */}
-      <ScrollArea 
+      <ScrollArea
         className="flex-1 mb-4 pr-2 max-h-[250px]"
-        onTouchStart={onSummaryTouchStart}
-        onTouchEnd={onSummaryTouchEnd}
+        onTouchStart={handleSummaryTouchStartInner}
+        onTouchEnd={handleSummaryTouchEndInner}
+        onTouchMove={handleSummaryTouchMove}
       >
-        <p className="text-base text-gray-700 dark:text-gray-300">
-          {insight.summary}
-        </p>
-      </ScrollArea>
-
-  </div>
-   <div>
- <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center">
-        <div 
-          className="flex items-center cursor-pointer" 
-          // onClick={handleInfluencerClick}
-        >
-          <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[220px]">
-            {insight.influencer.name}
-          </span>
+        <div ref={summaryRef}>
+          <p className="text-base text-gray-700 dark:text-gray-300">
+            {insight.summary}
+          </p>
         </div>
+      </ScrollArea>
+    </div>
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center">
+          <div 
+            className="flex items-center cursor-pointer" 
+            // onClick={handleInfluencerClick}
+          >
+            <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[220px]">
+              {insight.influencer.name}
+            </span>
+          </div>
+        </div>
+        
+        {timeAgo && (
+          <span className="text-xs text-muted-foreground">{timeAgo}</span>
+        )}
       </div>
       
-      {timeAgo && (
-        <span className="text-xs text-muted-foreground">{timeAgo}</span>
-      )}
-    </div>
-    
-    {/* Interaction Buttons */}
-    <div className="flex items-center space-x-4">
-      <button 
-        className="interaction-btn flex items-center gap-1 text-sm" 
-        onClick={handleSave}
-        aria-label="Save"
-      >
-        <Save 
-          className={cn("w-5 h-5", 
-            insight.isSaved ? "fill-primary text-primary" : "text-gray-500 dark:text-gray-400"
-          )} 
-        />
-      </button>
-      
-      <button 
-        className="interaction-btn flex items-center gap-1 text-sm" 
-        onClick={handleShare}
-        aria-label="Share"
-      >
-        <Share className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-      </button>
+      {/* Interaction Buttons */}
+      <div className="flex items-center space-x-4">
+        <button 
+          className="interaction-btn flex items-center gap-1 text-sm" 
+          onClick={handleSave}
+          aria-label="Save"
+        >
+          <Save 
+            className={cn("w-5 h-5", 
+              insight.isSaved ? "fill-primary text-primary" : "text-gray-500 dark:text-gray-400"
+            )} 
+          />
+        </button>
+        
+        <button 
+          className="interaction-btn flex items-center gap-1 text-sm" 
+          onClick={handleShare}
+          aria-label="Share"
+        >
+          <Share className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+        </button>
+      </div>
     </div>
   </div>
-</div>
   );
 };
 

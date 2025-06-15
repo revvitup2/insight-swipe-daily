@@ -95,6 +95,10 @@ const Index = () => {
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
   const [isSummaryScrolling, setIsSummaryScrolling] = useState(false);
+  const [summaryEdgeState, setSummaryEdgeState] = useState<{atTop: boolean, atBottom: boolean}>({ atTop: true, atBottom: true });
+  const summaryScrollSwipeDirectionRef = useRef<null | "up" | "down">(null);
+  const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
+  const [isSummaryEdgeAttemptedDirection, setIsSummaryEdgeAttemptedDirection] = useState<"up" | "down" | null>(null);
   const { isDarkMode } = useTheme();
   
   const navigate = useNavigate();
@@ -714,10 +718,11 @@ const handleSaveInsight = async (id: string) => {
   };
 
   const handleTouchEnd = () => {
-    if (isSummaryScrolling) return; // Don't navigate if the user was scrolling inside summary
+    if (isSummaryScrolling && !summaryScrollSwipeDirectionRef.current) return; // Still scrolling summary, not at an edge
+
     const verticalSwipeDistance = touchStartY - touchMoveY;
     const horizontalSwipeDistance = touchStartX - touchMoveX;
-    
+
     if (isHorizontalSwipe) {
       if (Math.abs(horizontalSwipeDistance) > 40) {
         if (horizontalSwipeDistance > 0) {
@@ -728,6 +733,11 @@ const handleSaveInsight = async (id: string) => {
       }
     } else {
       if (Math.abs(verticalSwipeDistance) > 30) {
+        // If user is scrolling summary and not at summary edge, block card swipe
+        if (isSummaryScrolling && !summaryScrollSwipeDirectionRef.current) {
+          // User is still reading summary, don't swipe post
+          return;
+        }
         if (verticalSwipeDistance > 0) {
           setDirection(1);
           navigateToNextInsight();
@@ -760,6 +770,14 @@ const handleSaveInsight = async (id: string) => {
   const handleSummaryTouchEnd = () => {
     // Short timeout to allow momentum scroll after finger lifted
     setTimeout(() => setIsSummaryScrolling(false), 100);
+  };
+
+  const handleSummaryEdgeAttempt = (direction: "up" | "down") => {
+    // On edge attempt, mark user is trying to swipe
+    summaryScrollSwipeDirectionRef.current = direction;
+    setTimeout(() => {
+      summaryScrollSwipeDirectionRef.current = null;
+    }, 250); // Reset after a short time; prevents accidental double trigger
   };
 
   if (!onboarded) {
@@ -1028,6 +1046,8 @@ const handleSaveInsight = async (id: string) => {
                   // Pass touch handlers to summary scroll area
                   onSummaryTouchStart={handleSummaryTouchStart}
                   onSummaryTouchEnd={handleSummaryTouchEnd}
+                  // New: pass edge attempt handler
+                  onSummaryEdgeAttempt={handleSummaryEdgeAttempt}
                 />
               </motion.div>
             </AnimatePresence>
