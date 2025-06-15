@@ -21,6 +21,7 @@ import { removeSavedFeedItem, saveFeedItem } from "@/lib/api";
 import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeed } from "@/hooks/use-feed";
 
 interface ApiInsight {
   influencer_id: string;
@@ -70,7 +71,6 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
   });
   const [direction, setDirection] = useState(1);
   const [isSharing, setIsSharing] = useState(false);
-  const [Bytes, setBytes] = useState<Insight[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(() => {
     const saved = localStorage.getItem("homePageIndex");
     return saved ? parseInt(saved, 10) : 0;
@@ -88,7 +88,6 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
   const [insightPositions, setInsightPositions] = useState<string[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
@@ -99,7 +98,8 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
   const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
   const [isSummaryEdgeAttemptedDirection, setIsSummaryEdgeAttemptedDirection] = useState<"up" | "down" | null>(null);
   const { isDarkMode } = useTheme();
-  
+    const { feed: Bytes, isLoading, error } = useFeed();
+
   const navigate = useNavigate();
 
   // Save current index to localStorage whenever it changes
@@ -133,65 +133,7 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
   
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  useEffect(() => {
-    const fetchBytes = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/feed`);
-        const data: ApiInsight[] = await response.json();
-        
-        const formattedBytes: Insight[] = data.map((item) => {
-          const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
-          
-          let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
-          
-          if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
-            sourcePlatform = "youtube";
-          } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
-            sourcePlatform = "twitter";
-          } else if (sourceUrl.includes('linkedin.com')) {
-            sourcePlatform = "linkedin";
-          } else {
-            sourcePlatform = "other";
-          }
-          
-          return {
-            id: item.video_id,
-            title: item.metadata.title,
-            summary: item.analysis.summary,
-            image: item.metadata.thumbnails.high.url,
-            industry: item.industry || "General",
-            influencer: {
-              id: item.influencer_id,
-              name: item.metadata.channel_title,
-              channel_id: item.influencer_id,
-              profileImage: "",
-              isFollowed: false
-            },
-            isSaved: false,
-            isLiked: false,
-            keyPoints: item.analysis.key_points,
-            sentiment: item.analysis.sentiment,
-            publishedAt: item.published_at,
-            source: sourcePlatform,
-            sourceUrl: sourceUrl
-          };
-        });
 
-        setBytes(formattedBytes);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching Bytes:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch Bytes. Please try again later.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-      }
-    };
-
-    fetchBytes();
-  }, []);
 
   useEffect(() => {
     if (onboarded && !localStorage.getItem("tutorialShown")) {
@@ -251,14 +193,14 @@ const handleSaveInsight = async (id: string) => {
     const newSavedStatus = await handleSaveInsightInApi(id);
 
 };
-  const handleLikeInsight = (id: string) => {
-    setBytes(Bytes.map(insight => {
-      if (insight.id === id) {
-        return { ...insight, isLiked: !insight.isLiked };
-      }
-      return insight;
-    }));
-  };
+  // const handleLikeInsight = (id: string) => {
+  //   setBytes(Bytes.map(insight => {
+  //     if (insight.id === id) {
+  //       return { ...insight, isLiked: !insight.isLiked };
+  //     }
+  //     return insight;
+  //   }));
+  // };
 
   const handleShareInsight = async (id: string) => {
     const insight = Bytes.find(i => i.id === id);
@@ -584,27 +526,27 @@ const handleSaveInsight = async (id: string) => {
     }
   };
 
-  const handleFollowInfluencer = (influencerId: string) => {
-    setBytes(Bytes.map(insight => {
-      if (insight.influencer.id === influencerId) {
-        return { 
-          ...insight, 
-          influencer: {
-            ...insight.influencer,
-            isFollowed: !insight.influencer.isFollowed
-          } 
-        };
-      }
-      return insight;
-    }));
+  // const handleFollowInfluencer = (influencerId: string) => {
+  //   setBytes(Bytes.map(insight => {
+  //     if (insight.influencer.id === influencerId) {
+  //       return { 
+  //         ...insight, 
+  //         influencer: {
+  //           ...insight.influencer,
+  //           isFollowed: !insight.influencer.isFollowed
+  //         } 
+  //       };
+  //     }
+  //     return insight;
+  //   }));
     
-    if (selectedInfluencer && selectedInfluencer.id === influencerId) {
-      setSelectedInfluencer({
-        ...selectedInfluencer,
-        isFollowed: !selectedInfluencer.isFollowed
-      });
-    }
-  };
+  //   if (selectedInfluencer && selectedInfluencer.id === influencerId) {
+  //     setSelectedInfluencer({
+  //       ...selectedInfluencer,
+  //       isFollowed: !selectedInfluencer.isFollowed
+  //     });
+  //   }
+  // };
   
   const handleInfluencerClick = (influencerId: string) => {
     const insight = Bytes.find(i => i.influencer.id === influencerId);
@@ -1046,9 +988,9 @@ const handleSaveInsight = async (id: string) => {
                   key={filteredBytes[currentInsightIndex].id}
                   insight={filteredBytes[currentInsightIndex]}
                   onSave={handleSaveInsight}
-                  onLike={handleLikeInsight}
+                  onLike={()=>{}}
                   onShare={handleShareInsight}
-                  onFollowInfluencer={handleFollowInfluencer}
+                  onFollowInfluencer={()=>{}}
                   onInfluencerClick={handleInfluencerClick}
                   onSourceClick={handleSourceClick}
                   userIndustries={selectedIndustries} 
@@ -1081,7 +1023,7 @@ const handleSaveInsight = async (id: string) => {
             >
               <InfluencerProfile 
                 influencer={selectedInfluencer}
-                onFollowToggle={handleFollowInfluencer}
+                onFollowToggle={()=>{}}
                 onInsightClick={handleInsightClick}
                 onBack={() => {
                   setShowingInfluencer(false);

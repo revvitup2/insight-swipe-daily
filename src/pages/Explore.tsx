@@ -9,6 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Badge } from "lucide-react";
 import { ByteCard } from "@/components/ui/bytmecard";
 import { useSavedInsights } from "@/components/savedInsightUtils";
+import { useFeed } from "@/hooks/use-feed";
 
 interface Insight {
   id: string;
@@ -38,66 +39,15 @@ const industries = [
 
 const Explore = () => {
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
-  const [allInsights, setAllInsights] = useState<Insight[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
+    const { feed: allInsights, isLoading, error } = useFeed();
+
   
     const { handleSaveInsightInApi } = useSavedInsights();
 
-  useEffect(() => {
-    const fetchAllBytes = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/feed`);
-        const data = await response.json();
-        
-        const formattedBytes: Insight[] = data.map((item: any) => {
-          const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
-          
-          let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
-          
-          if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
-            sourcePlatform = "youtube";
-          } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
-            sourcePlatform = "twitter";
-          } else if (sourceUrl.includes('linkedin.com')) {
-            sourcePlatform = "linkedin";
-          } else {
-            sourcePlatform = "other";
-          }
-          
-          return {
-            id: item.video_id,
-            title: item.metadata.title,
-            summary: item.analysis.summary,
-            image: item.metadata.thumbnails.high.url,
-            industry: item.industry || "General",
-            influencer: {
-              name: item.metadata.channel_title,
-            },
-            isSaved: false,
-            source: sourcePlatform,
-            publishedAt: item.published_at,
-          };
-        });
-
-        setAllInsights(formattedBytes);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching bytes:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch bytes. Please try again later.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllBytes();
-  }, []);
 
 const handleSave = async (id: string) => {
     
@@ -299,6 +249,23 @@ const handleSave = async (id: string) => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-primary">Loading Bytes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Error loading bytes</p>
+          <Button 
+            onClick={() => window.location.reload()}
+            className="bg-primary hover:bg-primary/90"
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
