@@ -94,6 +94,7 @@ const Index = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
+  const [isSummaryScrolling, setIsSummaryScrolling] = useState(false);
   const { isDarkMode } = useTheme();
   
   const navigate = useNavigate();
@@ -691,6 +692,7 @@ const handleSaveInsight = async (id: string) => {
   };
   
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isSummaryScrolling) return; // Prevent handling if in summary scroll
     setTouchStartY(e.targetTouches[0].clientY);
     setTouchMoveY(e.targetTouches[0].clientY);
     setTouchStartX(e.targetTouches[0].clientX);
@@ -699,6 +701,7 @@ const handleSaveInsight = async (id: string) => {
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (isSummaryScrolling) return; // Prevent swipe if summary is being scrolled
     setTouchMoveY(e.targetTouches[0].clientY);
     setTouchMoveX(e.targetTouches[0].clientX);
     
@@ -711,6 +714,7 @@ const handleSaveInsight = async (id: string) => {
   };
 
   const handleTouchEnd = () => {
+    if (isSummaryScrolling) return; // Don't navigate if the user was scrolling inside summary
     const verticalSwipeDistance = touchStartY - touchMoveY;
     const horizontalSwipeDistance = touchStartX - touchMoveX;
     
@@ -1012,6 +1016,9 @@ const handleSaveInsight = async (id: string) => {
                   userIndustries={selectedIndustries} 
                   position={""}
                   onClick={handleInsightClick}
+                  // --- Pass new handlers to allow InsightCard to disable swipe:
+                  onSummaryTouchStart={handleSummaryTouchStart}
+                  onSummaryTouchEnd={handleSummaryTouchEnd}
                 />
               </motion.div>
               </AnimatePresence>

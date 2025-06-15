@@ -1,4 +1,3 @@
-
 "use client";
 import { useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
@@ -94,7 +93,12 @@ export const InsightCard = ({
   onSourceClick,
   onClick,
   userIndustries = [],
-}: InsightCardProps) => {
+  onSummaryTouchStart,
+  onSummaryTouchEnd,
+}: InsightCardProps & {
+  onSummaryTouchStart?: () => void,
+  onSummaryTouchEnd?: () => void,
+}) => {
   const contentRef = useRef<HTMLDivElement>(null);
   
   const isPreferredIndustry = userIndustries.some(industry => 
@@ -243,13 +247,17 @@ export const InsightCard = ({
     <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white">
       {insight.title}
     </h2>
-        
-        {/* Scrollable Summary Content */}
-          <ScrollArea className="flex-1 mb-4 pr-2 max-h-[250px]">
-      <p className="text-base text-gray-700 dark:text-gray-300">
-        {insight.summary}
-      </p>
-    </ScrollArea>
+          
+      {/* Scrollable Summary Content */}
+      <ScrollArea 
+        className="flex-1 mb-4 pr-2 max-h-[250px]"
+        onTouchStart={onSummaryTouchStart}
+        onTouchEnd={onSummaryTouchEnd}
+      >
+        <p className="text-base text-gray-700 dark:text-gray-300">
+          {insight.summary}
+        </p>
+      </ScrollArea>
 
   </div>
    <div>
