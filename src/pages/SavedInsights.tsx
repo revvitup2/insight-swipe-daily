@@ -108,7 +108,7 @@ const SavedBytes = () => {
       
       toast({
         title: "Removed from saved",
-        description: "This insight has been removed from your collection",
+        description: "This byte has been removed from your collection",
       });
     } catch (err) {
       toast({

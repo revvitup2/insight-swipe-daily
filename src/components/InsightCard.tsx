@@ -107,7 +107,7 @@ export const InsightCard = ({
     
     if (!insight.isSaved) {
       toast({
-        title: "Insight saved",
+        title: "Byte saved",
         description: "You can find it in your saved items",
       });
     }

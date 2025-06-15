@@ -12,10 +12,10 @@ export const useSavedInsights = () => {
     try {
       await requireAuth(async () => {
           await saveFeedItem(token,id);
-          toast({
-            title: "Saved",
-            description: "Added to your saved collection",
-          });
+          // toast({
+          //   title: "Saved",
+          //   description: "Added to your saved collection",
+          // });
 
       });
     } catch (error) {

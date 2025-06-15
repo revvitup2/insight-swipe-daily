@@ -48,10 +48,10 @@ const App = () => {
   const projectId = useMemo(() => "rolzayo9jx", []);
     const smartlookProjectId = useMemo(() => "c2407cdd2bac6d616f28410212491313aa3bab7e", []);
 
-  useEffect(() => {
-    Clarity.init(projectId);
-    Smartlook.init(smartlookProjectId);
-  }, [projectId]);
+  // useEffect(() => {
+  //   Clarity.init(projectId);
+  //   Smartlook.init(smartlookProjectId);
+  // }, [projectId]);
 
  return ( 
    <QueryClientProvider client={queryClient}>

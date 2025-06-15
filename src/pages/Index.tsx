@@ -19,6 +19,8 @@ import { formatDistanceToNow } from "date-fns";
 import { getCurrentUserToken } from "@/lib/firebase";
 import { removeSavedFeedItem, saveFeedItem } from "@/lib/api";
 import { useSavedInsights } from "@/components/savedInsightUtils";
+import { useSelectedIndustries } from "@/contexts/selectedIndustries";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ApiInsight {
   influencer_id: string;
@@ -60,11 +62,8 @@ export interface SavedBytesData {
 }
 
 const Index = () => {
-  const [selectedIndustries, setSelectedIndustries] = useState<string[]>(() => {
-    const stored = localStorage.getItem("selectedIndustries");
-    return stored ? JSON.parse(stored) : [];
-  });
-
+    const { user, token } = useAuth();
+const { selectedIndustries, setSelectedIndustries } = useSelectedIndustries(user, token)
   // const [activeTab, setActiveTab] = useState<"trending" | "following">("trending"); // Changed default to trending
 
   const [onboarded, setOnboarded] = useState<boolean>(() => {
@@ -108,24 +107,22 @@ const Index = () => {
   //   localStorage.setItem("activeHomeTab", activeTab);
   // }, [activeTab]);
 
-  const filteredBytes = useMemo(() => {
-    const baseBytes = Bytes;
-    
-    // Filter by tab (trending vs following)
-    // if (activeTab === "following") {
-    //   baseBytes = Bytes.filter(insight => insight.influencer.isFollowed);
-    // }
-    
-    // Filter by selected industries
-    if (selectedIndustries.length === 0) return baseBytes;
-    
-    return baseBytes.filter(insight => {
-      const insightIndustry = insight.industry.toLowerCase();
-      return selectedIndustries.some(industry => 
-        insightIndustry.includes(industry.toLowerCase())
-      );
-    });
-  }, [Bytes, selectedIndustries]);
+const filteredBytes = useMemo(() => {
+  const baseBytes = Bytes;
+  if (selectedIndustries.length === 0) {
+    return baseBytes;
+  }
+
+  const result = baseBytes.filter(insight => {
+    const insightIndustry = insight.industry.toLowerCase();
+    return selectedIndustries.some(industry =>
+      insightIndustry.includes(industry.toLowerCase())
+    );
+  });
+
+  return result;
+}, [Bytes, selectedIndustries]);
+
   
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -310,7 +307,7 @@ const handleSaveInsight = async (id: string) => {
         document.body.appendChild(downloadLink);
 
         toast({
-          title: "Share this insight",
+          title: "Share this byte",
           description: (
             <div className="flex flex-col space-y-4">
               <div className="flex justify-center">
@@ -472,7 +469,7 @@ const handleSaveInsight = async (id: string) => {
         document.body.appendChild(downloadLink);
 
         toast({
-          title: "Share this insight",
+          title: "Share this Byte",
           description: (
             <div className="flex flex-col space-y-4">
               <div className="flex justify-center">
@@ -717,7 +714,8 @@ const handleSaveInsight = async (id: string) => {
     if (isHorizontalSwipe) {
       if (Math.abs(horizontalSwipeDistance) > 40) {
         if (horizontalSwipeDistance > 0) {
-          navigateToInfluencerProfile();
+          // navigateToInfluencerProfile();
+            navigateToSourceUrl();
         } else {
           navigateToSourceUrl();
         }

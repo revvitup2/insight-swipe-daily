@@ -160,7 +160,7 @@ const handleSave = async (id: string) => {
         document.body.appendChild(downloadLink);
 
         toast({
-          title: "Share this insight",
+          title: "Share this Byte",
           description: (
             <div className="flex flex-col space-y-4">
               <div className="flex justify-center">

@@ -186,7 +186,7 @@ const handleShareInsight = async () => {
       document.body.appendChild(downloadLink);
 
       toast({
-        title: "Share this insight",
+        title: "Share this byte",
         description: (
           <div className="flex flex-col space-y-4">
             <div className="flex justify-center">

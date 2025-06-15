@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext"; // Update this import
 import { getUserPreferences, saveUserPreferences } from "@/lib/api";
 import { useAuthActions } from "@/contexts/authUtils";
+import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 
 const industries = [
   { id: "finance", name: "Finance" },
@@ -29,53 +30,57 @@ const industries = [
 const Profile = () => {
   const { user, loading, token } = useAuth(); // Use the auth context
     const { handleGoogleSignIn, handleSignOut } = useAuthActions();
-  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  // const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadPreferences = async () => {
-      if (user && token) {
-        try {
-          const preferences = await getUserPreferences(token);
-          setSelectedIndustries(preferences.selected_categories || []);
-        } catch (error) {
-          console.error('Error loading preferences:', error);
-        }
-      } else {
-        const stored = localStorage.getItem("selectedIndustries");
-        setSelectedIndustries(stored ? JSON.parse(stored) : []);
-      }
-    };
+  // useEffect(() => {
+  //   const loadPreferences = async () => {
+  //     if (user && token) {
+  //       try {
+  //         const preferences = await getUserPreferences(token);
+  //         setSelectedIndustries(preferences.selected_categories || []);
+  //       } catch (error) {
+  //         console.error('Error loading preferences:', error);
+  //       }
+  //     } else {
+  //       const stored = localStorage.getItem("selectedIndustries");
+  //       setSelectedIndustries(stored ? JSON.parse(stored) : []);
+  //     }
+  //   };
 
-    loadPreferences();
-  }, [user, token]);
+  //   loadPreferences();
+  // }, [user, token]);
+  const { selectedIndustries, setSelectedIndustries,toggleIndustry } = useSelectedIndustries(user, token)
 
-  const toggleIndustry = async (industryId: string) => {
-    setSelectedIndustries(prev => {
-      const updated = prev.includes(industryId)
-        ? prev.filter(id => id !== industryId)
-        : [...prev, industryId];
+  // const toggleIndustry = async (industryId: string) => {
+  //   setSelectedIndustries(prev => {
+  //     const updated = prev.includes(industryId)
+  //       ? prev.filter(id => id !== industryId)
+  //       : [...prev, industryId];
       
-      if (!user) {
-        localStorage.setItem("selectedIndustries", JSON.stringify(updated));
-      } else if (token) {
-        // Save to backend if user is signed in
-        saveUserPreferences(token, {
-          selected_categories: updated
-        }).catch(error => {
-          console.error('Error saving preferences:', error);
-          toast({
-            title: "Error",
-            description: "Failed to save preferences",
-            variant: "destructive",
-          });
-        });
-      }
-      return updated;
-    });
-  };
+  //     if (!user) {
+  //       localStorage.setItem("selectedIndustries", JSON.stringify(updated));
+  //     } else if (token) {
+  //       // Save to backend if user is signed in
+  //       saveUserPreferences(token, {
+  //         selected_categories: updated
+  //       }).catch(error => {
+  //         console.error('Error saving preferences:', error);
+  //         toast({
+  //           title: "Error",
+  //           description: "Failed to save preferences",
+  //           variant: "destructive",
+  //         });
+  //       });
+  //     }
+  //     return updated;
+  //   });
+  // };
 
+  const handleToggle = (industryId: string) => {
+  toggleIndustry(industryId);
+};
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -179,7 +184,7 @@ const Profile = () => {
                     key={industry.id}
                     variant={selectedIndustries.includes(industry.id) ? "default" : "outline"}
                     className="cursor-pointer px-3 py-1 text-sm"
-                    onClick={() => toggleIndustry(industry.id)}
+                    onClick={() => handleToggle(industry.id)}
                   >
                     {industry.name}
                   </Badge>
