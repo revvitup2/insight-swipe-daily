@@ -103,6 +103,7 @@ export const InsightCard = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const pendingEdgeDirection = useRef<"up" | "down" | null>(null);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
@@ -189,7 +190,7 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
-  // Improved touch handling for summary scroll area
+  // Enhanced touch handling for summary scroll area
   const handleSummaryTouchMove = (e: React.TouchEvent) => {
     if (!summaryRef.current || !onSummaryEdgeAttempt) return;
     
@@ -205,13 +206,13 @@ export const InsightCard = ({
     const isAtTop = scrollTop <= 1;
     const isAtBottom = Math.abs(scrollTop + clientHeight - scrollHeight) <= 1;
     
-    // If trying to scroll up when already at top
+    // Store pending direction but don't trigger navigation yet
     if (deltaY > 10 && isAtTop) {
-      onSummaryEdgeAttempt("up");
-    }
-    // If trying to scroll down when already at bottom  
-    else if (deltaY < -10 && isAtBottom) {
-      onSummaryEdgeAttempt("down");
+      pendingEdgeDirection.current = "up";
+    } else if (deltaY < -10 && isAtBottom) {
+      pendingEdgeDirection.current = "down";
+    } else {
+      pendingEdgeDirection.current = null;
     }
   };
 
@@ -222,6 +223,7 @@ export const InsightCard = ({
         (scrollArea as any)._lastTouchY = e.touches[0].clientY;
       }
     }
+    pendingEdgeDirection.current = null;
     if (onSummaryTouchStart) onSummaryTouchStart();
   };
 
@@ -232,6 +234,13 @@ export const InsightCard = ({
         delete (scrollArea as any)._lastTouchY;
       }
     }
+    
+    // Only trigger navigation on touch end if there was a pending edge direction
+    if (pendingEdgeDirection.current && onSummaryEdgeAttempt) {
+      onSummaryEdgeAttempt(pendingEdgeDirection.current);
+    }
+    
+    pendingEdgeDirection.current = null;
     if (onSummaryTouchEnd) onSummaryTouchEnd();
   };
 
