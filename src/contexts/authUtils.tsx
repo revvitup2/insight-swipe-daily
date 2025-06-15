@@ -1,3 +1,4 @@
+
 // src/lib/authUtils.ts
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,10 +8,10 @@ export const useAuthActions = () => {
 
   const enhancedHandleGoogleSignIn = async () => {
     try {
-      const user = await handleGoogleSignIn();
+      await handleGoogleSignIn();
       toast({
         title: "Welcome!",
-        description: `Signed in as ${user.displayName || user.email}`,
+        description: `Signed in as ${user?.displayName || user?.email}`,
       });
       return user;
     } catch (error) {

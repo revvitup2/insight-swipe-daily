@@ -1,3 +1,4 @@
+
 // src/contexts/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, User } from "firebase/auth";
@@ -34,14 +35,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const newToken = await user.getIdToken(true);
         setToken(newToken);
-        return newToken;
+        // Don't return value, just set state as per type signature
       } catch (error) {
         console.error("Error refreshing token:", error);
         setToken(null);
         throw error;
       }
     }
-    return null;
+    // Don't return anything
   };
 
   const handleGoogleSignIn = async () => {
@@ -49,25 +50,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
 
-        const firebaseToken = await result.user.getIdToken();
-    
-    // Send to your backend for verification
-    const backendResponse = await fetch(`${API_BASE_URL}/auth/google`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: firebaseToken }),
-    });
+      const firebaseToken = await result.user.getIdToken();
+      // Send to your backend for verification
+      const backendResponse = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: firebaseToken }),
+      });
 
-    if (!backendResponse.ok) {
-      throw new Error('Backend authentication failed');
-    }
-
-    const backendData = await backendResponse.json();
+      if (!backendResponse.ok) {
+        throw new Error('Backend authentication failed');
+      }
 
       await refreshToken();
-      return result.user;
+      setUser(result.user);
+      // Don't return result.user, just set state
     } catch (error) {
       console.error("Google sign-in failed:", error);
       throw error;
@@ -95,9 +94,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setToken(newToken);
 
           Smartlook.identify('USER_ID', {
-  name: firebaseUser.displayName,
-  email: firebaseUser.email,
-});
+            name: firebaseUser.displayName,
+            email: firebaseUser.email,
+          });
         } catch (error) {
           console.error("Error getting token:", error);
           setToken(null);

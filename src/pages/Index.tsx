@@ -753,6 +753,15 @@ const handleSaveInsight = async (id: string) => {
     navigate("/influencers");
   };
 
+  const handleSummaryTouchStart = () => {
+    setIsSummaryScrolling(true);
+  };
+
+  const handleSummaryTouchEnd = () => {
+    // Short timeout to allow momentum scroll after finger lifted
+    setTimeout(() => setIsSummaryScrolling(false), 100);
+  };
+
   if (!onboarded) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
@@ -1016,13 +1025,13 @@ const handleSaveInsight = async (id: string) => {
                   userIndustries={selectedIndustries} 
                   position={""}
                   onClick={handleInsightClick}
-                  // --- Pass new handlers to allow InsightCard to disable swipe:
+                  // Pass touch handlers to summary scroll area
                   onSummaryTouchStart={handleSummaryTouchStart}
                   onSummaryTouchEnd={handleSummaryTouchEnd}
                 />
               </motion.div>
-              </AnimatePresence>
-            </div>
+            </AnimatePresence>
+          </div>
         </>
         ) : (
           selectedInfluencer && (
