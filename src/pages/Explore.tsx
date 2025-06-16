@@ -289,21 +289,17 @@ const handleSave = async (id: string) => {
           <h2 className="text-xl font-semibold mb-3">Filter by Industry</h2>
           <div className="flex flex-wrap gap-2">
             {industries.map((industry) => (
-              <Button
-                key={industry}
-                variant="outline"
-                className={selectedIndustries.includes(industry) ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" : ""}
-                onClick={() => toggleIndustry(industry)}
-              >
-                {industry}
-                {selectedIndustries.includes(industry) && (
-                  <Badge className="ml-2">
-                    {filteredBytes.filter((insight) =>
-                      insight.industry.toLowerCase().includes(industry.toLowerCase())
-                    ).length}
-                  </Badge>
-                )}
-              </Button>
+            <Button
+  key={industry}
+  variant="outline"
+  className={selectedIndustries.includes(industry) 
+    ? "bg-secondary text-secondary-foreground"
+    : ""} // No transition on unselect
+  onClick={() => toggleIndustry(industry)}
+>
+  {industry}
+</Button>
+
             ))}
           </div>
         </div>

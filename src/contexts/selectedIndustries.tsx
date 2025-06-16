@@ -1,93 +1,198 @@
 import { getUserPreferences, saveUserPreferences } from '@/lib/api';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-// Custom hook for managing selected industries
+// Global cache to store preferences across component instances
+const preferencesCache = new Map<string, string[]>();
+
+// Custom hook for managing selected industries with caching
 export const useSelectedIndustries = (user: any, token: string | null) => {
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Create a cache key based on user
+  const cacheKey = user?.id || user?.email || 'anonymous';
 
   useEffect(() => {
     const loadPreferences = async () => {
       setLoading(true);
       setError(null);
       
+      // Check cache first
+      if (preferencesCache.has(cacheKey)) {
+        const cachedPreferences = preferencesCache.get(cacheKey)!;
+        setSelectedIndustries(cachedPreferences);
+        setLoading(false);
+        return;
+      }
+
+      // Always start with localStorage data
+      const stored = localStorage.getItem("selectedIndustries");
+      const storedCategories = stored ? JSON.parse(stored) : [];
+      setSelectedIndustries(storedCategories);
+      preferencesCache.set(cacheKey, storedCategories);
+
+      // If user is authenticated, fetch from API and update localStorage
       if (user && token) {
         try {
           const preferences = await getUserPreferences(token);
-          setSelectedIndustries(preferences.selected_categories || []);
+          const categories = preferences.selected_categories || [];
+          
+          // Update state, cache, and localStorage with API data
+          setSelectedIndustries(categories);
+          preferencesCache.set(cacheKey, categories);
+          localStorage.setItem("selectedIndustries", JSON.stringify(categories));
         } catch (error) {
           console.error('Error loading preferences:', error);
           setError('Failed to load preferences');
-          // Fallback to localStorage if API fails
-          const stored = localStorage.getItem("selectedIndustries");
-          setSelectedIndustries(stored ? JSON.parse(stored) : []);
+          // Continue using localStorage data that was already set
         }
-      } else {
-        const stored = localStorage.getItem("selectedIndustries");
-        setSelectedIndustries(stored ? JSON.parse(stored) : []);
       }
       
       setLoading(false);
     };
 
     loadPreferences();
-  }, [user, token]);
+  }, [user, token, cacheKey]);
 
-  // Function to update selected industries
-  const updateSelectedIndustries = (industries: string[] | ((prev: string[]) => string[])) => {
-    if (typeof industries === 'function') {
-      setSelectedIndustries(prev => {
-        const updated = industries(prev);
-        // Sync with localStorage for non-authenticated users
-        if (!user || !token) {
-          localStorage.setItem("selectedIndustries", JSON.stringify(updated));
-        }
-        return updated;
-      });
-    } else {
-      setSelectedIndustries(industries);
-      // Sync with localStorage for non-authenticated users
-      if (!user || !token) {
-        localStorage.setItem("selectedIndustries", JSON.stringify(industries));
-      }
-    }
-  };
-
-  // Function to toggle a specific industry
-  const toggleIndustry = async (industryId: string) => {
-    updateSelectedIndustries(prev => {
-      const updated = prev.includes(industryId)
-        ? prev.filter(id => id !== industryId)
-        : [...prev, industryId];
+  // Function to update selected industries locally (no API call)
+  const updateSelectedIndustries = useCallback((industries: string[] | ((prev: string[]) => string[])) => {
+    setSelectedIndustries(prev => {
+      const updated = typeof industries === 'function' ? industries(prev) : industries;
       
-      // Save to backend if user is signed in
+      // Update cache
+      preferencesCache.set(cacheKey, updated);
+      
+      // Always sync with localStorage (for both authenticated and non-authenticated users)
+      localStorage.setItem("selectedIndustries", JSON.stringify(updated));
+      
+      // Mark as having unsaved changes for authenticated users
       if (user && token) {
-        saveUserPreferences(token, {
-          selected_categories: updated
-        }).catch(error => {
-          console.error('Error saving preferences:', error);
-          // You might want to pass a toast function as a parameter or use a global toast
-          // toast({
-          //   title: "Error",
-          //   description: "Failed to save preferences",
-          //   variant: "destructive",
-          // });
-        });
+        setHasUnsavedChanges(true);
       }
       
       return updated;
     });
-  };
+  }, [cacheKey, user, token]);
+
+  // Function to toggle a specific industry (no API call)
+  const toggleIndustry = useCallback((industryId: string) => {
+    updateSelectedIndustries(prev => 
+      prev.includes(industryId)
+        ? prev.filter(id => id !== industryId)
+        : [...prev, industryId]
+    );
+  }, [updateSelectedIndustries]);
+
+  // Function to explicitly save preferences to backend
+  const savePreferences = useCallback(async () => {
+    if (!user || !token || !hasUnsavedChanges) {
+      return { success: true, message: 'No changes to save' };
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      await saveUserPreferences(token, {
+        selected_categories: selectedIndustries
+      });
+      
+      setHasUnsavedChanges(false);
+      setSaving(false);
+      return { success: true, message: 'Preferences saved successfully' };
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      setError('Failed to save preferences');
+      setSaving(false);
+      return { success: false, message: 'Failed to save preferences' };
+    }
+  }, [user, token, hasUnsavedChanges, selectedIndustries]);
+
+  // Function to reset to cached/saved state
+  const resetToSaved = useCallback(() => {
+    if (user && token) {
+      // Reset to the cached version (which represents the last saved state)
+      const cachedPreferences = preferencesCache.get(cacheKey) || [];
+      setSelectedIndustries(cachedPreferences);
+      setHasUnsavedChanges(false);
+    }
+  }, [user, token, cacheKey]);
+
+  // Function to clear cache (useful for logout scenarios)
+  const clearCache = useCallback(() => {
+    preferencesCache.delete(cacheKey);
+  }, [cacheKey]);
 
   return {
     selectedIndustries,
     setSelectedIndustries: updateSelectedIndustries,
     toggleIndustry,
+    savePreferences,
+    resetToSaved,
+    clearCache,
     loading,
+    saving,
     error,
+    hasUnsavedChanges,
   };
 };
 
 // Usage in components:
-// const { selectedIndustries, setSelectedIndustries, loading, error } = useSelectedIndustries(user, token);
+// const { 
+//   selectedIndustries, 
+//   toggleIndustry, 
+//   savePreferences,
+//   hasUnsavedChanges,
+//   saving,
+//   loading, 
+//   error 
+// } = useSelectedIndustries(user, token);
+
+// Example component usage:
+/*
+function MyComponent() {
+  const { 
+    selectedIndustries, 
+    toggleIndustry, 
+    savePreferences,
+    hasUnsavedChanges,
+    saving,
+    loading 
+  } = useSelectedIndustries(user, token);
+
+  const handleSave = async () => {
+    const result = await savePreferences();
+    if (result.success) {
+      toast({
+        title: "Success",
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div>
+      {selectedIndustries.map(industry => (
+        <button key={industry} onClick={() => toggleIndustry(industry)}>
+          {industry}
+        </button>
+      ))}
+      
+      {hasUnsavedChanges && (
+        <button onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
+      )}
+    </div>
+  );
+}
+*/
