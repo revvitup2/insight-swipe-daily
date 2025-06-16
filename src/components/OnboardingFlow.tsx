@@ -12,15 +12,16 @@ interface Industry {
   icon: string;
 }
 
-const industries: Industry[] = [
+export const industries: Industry[] = [
   { id: "finance", name: "Finance", icon: "💰" },
-  { id: "ai", name: "Artificial Intelligence", icon: "🤖" },
+  { id: "Artificial Intelligence (AI)", name: "Artificial Intelligence", icon: "🤖" },
   { id: "healthcare", name: "Healthcare", icon: "🏥" },
   { id: "startups", name: "Startups", icon: "🚀" },
   { id: "business", name: "Business", icon: "💼" },
   { id: "technology", name: "Technology", icon: "💻" },
   { id: "marketing", name: "Marketing", icon: "📢" },
   { id: "design", name: "Design", icon: "🎨" },
+    { id: "others", name: "Others",icon:"🚀" },
 ];
 
 interface OnboardingFlowProps {

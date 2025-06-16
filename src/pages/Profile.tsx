@@ -15,9 +15,9 @@ import { getUserPreferences, saveUserPreferences } from "@/lib/api";
 import { useAuthActions } from "@/contexts/authUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 
-const industries = [
+export const industries = [
   { id: "finance", name: "Finance" },
-  { id: "ai", name: "AI" },
+  { id: "Artificial Intelligence (AI)", name: "AI" },
   { id: "healthcare", name: "Healthcare" },
   { id: "startups", name: "Startups" },
   { id: "business", name: "Business" },

@@ -22,6 +22,7 @@ import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeed } from "@/hooks/use-feed";
+import { usePaginatedFeed } from "@/hooks/use-paginated-feed";
 
 interface ApiInsight {
   influencer_id: string;
@@ -63,10 +64,9 @@ export interface SavedBytesData {
 }
 
 const Index = () => {
-    const { user, token } = useAuth();
-const { selectedIndustries, setSelectedIndustries } = useSelectedIndustries(user, token)
-  // const [activeTab, setActiveTab] = useState<"trending" | "following">("trending"); // Changed default to trending
-const [onboarded, setOnboarded] = useState<boolean>(() => {
+  const { user, token } = useAuth();
+  const { selectedIndustries } = useSelectedIndustries(user, token);
+  const [onboarded, setOnboarded] = useState<boolean>(() => {
     return localStorage.getItem("onboarded") === "true";
   });
   const [direction, setDirection] = useState(1);
@@ -98,7 +98,19 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
   const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
   const [isSummaryEdgeAttemptedDirection, setIsSummaryEdgeAttemptedDirection] = useState<"up" | "down" | null>(null);
   const { isDarkMode } = useTheme();
-    const { feed: Bytes, isLoading, error } = useFeed();
+  const { 
+    feed: Bytes, 
+    isLoading, 
+    isLoadingMore, 
+    error, 
+    hasMore, 
+    loadMore 
+  } = usePaginatedFeed(user, token);
+  const [isHandlingLoadMore, setIsHandlingLoadMore] = useState(false);
+  
+  // Track the previous length to detect new data
+  const previousBytesLength = useRef(0);
+  const isFirstLoad = useRef(true);
 
   const navigate = useNavigate();
 
@@ -107,55 +119,54 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
     localStorage.setItem("homePageIndex", currentInsightIndex.toString());
   }, [currentInsightIndex]);
 
-  // Save active tab to localStorage
-  // useEffect(() => {
-  //   localStorage.setItem("activeHomeTab", activeTab);
-  // }, [activeTab]);
-
-  const filteredBytes = useMemo(() => {
-    const baseBytes = Bytes;
-    
-    // Filter by tab (trending vs following)
-    // if (activeTab === "following") {
-    //   baseBytes = Bytes.filter(insight => insight.influencer.isFollowed);
-    // }
-    
-    // Filter by selected industries
-    if (selectedIndustries.length === 0) return baseBytes;
-    
-    return baseBytes.filter(insight => {
-      const insightIndustry = insight.industry.toLowerCase();
-      return selectedIndustries.some(industry => 
-        insightIndustry.includes(industry.toLowerCase())
-      );
-    });
-  }, [Bytes, selectedIndustries]);
-  
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-
-
   useEffect(() => {
     if (onboarded && !localStorage.getItem("tutorialShown")) {
       setShowTutorial(true);
     }
   }, [onboarded]);
 
+  // Fixed useEffect - only reset index on first load, not on pagination
   useEffect(() => {
-    setCurrentInsightIndex(0);
-    const positions = filteredBytes.map((_, i) => 
-      i === 0 ? "" : "slide-down"
+    // Only reset index if this is the first load or if we're not loading more
+    if (isFirstLoad.current && !isLoadingMore && !isHandlingLoadMore) {
+      setCurrentInsightIndex(0);
+      isFirstLoad.current = false;
+    }
+    
+    // Update positions for all items
+    const positions = Bytes.map((_, i) => 
+      i === currentInsightIndex ? "" : "slide-down"
     );
     setInsightPositions(positions);
-  }, [filteredBytes]);
+    
+    // Update the previous length tracker
+    previousBytesLength.current = Bytes.length;
+  }, [Bytes, currentInsightIndex]); // Removed isLoadingMore and isHandlingLoadMore from dependencies
 
   useEffect(() => {
-    const newPositions = filteredBytes.map((_, i) => 
+    if (!hasMore || isLoading || isLoadingMore || isHandlingLoadMore) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+      if (isNearBottom) {
+        setIsHandlingLoadMore(true);
+        loadMore().finally(() => setIsHandlingLoadMore(false));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasMore, isLoading, isLoadingMore, loadMore, isHandlingLoadMore]);
+
+  useEffect(() => {
+    const newPositions = Bytes.map((_, i) => 
       i === currentInsightIndex ? "" : 
       (i < currentInsightIndex ? "slide-up" : "slide-down")
     );
     setInsightPositions(newPositions);
-  }, [currentInsightIndex, filteredBytes]);
+  }, [currentInsightIndex, Bytes]);
 
   useEffect(() => {
     if (showingInfluencer && selectedInfluencer) {
@@ -172,7 +183,6 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
     localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
     localStorage.setItem("onboarded", "true");
-    setSelectedIndustries(selectedIndustries);
     setOnboarded(true);
     
     toast({
@@ -188,19 +198,9 @@ const [onboarded, setOnboarded] = useState<boolean>(() => {
     localStorage.setItem("tutorialShown", "true");
   };
 
-const handleSaveInsight = async (id: string) => {
-    
+  const handleSaveInsight = async (id: string) => {
     const newSavedStatus = await handleSaveInsightInApi(id);
-
-};
-  // const handleLikeInsight = (id: string) => {
-  //   setBytes(Bytes.map(insight => {
-  //     if (insight.id === id) {
-  //       return { ...insight, isLiked: !insight.isLiked };
-  //     }
-  //     return insight;
-  //   }));
-  // };
+  };
 
   const handleShareInsight = async (id: string) => {
     const insight = Bytes.find(i => i.id === id);
@@ -526,28 +526,6 @@ const handleSaveInsight = async (id: string) => {
     }
   };
 
-  // const handleFollowInfluencer = (influencerId: string) => {
-  //   setBytes(Bytes.map(insight => {
-  //     if (insight.influencer.id === influencerId) {
-  //       return { 
-  //         ...insight, 
-  //         influencer: {
-  //           ...insight.influencer,
-  //           isFollowed: !insight.influencer.isFollowed
-  //         } 
-  //       };
-  //     }
-  //     return insight;
-  //   }));
-    
-  //   if (selectedInfluencer && selectedInfluencer.id === influencerId) {
-  //     setSelectedInfluencer({
-  //       ...selectedInfluencer,
-  //       isFollowed: !selectedInfluencer.isFollowed
-  //     });
-  //   }
-  // };
-  
   const handleInfluencerClick = (influencerId: string) => {
     const insight = Bytes.find(i => i.influencer.id === influencerId);
     if (!insight) return;
@@ -577,7 +555,7 @@ const handleSaveInsight = async (id: string) => {
     
     setShowingInfluencer(true);
   };
-  
+
   const handleInsightClick = (id:string) => {
     setShowingInfluencer(false);
     navigate(`/bytes/${id}`);
@@ -595,12 +573,36 @@ const handleSaveInsight = async (id: string) => {
   };
   
   const navigateToNextInsight = () => {
-    if (currentInsightIndex < filteredBytes.length - 1 && !isAnimating) {
+    if (currentInsightIndex < Bytes.length - 1 && !isAnimating) {
+      // Normal case - just move to next item
       setIsAnimating(true);
       setDirection(1);
       setCurrentInsightIndex(currentInsightIndex + 1);
       setTimeout(() => setIsAnimating(false), 50);
-    } else if (currentInsightIndex === filteredBytes.length - 1) {
+      
+      // Load more if we're near the end
+      if (currentInsightIndex >= Bytes.length - 3 && hasMore && !isLoadingMore) {
+        setIsHandlingLoadMore(true);
+        loadMore().finally(() => setIsHandlingLoadMore(false));
+      }
+    } else if (currentInsightIndex === Bytes.length - 1 && hasMore && !isLoadingMore) {
+      // Special case - we're at the end and need to load more
+      setIsHandlingLoadMore(true);
+      const currentIndexBeforeLoad = currentInsightIndex; // Save current index
+      
+      loadMore().then(() => {
+        // After loading, maintain the position by setting to the next index
+        setCurrentInsightIndex(currentIndexBeforeLoad + 1);
+        setIsAnimating(true);
+        setDirection(1);
+        setTimeout(() => {
+          setIsAnimating(false);
+          setIsHandlingLoadMore(false);
+        }, 50);
+      }).catch(() => {
+        setIsHandlingLoadMore(false);
+      });
+    } else if (currentInsightIndex === Bytes.length - 1) {
       toast({
         title: "No more Bytes",
         description: "You've reached the end of your feed",
@@ -618,17 +620,17 @@ const handleSaveInsight = async (id: string) => {
   };
 
   const navigateToInfluencerProfile = () => {
-    if (!isAnimating && filteredBytes.length > 0) {
+    if (!isAnimating && Bytes.length > 0) {
       setIsAnimating(true);
-      handleInfluencerClick(filteredBytes[currentInsightIndex].influencer.id);
+      handleInfluencerClick(Bytes[currentInsightIndex].influencer.id);
       setIsAnimating(false);
     }
   };
 
   const navigateToSourceUrl = () => {
-    if (!isAnimating && filteredBytes.length > 0) {
+    if (!isAnimating && Bytes.length > 0) {
       setIsAnimating(true);
-      const insight = filteredBytes[currentInsightIndex];
+      const insight = Bytes[currentInsightIndex];
       if (insight.sourceUrl) {
         handleSourceClick(insight.sourceUrl);
       }
@@ -670,8 +672,7 @@ const handleSaveInsight = async (id: string) => {
     if (isHorizontalSwipe) {
       if (Math.abs(horizontalSwipeDistance) > 40) {
         if (horizontalSwipeDistance > 0) {
-          // navigateToInfluencerProfile();
-            navigateToSourceUrl();
+          navigateToSourceUrl();
         } else {
           navigateToSourceUrl();
         }
@@ -733,6 +734,7 @@ const handleSaveInsight = async (id: string) => {
     }
   };
 
+
   if (!onboarded) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
@@ -741,29 +743,16 @@ const handleSaveInsight = async (id: string) => {
     return <LoadingSpinner message="Loading Bytes..." />;
   }
 
-  if (filteredBytes.length === 0) {
+  if (Bytes.length === 0) {
     return (
       <div className="h-screen bg-background flex items-center justify-center">
         <div className="text-center p-4">
           <p className="text-primary mb-4">
-            {
-            // activeTab === "following" && Bytes.filter(b => b.influencer.isFollowed).length === 0
-            //   ? "You're not following any influencers yet."
-            //   :
-               Bytes.length === 0 
+            {Bytes.length === 0 
               ? "No Bytes available at the moment." 
               : "No Bytes match your selected industries."}
           </p>
-          {
-          // activeTab === "following" && Bytes.filter(b => b.influencer.isFollowed).length === 0 ? (
-          //   <Button 
-          //     onClick={navigateToInfluencerDirectory}
-          //     className="bg-primary hover:bg-primary/90"
-          //   >
-          //     Start Following
-          //   </Button>
-          // ) : 
-          Bytes.length > 0 && (
+          {Bytes.length > 0 && (
             <Button 
               onClick={() => navigate("/profile")}
               className="bg-primary hover:bg-primary/90"
@@ -783,34 +772,8 @@ const handleSaveInsight = async (id: string) => {
         isDarkMode ? "bg-gray-900" : "bg-background"
       )}>
         <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
-          {/* Tab Navigation */}
-          {/* <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
-            <button
-              onClick={() => setActiveTab("trending")}
-              className={cn(
-                "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
-                activeTab === "trending"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Trending
-            </button>
-            <button
-              onClick={() => setActiveTab("following")}
-              className={cn(
-                "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
-                activeTab === "following"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Following
-            </button>
-          </div> */}
-
           <div className="space-y-6">
-            {filteredBytes.map((bite, index) => {
+            {Bytes.map((bite, index) => {
               const timeAgo = getTimeAgo(bite.publishedAt);
               
               return (<div 
@@ -912,7 +875,7 @@ const handleSaveInsight = async (id: string) => {
                   </div>
                 </div>
               </div>
-            )})};
+            )})}
           </div>
         </div>
        
@@ -924,6 +887,7 @@ const handleSaveInsight = async (id: string) => {
 
   return (
     <div className="h-screen bg-background relative">
+  
       {isSharing && (
         <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
           <div className="text-center">
@@ -932,38 +896,9 @@ const handleSaveInsight = async (id: string) => {
           </div>
         </div>
       )}
-      {/* {showTutorial && <SwipeTutorial onComplete={handleTutorialComplete} />} */}
       
       {!showingInfluencer ? (
         <>
-          {/* Mobile Tab Navigation - with conditional visibility */}
-          {/* {showTabNavigation && (
-            <div className="absolute top-4 left-4 right-4 z-10 flex space-x-1 bg-background/80 backdrop-blur-sm p-1 rounded-lg transition-opacity duration-300">
-              <button
-                onClick={() => setActiveTab("trending")}
-                className={cn(
-                  "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
-                  activeTab === "trending"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground"
-                )}
-              >
-                Trending
-              </button>
-              <button
-                onClick={() => setActiveTab("following")}
-                className={cn(
-                  "flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors",
-                  activeTab === "following"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground"
-                )}
-              >
-                Following
-              </button>
-            </div>
-          )} */}
-
           <div 
             className="swipe-container h-full w-full"
             onTouchStart={handleTouchStart}
@@ -985,8 +920,8 @@ const handleSaveInsight = async (id: string) => {
                 transition={{ duration: 0.1, ease: "easeOut" }}
                 className="h-full w-full">
                    <InsightCard 
-                  key={filteredBytes[currentInsightIndex].id}
-                  insight={filteredBytes[currentInsightIndex]}
+                  key={Bytes[currentInsightIndex].id}
+                  insight={Bytes[currentInsightIndex]}
                   onSave={handleSaveInsight}
                   onLike={()=>{}}
                   onShare={handleShareInsight}

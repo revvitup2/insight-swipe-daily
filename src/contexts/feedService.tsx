@@ -3,7 +3,7 @@ import { Insight } from "@/components/InsightCard";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-interface ApiInsight {
+export interface ApiInsight {
   influencer_id: string;
   video_id: string;
   published_at: string;
