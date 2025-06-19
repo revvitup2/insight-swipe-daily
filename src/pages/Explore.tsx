@@ -9,7 +9,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Badge } from "lucide-react";
 import { ByteCard } from "@/components/ui/bytmecard";
 import { useSavedInsights } from "@/components/savedInsightUtils";
-import { useFeed } from "@/hooks/use-feed";
+import { useFeed, useInfiniteScroll } from "@/hooks/use-feed";
+import { industries } from "./Profile";
 
 interface Insight {
   id: string;
@@ -25,25 +26,22 @@ interface Insight {
   source: "youtube" | "twitter" | "linkedin" | "other";
 }
 
-const industries = [
-  "Finance",
-  "AI",
-  "Healthcare",
-  "Startups",
-  "Business",
-  "Technology",
-  "Marketing",
-  "Design",
-  "Others",
-];
-
 const Explore = () => {
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
-    const { feed: allInsights, isLoading, error } = useFeed();
+   const { 
+    feed: allInsights, 
+    isLoading, 
+    isLoadingMore,
+    error, 
+    hasMore, 
+    loadMore 
+  } = useFeed(selectedIndustries.length > 0 ? selectedIndustries : undefined);
+
+   useInfiniteScroll(loadMore, isLoading || isLoadingMore);
 
   
     const { handleSaveInsightInApi } = useSavedInsights();
@@ -290,14 +288,14 @@ const handleSave = async (id: string) => {
           <div className="flex flex-wrap gap-2">
             {industries.map((industry) => (
             <Button
-  key={industry}
+  key={industry.id}
   variant="outline"
-  className={selectedIndustries.includes(industry) 
+  className={selectedIndustries.includes(industry.id) 
     ? "bg-secondary text-secondary-foreground"
     : ""} // No transition on unselect
-  onClick={() => toggleIndustry(industry)}
+  onClick={() => toggleIndustry(industry.id)}
 >
-  {industry}
+  {industry.name}
 </Button>
 
             ))}
@@ -321,6 +319,20 @@ const handleSave = async (id: string) => {
               />
             ))}
           </div>
+
+             {(isLoadingMore) && (
+        <div className="flex justify-center my-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+
+      {/* No more content message */}
+      {!hasMore && !isLoading && filteredBytes.length > 0 && (
+        <div className="text-center py-8 text-gray-500">
+          You've reached the end
+        </div>
+      )}
+
 
           {filteredBytes.length === 0 && (
             <div className="text-center py-8">

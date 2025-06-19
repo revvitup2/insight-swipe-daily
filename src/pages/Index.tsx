@@ -21,7 +21,6 @@ import { removeSavedFeedItem, saveFeedItem } from "@/lib/api";
 import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFeed } from "@/hooks/use-feed";
 import { usePaginatedFeed } from "@/hooks/use-paginated-feed";
 
 interface ApiInsight {
