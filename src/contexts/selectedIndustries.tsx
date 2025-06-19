@@ -78,13 +78,40 @@ export const useSelectedIndustries = (user: any, token: string | null) => {
   }, [cacheKey, user, token]);
 
   // Function to toggle a specific industry (no API call)
-  const toggleIndustry = useCallback((industryId: string) => {
-    updateSelectedIndustries(prev => 
-      prev.includes(industryId)
-        ? prev.filter(id => id !== industryId)
-        : [...prev, industryId]
-    );
-  }, [updateSelectedIndustries]);
+// In your useSelectedIndustries hook, modify the toggleIndustry function:
+const toggleIndustry = useCallback(async (industryId: string) => {
+  setSelectedIndustries(prev => {
+    const updated = prev.includes(industryId)
+      ? prev.filter(id => id !== industryId)
+      : [...prev, industryId];
+    
+    // Update cache and localStorage immediately
+    preferencesCache.set(cacheKey, updated);
+    localStorage.setItem("selectedIndustries", JSON.stringify(updated));
+    
+    return updated;
+  });
+
+  // If authenticated, save to backend immediately
+  if (user && token) {
+    try {
+      setSaving(true);
+      await saveUserPreferences(token, {
+        selected_categories: selectedIndustries.includes(industryId)
+          ? selectedIndustries.filter(id => id !== industryId)
+          : [...selectedIndustries, industryId]
+      });
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      setError('Failed to save preferences');
+      // Optionally revert the change if save fails
+    } finally {
+      setSaving(false);
+    }
+  }
+}, [user, token, selectedIndustries, cacheKey]);
+
 
   // Function to explicitly save preferences to backend
   const savePreferences = useCallback(async () => {

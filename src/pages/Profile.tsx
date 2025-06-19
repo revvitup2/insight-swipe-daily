@@ -51,7 +51,8 @@ const Profile = () => {
 
   //   loadPreferences();
   // }, [user, token]);
-  const { selectedIndustries, setSelectedIndustries,toggleIndustry } = useSelectedIndustries(user, token)
+  const { selectedIndustries,savePreferences, setSelectedIndustries,toggleIndustry } = useSelectedIndustries(user, token)
+
 
   // const toggleIndustry = async (industryId: string) => {
   //   setSelectedIndustries(prev => {
