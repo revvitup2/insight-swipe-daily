@@ -1,10 +1,11 @@
 // src/lib/authUtils.ts
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const useAuthActions = () => {
   const { handleGoogleSignIn, handleSignOut, user } = useAuth();
-
+const navigate = useNavigate();
   const enhancedHandleGoogleSignIn = async () => {
     try {
       const user = await handleGoogleSignIn();
@@ -30,6 +31,7 @@ export const useAuthActions = () => {
         title: "Signed out",
         description: "You've been successfully signed out",
       });
+      navigate("/");
     } catch (error) {
       toast({
         title: "Error",

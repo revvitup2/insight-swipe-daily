@@ -256,7 +256,7 @@ export const InsightCard = ({
   return (
    <div 
     className={cn(
-      "insight-card w-full p-4 flex flex-col overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow",
+      "insight-card w-full p-4  flex flex-col overflow-hidden bg-white dark:bg-gray-900  shadow-sm hover:shadow-md transition-shadow",
       "border border-gray-200 dark:border-gray-800",
       position
     )}
@@ -265,11 +265,11 @@ export const InsightCard = ({
   >
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Image Section */}
-      <div className="relative mb-4 rounded-xl overflow-hidden">
+      <div className="relative mb-4 rounded-xl overflow-hidden mt-16">
         <img
           src={insight.image}
           alt={insight.title}
-          className="insight-image rounded-xl"
+       className="insight-image rounded-xl h-60 object-cover w-full"
         />
         
         {/* ByteMe Brand Watermark - Top right */}
@@ -312,7 +312,7 @@ export const InsightCard = ({
       {/* Scrollable Summary Content */}
       <div
         ref={summaryRef}
-        className="flex-1 mb-4 pr-2 max-h-[250px] overflow-hidden"
+        className="flex-1 mb-4 pr-2 max-h-[260px] overflow-hidden"
         onTouchStart={handleSummaryTouchStartInner}
         onTouchEnd={handleSummaryTouchEndInner}
         onTouchMove={handleSummaryTouchMove}
@@ -335,6 +335,14 @@ export const InsightCard = ({
             <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate">
               {insight.influencer.name}
             </span>
+               <span className="mx-2">•</span>
+            <span className={cn(
+              "text-xs",
+               "text-gray-400"
+            )}>
+              {timeAgo}
+            </span>
+
           </div>
           
           {/* Follow/Unfollow Button */}
@@ -347,9 +355,7 @@ export const InsightCard = ({
 />
         </div>
         
-        {timeAgo && (
-          <span className="text-xs text-muted-foreground ml-2">{timeAgo}</span>
-        )}
+       
       </div>
       
       {/* Interaction Buttons */}

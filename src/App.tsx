@@ -61,6 +61,10 @@ useEffect(() => {
   Smartlook.init(smartlookProjectId);
 }, [projectId]);
 
+  const shouldShowHeader = useMemo(() => {
+    const path = window.location.pathname;
+    return !path.startsWith('/admin') && !path.startsWith('/bytes/');
+  }, []);
 
  return ( 
    <QueryClientProvider client={queryClient}>
@@ -70,7 +74,8 @@ useEffect(() => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <HeaderNavigation />
+           {shouldShowHeader && <HeaderNavigation />}
+
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/saved" element={<SavedBytes />} />

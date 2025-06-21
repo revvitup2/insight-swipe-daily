@@ -129,30 +129,31 @@ export const ByteCard = ({
         
         {/* Content Section */}
         <div className="p-4 sm:w-2/3">
-          <div className="flex items-center mb-3">
-            <span className={cn(
-              "text-sm font-medium",
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            )}>
-              {bite.influencer.name}
-            </span>
-            <span className="mx-2">•</span>
-            <span className={cn(
-              "text-xs",
-              isDarkMode ? "text-gray-500" : "text-gray-400"
-            )}>
-              {timeAgo}
-            </span>
+        <div className="flex items-center mb-3">
+  <div className="flex items-center w-full">
+    <span className={cn(
+      "text-sm font-medium",
+      isDarkMode ? "text-gray-300" : "text-gray-700"
+    )}>
+      {bite.influencer.name}
+    </span>
+    <span className="ml-2 mr-1">•</span>
+    <span className={cn(
+      "text-xs",
+      isDarkMode ? "text-gray-500" : "text-gray-400"
+    )}>
+      {timeAgo}
+    </span>
+  </div>
 
-        
-          <FollowButton
-            isFollowing={isChannelFollowed}
-            isLoading={isChannelLoading}
-            onClick={handleFollowToggle}
-            className="ml-2"
-          />
-    
-          </div>
+  <FollowButton
+    isFollowing={isChannelFollowed}
+    isLoading={isChannelLoading}
+    onClick={handleFollowToggle}
+    className="ml-4" // use ml-2 or ml-4 depending on spacing needs
+  />
+</div>
+
           
           <h3 className={cn(
             "font-bold text-lg mb-2 line-clamp-2",

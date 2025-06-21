@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext"; // Update this import
 import { getUserPreferences, saveUserPreferences } from "@/lib/api";
 import { useAuthActions } from "@/contexts/authUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
+import FeedbackForm from "@/components/FeedbackForm";
 
 export const industries = [
   { id: "finance", name: "Finance" },
@@ -241,6 +242,9 @@ const Profile = () => {
               </div>
             </CardContent>
           </Card>
+
+              <FeedbackForm/>
+          
           <div className="mt-20"></div>
 
           {/* App Info */}

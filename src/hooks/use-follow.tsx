@@ -59,11 +59,11 @@ export const useFollowChannel = (token: string | null) => {
   // Toggle follow/unfollow
   const toggleFollowChannel = useCallback(async (channelId: string, currentlyFollowed: boolean) => {
     if (!token) {
-      toast({
-        title: "Error",
-        description: "You need to be logged in to follow channels",
-        variant: "destructive",
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "You need to be logged in to follow channels",
+      //   variant: "destructive",
+      // });
       return { success: false, isFollowed: currentlyFollowed };
     }
 

@@ -45,7 +45,7 @@ export const FollowButton = ({
         "px-3 py-1 text-xs font-medium rounded-full transition-all duration-200",
         isFollowing
           ? "bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300"
-          : "bg-blue-600 hover:bg-blue-700 text-white",
+          : "bg-primary hover:bg-primary text-white",
         className
       )}
     >

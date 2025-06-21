@@ -164,11 +164,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               Continue
             </Button>
             
-            <div className="flex items-center justify-center">
+            {/* <div className="flex items-center justify-center">
               <p className="text-xs text-muted-foreground">
                 Selected {selectedIndustries.length}/{industries.length}
               </p>
-            </div>
+            </div> */}
             
             {showSelectionWarning && (
               <p className="text-center text-red-500 text-sm">
