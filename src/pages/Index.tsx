@@ -22,35 +22,8 @@ import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePaginatedFeed } from "@/hooks/use-paginated-feed";
-
-interface ApiInsight {
-  influencer_id: string;
-  video_id: string;
-  published_at: string;
-  industry:string;
-  metadata: {
-    title: string;
-    description: string;
-    channel_title: string;
-    thumbnails: {
-      high: {
-        url: string;
-      };
-    };
-    tags: string[];
-  };
-  analysis: {
-    summary: string;
-    key_points: string[];
-    sentiment: string;
-    topics: string[];
-  };
-  source?: {
-    platform: "youtube" | "twitter" | "linkedin" | "other";
-    url: string;
-  };
-}
-
+import { ByteCard } from "@/components/ui/bytmecard";
+import { useFollowChannel } from "@/hooks/use-follow";
 export interface VersionedInsight extends Insight {
   version: number;
   savedAt: string;
@@ -106,7 +79,27 @@ const Index = () => {
     loadMore 
   } = usePaginatedFeed(user, token);
   const [isHandlingLoadMore, setIsHandlingLoadMore] = useState(false);
+
+  const {
+    followedChannels,
+    toggleFollowChannel,
+    isChannelFollowed,
+    isChannelLoading,
+    initializeFollowedChannels,
+  } = useFollowChannel(token);
+
+  // Initialize followed channels on component mount
+useEffect(() => {
+  if (token) {
+    initializeFollowedChannels();
+  }
+}, [token, initializeFollowedChannels]);
+
   
+  const handleFollowToggle = async (channelId: string, currentlyFollowed: boolean): Promise<void> => {
+  await toggleFollowChannel(channelId, currentlyFollowed);
+};
+
   // Track the previous length to detect new data
   const previousBytesLength = useRef(0);
   const isFirstLoad = useRef(true);
@@ -200,6 +193,7 @@ const Index = () => {
   const handleSaveInsight = async (id: string) => {
     const newSavedStatus = await handleSaveInsightInApi(id);
   };
+
 
   const handleShareInsight = async (id: string) => {
     const insight = Bytes.find(i => i.id === id);
@@ -772,110 +766,56 @@ const Index = () => {
       )}>
         <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
           <div className="space-y-6">
-            {Bytes.map((bite, index) => {
-              const timeAgo = getTimeAgo(bite.publishedAt);
-              
-              return (<div 
-                key={bite.id} 
-                className={cn(
-                  "rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer",
-                  isDarkMode 
-                    ? "bg-gray-800 border-gray-700 hover:shadow-gray-700/30" 
-                    : "bg-white border-gray-200 hover:shadow-md"
-                )}
-                data-insight-id={bite.id}
-                onClick={() => navigate(`/bytes/${bite.id}`)}
-              >
-                <div className="sm:flex">
-                  <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
-                    <img
-                      src={bite.image}
-                      alt={bite.title}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    <div className="absolute top-2 right-2">
-                      <ByteMeLogo size="sm" className="opacity-80" />
-                    </div>
-                    
-                    <div className="absolute bottom-2 left-2 flex items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white">
-                      {bite.industry}
-                    </div>
-                    
-                    {bite.source && (
-                      <div 
-                        className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm p-2 rounded-full cursor-pointer hover:bg-black/80 transition-colors text-white"
-                      >
-                        <PlatformIcon source={bite.source} />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-4 sm:w-2/3">
-                    <div className="flex items-center mb-3">
-                      <span className={cn(
-                        "text-sm font-medium",
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      )}>
-                        {bite.influencer.name}
-                      </span>
-                      <span className="mr-2"></span>
-                      <span className={cn(
-                        "text-xs",
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      )}>
-                        {timeAgo} ago
-                      </span>
-                    </div>
-                    
-                    <h3 className={cn(
-                      "font-bold text-lg mb-2 line-clamp-2",
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    )}>
-                      {bite.title}
-                    </h3>
-                    
-                    <p className={cn(
-                      "text-sm line-clamp-3 mb-4",
-                      isDarkMode ? "text-gray-300" : "text-gray-600"
-                    )}>
-                      {bite.summary}
-                    </p>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSaveInsight(bite.id);
-                          }}
-                          className={cn(
-                            "p-2 rounded-full transition-colors",
-                            "text-gray-400 hover:text-primary"
-                          )}
-                        >
-                          <Save className={cn("w-5 h-5")} />
-                        </button>
-                        
-                        <button
-                          onClick={(e) => {
-                              e.stopPropagation();
-                            handleShareDesktop(bite.id);
-                          }}
-                          className="p-2 rounded-full text-gray-400 hover:text-blue-500 transition-colors"
-                        >
-                          <Share className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )})}
+          
+              {Bytes.map((bite) => (
+                          <ByteCard
+                            key={bite.id}
+                            bite={bite}
+                            isDarkMode={isDarkMode}
+                            onSave={()=>{handleSaveInsight(bite.id);}}
+                            onShare={()=> handleShareDesktop(bite.id)}
+                            onClick={()=>navigate(`/bytes/${bite.id}`)}
+                            
+                  isChannelFollowed={isChannelFollowed(bite.influencer.channel_id)}
+          isChannelLoading={isChannelLoading(bite.influencer.channel_id)}
+          onFollowToggle={handleFollowToggle}
+                          />
+                        ))}
           </div>
+          
+             {(isLoadingMore) && (
+        <div className="flex justify-center my-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+
+      {/* No more content message */}
+      {!hasMore && !isLoading && Bytes.length > 0 && (
+        <div className="text-center py-8 text-gray-500">
+          You've reached the end
+        </div>
+      )}
+
+
+          {Bytes.length === 0 && (
+            <div className="text-center py-8">
+              <p className={cn(
+                isDarkMode ? "text-gray-400" : "text-gray-500"
+              )}>
+                No Bytes found matching your criteria.
+              </p>
+              {/* <Button 
+                variant="ghost"
+                onClick={() => setSelectedIndustries([])}
+                className={cn(
+                  "mt-2",
+                  isDarkMode ? "text-gray-300 hover:bg-gray-700" : ""
+                )}
+              >
+                Clear filters
+              </Button> */}
+            </div>
+          )}
         </div>
        
         <Navigation />
@@ -924,7 +864,7 @@ const Index = () => {
                   onSave={handleSaveInsight}
                   onLike={()=>{}}
                   onShare={handleShareInsight}
-                  onFollowInfluencer={()=>{}}
+              
                   onInfluencerClick={handleInfluencerClick}
                   onSourceClick={handleSourceClick}
                   userIndustries={selectedIndustries} 
@@ -933,6 +873,10 @@ const Index = () => {
                   onSummaryTouchStart={handleSummaryTouchStart}
                   onSummaryTouchEnd={handleSummaryTouchEnd}
                   onSummaryEdgeAttempt={handleSummaryEdgeAttempt}
+
+                  isChannelFollowed={isChannelFollowed(Bytes[currentInsightIndex].influencer.channel_id)}
+          isChannelLoading={isChannelLoading(Bytes[currentInsightIndex].influencer.channel_id)}
+          onFollowToggle={handleFollowToggle}
                 />
               </motion.div>
             </AnimatePresence>

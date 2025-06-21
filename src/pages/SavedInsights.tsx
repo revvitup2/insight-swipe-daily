@@ -10,8 +10,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { getSavedFeedItems, removeSavedFeedItem } from "@/lib/api";
 import { auth, getCurrentUserToken } from "@/lib/firebase";
 import { useAuthActions } from "@/contexts/authUtils";
+import { useFollowChannel } from "@/hooks/use-follow";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SavedBytes = () => {
+      const { token } = useAuth();
   const [savedBytes, setSavedBytes] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,25 @@ const SavedBytes = () => {
 
     return () => unsubscribe();
   }, []);
+
+      const {
+        followedChannels,
+        toggleFollowChannel,
+        isChannelFollowed,
+        isChannelLoading,
+        initializeFollowedChannels,
+      } = useFollowChannel(token);
+  
+      useEffect(() => {
+    if (token) {
+      initializeFollowedChannels();
+    }
+  }, [token, initializeFollowedChannels]);
+  
+  const handleFollowToggle = async (channelId: string, currentlyFollowed: boolean): Promise<void> => {
+    await toggleFollowChannel(channelId, currentlyFollowed);
+  };
+  
 
   const loadSavedBytes = async () => {
     try {
@@ -68,7 +90,7 @@ const SavedBytes = () => {
           influencer: {
             id: item.influencer_id,
             name: item.metadata?.channel_title || 'Unknown Creator',
-            channel_id: item.influencer_id,
+              channel_id: item.metadata.channel_id,
             profileImage: item.metadata?.thumbnails?.default?.url || '',
             isFollowed: false
           },
@@ -175,6 +197,10 @@ const SavedBytes = () => {
                 bite={insight}
                 isDarkMode={isDarkMode}
                 onRemove={handleRemoveInsight}
+                
+                  isChannelFollowed={isChannelFollowed(insight.influencer.channel_id)}
+          isChannelLoading={isChannelLoading(insight.influencer.channel_id)}
+          onFollowToggle={handleFollowToggle}
                 onClick={handleClick}
                 variant="saved"
               />

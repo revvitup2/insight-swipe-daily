@@ -1,6 +1,6 @@
 "use client";
 import { useRef } from "react";
-import { Heart, Share, Save, Twitter, Youtube, Linkedin } from "lucide-react";
+import { Heart, Share, Save, Twitter, Youtube, Linkedin, UserPlus, UserMinus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,12 @@ import { formatDistanceToNow } from "date-fns";
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ContentControl from "@/components/ContentControl";
+import { FollowButton } from "@/contexts/follow_button_props";
 
 interface Influencer {
   id: string;
   name: string;
-  channel_id:string;
+  channel_id: string;
   profileImage: string;
   isFollowed: boolean;
 }
@@ -59,13 +60,16 @@ interface InsightCardProps {
   onSave: (id: string) => void;
   onLike: (id: string) => void;
   onShare: (id: string) => void;
-  onFollowInfluencer: (influencerId: string) => void;
   onInfluencerClick: (influencerId: string) => void;
   position: string;
   onSourceClick?: (url: string) => void;
   userIndustries?: string[];
   onClick?: (id: string) => void;
   onSummaryEdgeAttempt?: (direction: "up" | "down") => void;
+  // New props for follow functionality
+  isChannelFollowed: boolean;
+  isChannelLoading: boolean;
+   onFollowToggle?: (channelId: string, currentlyFollowed: boolean) => Promise<void>;
 }
 
 export const PlatformIcon = ({ source }: { source: string }) => {
@@ -88,7 +92,6 @@ export const InsightCard = ({
   onSave,
   onLike,
   onShare,
-  onFollowInfluencer,
   onInfluencerClick,
   position,
   onSourceClick,
@@ -97,6 +100,9 @@ export const InsightCard = ({
   onSummaryEdgeAttempt,
   onSummaryTouchStart,
   onSummaryTouchEnd,
+  isChannelFollowed,
+  isChannelLoading,
+  onFollowToggle,
 }: InsightCardProps & {
   onSummaryTouchStart?: () => void,
   onSummaryTouchEnd?: () => void,
@@ -109,15 +115,17 @@ export const InsightCard = ({
     insight.industry.toLowerCase().includes(industry.toLowerCase())
   );
 
+  
+
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSave(insight.id);
     
     if (!insight.isSaved) {
-      toast({
-        title: "Byte saved",
-        description: "You can find it in your saved items",
-      });
+      // toast({
+      //   title: "Byte saved",
+      //   description: "You can find it in your saved items",
+      // });
     }
   };
 
@@ -131,19 +139,12 @@ export const InsightCard = ({
     onShare(insight.id);
   };
 
-  const handleFollowInfluencer = (e: React.MouseEvent) => {
+    const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    onFollowInfluencer(insight.influencer.id);
-    
-    toast({
-      title: insight.influencer.isFollowed 
-        ? `Unfollowed ${insight.influencer.name}`
-        : `Following ${insight.influencer.name}`,
-      description: insight.influencer.isFollowed 
-        ? "You won't see their content in your feed"
-        : "You'll see their Bytes in your feed",
-    });
+    if (isChannelLoading || !onFollowToggle || !insight.influencer.channel_id) return;
+    await onFollowToggle(insight.influencer.channel_id, isChannelFollowed);
   };
+
 
   const handleInfluencerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -250,6 +251,8 @@ export const InsightCard = ({
     // }
   };
 
+  
+
   return (
    <div 
     className={cn(
@@ -321,21 +324,31 @@ export const InsightCard = ({
         </ScrollArea>
       </div>
     </div>
+    
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
+        <div className="flex items-center flex-1 min-w-0">
           <div 
-            className="flex items-center cursor-pointer" 
-            // onClick={handleInfluencerClick}
+            className="flex items-center cursor-pointer min-w-0 flex-1" 
+            onClick={handleInfluencerClick}
           >
-            <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate max-w-[220px]">
+            <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate">
               {insight.influencer.name}
             </span>
           </div>
+          
+          {/* Follow/Unfollow Button */}
+      
+<FollowButton
+  isFollowing={isChannelFollowed}
+  isLoading={isChannelLoading}
+  onClick={handleFollowToggle}
+  className="ml-2"
+/>
         </div>
         
         {timeAgo && (
-          <span className="text-xs text-muted-foreground">{timeAgo}</span>
+          <span className="text-xs text-muted-foreground ml-2">{timeAgo}</span>
         )}
       </div>
       

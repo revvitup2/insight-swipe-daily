@@ -11,22 +11,11 @@ import { ByteCard } from "@/components/ui/bytmecard";
 import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useFeed, useInfiniteScroll } from "@/hooks/use-feed";
 import { industries } from "./Profile";
-
-interface Insight {
-  id: string;
-  title: string;
-  summary: string;
-  image: string;
-  industry: string;
-  publishedAt: string;
-  influencer: {
-    name: string;
-  };
-  isSaved: boolean;
-  source: "youtube" | "twitter" | "linkedin" | "other";
-}
+import { useFollowChannel } from "@/hooks/use-follow";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Explore = () => {
+    const { user, token } = useAuth();
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -40,6 +29,24 @@ const Explore = () => {
     hasMore, 
     loadMore 
   } = useFeed(selectedIndustries.length > 0 ? selectedIndustries : undefined);
+
+    const {
+      followedChannels,
+      toggleFollowChannel,
+      isChannelFollowed,
+      isChannelLoading,
+      initializeFollowedChannels,
+    } = useFollowChannel(token);
+
+    useEffect(() => {
+  if (token) {
+    initializeFollowedChannels();
+  }
+}, [token, initializeFollowedChannels]);
+
+const handleFollowToggle = async (channelId: string, currentlyFollowed: boolean): Promise<void> => {
+  await toggleFollowChannel(channelId, currentlyFollowed);
+};
 
    useInfiniteScroll(loadMore, isLoading || isLoadingMore);
 
@@ -316,6 +323,10 @@ const handleSave = async (id: string) => {
                 onSave={()=>{handleSave(bite.id)}}
                 onShare={handleShare}
                 onClick={handleClick}
+                
+                  isChannelFollowed={isChannelFollowed(bite.influencer.channel_id)}
+          isChannelLoading={isChannelLoading(bite.influencer.channel_id)}
+          onFollowToggle={handleFollowToggle}
               />
             ))}
           </div>

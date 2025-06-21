@@ -5,6 +5,7 @@ import { Save, Share, Trash } from "lucide-react";
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { PlatformIcon } from "@/components/InsightCard";
 import { formatDistanceToNow } from "date-fns";
+import { FollowButton } from "@/contexts/follow_button_props";
 
 interface ByteCardProps {
   bite: {
@@ -16,6 +17,7 @@ interface ByteCardProps {
     publishedAt: string;
     influencer: {
       name: string;
+        channel_id: string;
     };
     source: "youtube" | "twitter" | "linkedin" | "other";
     sourceUrl?: string;
@@ -27,6 +29,9 @@ interface ByteCardProps {
   onRemove?: (id: string) => void;
   onClick: (id: string) => void;
   variant?: "default" | "saved";
+  isChannelFollowed?: boolean;
+  isChannelLoading?: boolean;
+  onFollowToggle?: (channelId: string, currentlyFollowed: boolean) => Promise<void>;
 }
 
 export const ByteCard = ({
@@ -37,7 +42,19 @@ export const ByteCard = ({
   onRemove,
   onClick,
   variant = "default",
+  isChannelFollowed = false,
+  isChannelLoading = false,
+  onFollowToggle,
 }: ByteCardProps) => {
+
+    const handleFollowToggle = async (e: React.MouseEvent) => {
+    
+    e.stopPropagation();
+    if (isChannelLoading || !onFollowToggle || !bite.influencer.channel_id) return;
+    await onFollowToggle(bite.influencer.channel_id, isChannelFollowed);
+  };
+
+  
   const timeAgo = formatDistanceToNow(new Date(bite.publishedAt), { addSuffix: false });
 
   const handleShareClick = (e: React.MouseEvent) => {
@@ -126,6 +143,15 @@ export const ByteCard = ({
             )}>
               {timeAgo}
             </span>
+
+        
+          <FollowButton
+            isFollowing={isChannelFollowed}
+            isLoading={isChannelLoading}
+            onClick={handleFollowToggle}
+            className="ml-2"
+          />
+    
           </div>
           
           <h3 className={cn(

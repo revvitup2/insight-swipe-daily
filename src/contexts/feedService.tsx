@@ -1,5 +1,6 @@
 import { toast } from "@/hooks/use-toast";
 import { Insight } from "@/components/InsightCard";
+import { transformApiInsights } from "@/lib/transformInsights";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -9,6 +10,7 @@ export interface ApiInsight {
   published_at: string;
   industry: string;
   metadata: {
+    channel_id:string;
     title: string;
     description: string;
     channel_title: string;
@@ -37,7 +39,7 @@ export const fetchFeed = async (
   skip: number = 0
 ): Promise<Insight[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/feed/paginated`, {
+    const response = await fetch(`${API_BASE_URL}/explore/feed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,44 +56,8 @@ export const fetchFeed = async (
     }
     
     const data = await response.json();
-    
-    return data.items.map((item: any) => {
-      const sourceUrl = item.source?.url || `https://youtube.com/watch?v=${item.video_id}`;
-      
-      let sourcePlatform: "youtube" | "twitter" | "linkedin" | "other" = "youtube";
-      
-      if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
-        sourcePlatform = "youtube";
-      } else if (sourceUrl.includes('twitter.com') || sourceUrl.includes('x.com')) {
-        sourcePlatform = "twitter";
-      } else if (sourceUrl.includes('linkedin.com')) {
-        sourcePlatform = "linkedin";
-      } else {
-        sourcePlatform = "other";
-      }
-      
-      return {
-        id: item.video_id,
-        title: item.metadata.title,
-        summary: item.analysis.summary,
-        image: item.metadata.thumbnails.high.url,
-        industry: item.industry || "General",
-        influencer: {
-          id: item.influencer_id,
-          name: item.metadata.channel_title,
-          channel_id: item.influencer_id,
-          profileImage: "",
-          isFollowed: false
-        },
-        isSaved: false,
-        isLiked: false,
-        keyPoints: item.analysis.key_points,
-        sentiment: item.analysis.sentiment,
-        publishedAt: item.published_at,
-        source: sourcePlatform,
-        sourceUrl: sourceUrl
-      };
-    });
+      const dataTransformed = transformApiInsights(data.items, false); 
+    return dataTransformed;
   } catch (error) {
     console.error("Error fetching feed:", error);
     toast({
