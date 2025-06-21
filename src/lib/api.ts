@@ -225,16 +225,20 @@ export const saveFeedItem = async (token: string, videoId: string) => {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-  
   });
 
   if (!response.ok) {
-    throw new Error('Failed to save feed item');
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || 'Failed to save feed item';
+    
+    // Create an error object with status for better error handling
+    const error = new Error(errorMessage);
+    (error as any).status = response.status;
+    throw error;
   }
 
   return response.json();
 };
-
 // Get all saved feed items
 export const getSavedFeedItems = async (token: string) => {
   const response = await fetch(`${API_BASE_URL}/user/saved-feeds`, {

@@ -1,44 +1,40 @@
-// hooks/useFollowedFeed.ts
+// hooks/usePaginatedFeed.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Insight } from "@/components/InsightCard";
+import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import { ApiInsight } from "@/contexts/feedService";
 import { transformApiInsights } from "@/lib/transformInsights";
 
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-interface FeedCache {
+interface SavedFeedCache {
   feed: Insight[];
   page: number;
   hasMore: boolean;
   timestamp: number;
-  totalFollowed: number;
 }
 
 const CACHE_EXPIRY_MS = 60 * 60 * 1000; // 1 hour cache
 
-export const useFollowedFeed = (user: any, token: string | null) => {
+export const usePaginatedSavedFeeds = (token: string | null) => {
   const [feed, setFeed] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const [totalFollowed, setTotalFollowed] = useState(0);
-  const limit = 5;
+  const limit = 5; // Items per load
 
-  const cache = useRef<FeedCache | null>(null);
-  const initialLoadComplete = useRef(false);
-  const tokenRef = useRef(token);
+  const cache = useRef<SavedFeedCache | null>(null);
 
-  const fetchFeed = useCallback(async (page: number, isInitialLoad: boolean = false) => {
-    // Don't fetch if no token
-    if (!tokenRef.current) {
-      setIsLoading(false);
-      setFeed([]);
-      setHasMore(false);
-      return;
-    }
+  const transformApiData = useCallback((data: any[]): Insight[] => {
+    return transformApiInsights(data, false);
+  }, []);
+
+  const fetchSavedFeeds = useCallback(async (page: number, isInitialLoad: boolean = false) => {
+    if (!token) return;
 
     const skip = page * limit;
 
@@ -47,11 +43,9 @@ export const useFollowedFeed = (user: any, token: string | null) => {
       const isCacheValid = Date.now() - cache.current.timestamp < CACHE_EXPIRY_MS;
       
       if (isCacheValid) {
-      
         setFeed(cache.current.feed);
         setPage(cache.current.page);
         setHasMore(cache.current.hasMore);
-        setTotalFollowed(cache.current.totalFollowed);
         setIsLoading(false);
         return;
       }
@@ -64,26 +58,25 @@ export const useFollowedFeed = (user: any, token: string | null) => {
         setIsLoadingMore(true);
       }
 
-      const response = await fetch(`${API_BASE_URL}/user/followed/feeds`, {
+       const response = await fetch(`${API_BASE_URL}/user/saved-feeds-collection`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${tokenRef.current}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           limit,
           skip
         })
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const responseData = await response.json();
-      const data: ApiInsight[] = responseData.items || [];
-      const transformedData = transformApiInsights(data, true);
-      const newHasMore = data.length === limit;
+      const data = await response.json();
+      const transformedData = transformApiData(data.saved_feeds);
+      const newHasMore = data.has_more;
       
       if (isInitialLoad) {
         // Update cache for initial load
@@ -91,20 +84,18 @@ export const useFollowedFeed = (user: any, token: string | null) => {
           feed: transformedData,
           page: page + 1,
           hasMore: newHasMore,
-          timestamp: Date.now(),
-          totalFollowed: responseData.total_followed || 0
+          timestamp: Date.now()
         };
         setFeed(transformedData);
-        setTotalFollowed(responseData.total_followed || 0);
       } else {
         setFeed(prev => {
-          // Filter out any duplicates that might already exist
+          // Filter out any duplicates
           const newItems = transformedData.filter(
             newItem => !prev.some(item => item.id === newItem.id)
           );
           const updatedFeed = [...prev, ...newItems];
           
-          // Update cache for pagination
+          // Update cache
           if (cache.current) {
             cache.current = {
               ...cache.current,
@@ -122,10 +113,10 @@ export const useFollowedFeed = (user: any, token: string | null) => {
       setPage(page + 1);
     } catch (error) {
       setError(error as Error);
-      console.error("Error fetching followed feed:", error);
+      console.error("Error fetching saved feeds:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch followed channels feed. Please try again later.",
+        description: "Failed to fetch saved feeds. Please try again later.",
         variant: "destructive"
       });
     } finally {
@@ -135,45 +126,28 @@ export const useFollowedFeed = (user: any, token: string | null) => {
         setIsLoadingMore(false);
       }
     }
-  }, []); // Removed token from dependencies
+  }, [token, transformApiData]);
 
   const loadInitialFeed = useCallback(async () => {
-    // Reset page and hasMore when loading initial feed
+    if (!token) return;
     setPage(0);
     setHasMore(true);
-    await fetchFeed(0, true);
-  }, [fetchFeed]);
-
-  const resetAndRefresh = () => {
-  cache.current = null;
-  setPage(0);
-  setHasMore(true);
-  return fetchFeed(0, true);
-};
-
+    await fetchSavedFeeds(0, true);
+  }, [token, fetchSavedFeeds]);
 
   const loadMore = useCallback(async () => {
-    if (!hasMore || isLoadingMore) return;
-    await fetchFeed(page);
-  }, [hasMore, isLoadingMore, page, fetchFeed]);
+    if (!hasMore || isLoadingMore || !token) return;
+    await fetchSavedFeeds(page);
+  }, [hasMore, isLoadingMore, page, fetchSavedFeeds, token]);
 
-  // Update token ref when token changes
+  // Handle initial load and token changes
   useEffect(() => {
-    tokenRef.current = token;
-  }, [token]);
-
-  // Initial load and reload when token changes
-  useEffect(() => {
-    if (!initialLoadComplete.current) {
-      initialLoadComplete.current = true;
-      loadInitialFeed();
-    } else if (token) {
-      // If token changes and we already did initial load, refresh
+    if (token) {
       loadInitialFeed();
     } else {
-      // If token is removed, clear the feed
       setFeed([]);
-      setHasMore(false);
+      setIsLoading(false);
+      setError(new Error("Authentication required"));
     }
   }, [token, loadInitialFeed]);
 
@@ -183,9 +157,13 @@ export const useFollowedFeed = (user: any, token: string | null) => {
     isLoadingMore, 
     error, 
     hasMore, 
-    totalFollowed,
     loadMore,
-    hardRefresh:resetAndRefresh,
-    refresh: loadInitialFeed
+    refresh: loadInitialFeed,
+    removeItem: (id: string) => {
+      setFeed(prev => prev.filter(item => item.id !== id));
+      if (cache.current) {
+        cache.current.feed = cache.current.feed.filter(item => item.id !== id);
+      }
+    }
   };
 };

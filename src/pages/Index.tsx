@@ -24,6 +24,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePaginatedFeed } from "@/hooks/use-paginated-feed";
 import { ByteCard } from "@/components/ui/bytmecard";
 import { useFollowChannel } from "@/hooks/use-follow";
+import { EmptyFollowingState } from "@/components/EmptyFollowingState";
+import { useFollowedFeed } from "@/hooks/user_followed_feed";
+import { FeedTabs } from "@/components/FeedbackTab";
+
 export interface VersionedInsight extends Insight {
   version: number;
   savedAt: string;
@@ -70,14 +74,41 @@ const Index = () => {
   const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
   const [isSummaryEdgeAttemptedDirection, setIsSummaryEdgeAttemptedDirection] = useState<"up" | "down" | null>(null);
   const { isDarkMode } = useTheme();
+
+  // New state for feed tabs
+  const [activeTab, setActiveTab] = useState<"trending" | "following">("trending");
+
+  // Trending feed (existing)
   const { 
-    feed: Bytes, 
-    isLoading, 
-    isLoadingMore, 
-    error, 
-    hasMore, 
-    loadMore 
+    feed: trendingBytes, 
+    isLoading: trendingLoading, 
+    isLoadingMore: trendingLoadingMore, 
+    error: trendingError, 
+    hasMore: trendingHasMore, 
+    loadMore: loadMoreTrending 
   } = usePaginatedFeed(user, token);
+
+  // Following feed (new)
+  const {
+    feed: followingBytes,
+    isLoading: followingLoading,
+    isLoadingMore: followingLoadingMore,
+    error: followingError,
+    hasMore: followingHasMore,
+    totalFollowed,
+    loadMore: loadMoreFollowing,
+    refresh: refreshFollowing,
+    hardRefresh,
+  } = useFollowedFeed(user, token);
+
+  // Determine which feed to show
+  const Bytes = activeTab === "trending" ? trendingBytes : followingBytes;
+  const isLoading = activeTab === "trending" ? trendingLoading : followingLoading;
+  const isLoadingMore = activeTab === "trending" ? trendingLoadingMore : followingLoadingMore;
+  const error = activeTab === "trending" ? trendingError : followingError;
+  const hasMore = activeTab === "trending" ? trendingHasMore : followingHasMore;
+  const loadMore = activeTab === "trending" ? loadMoreTrending : loadMoreFollowing;
+
   const [isHandlingLoadMore, setIsHandlingLoadMore] = useState(false);
 
   const {
@@ -97,8 +128,26 @@ useEffect(() => {
 
   
   const handleFollowToggle = async (channelId: string, currentlyFollowed: boolean): Promise<void> => {
-  await toggleFollowChannel(channelId, currentlyFollowed);
+   const result = await toggleFollowChannel(channelId, currentlyFollowed);
+  // Refresh following feed if we're on that tab
+   if (result.success) {
+    await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
+      hardRefresh()
+  }
+  
+
 };
+
+  // Handle tab changes
+  const handleTabChange = (tab: "trending" | "following") => {
+    setActiveTab(tab);
+    setCurrentInsightIndex(0);
+    // Reset positions for new feed
+    const positions = (tab === "trending" ? trendingBytes : followingBytes).map((_, i) => 
+      i === 0 ? "" : "slide-down"
+    );
+    setInsightPositions(positions);
+  };
 
   // Track the previous length to detect new data
   const previousBytesLength = useRef(0);
@@ -727,106 +776,79 @@ useEffect(() => {
     }
   };
 
-
   if (!onboarded) {
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  if (isLoading) {
+  if (isLoading && Bytes.length === 0) {
     return <LoadingSpinner message="Loading Bytes..." />;
   }
 
-  if (Bytes.length === 0) {
-    return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="text-center p-4">
-          <p className="text-primary mb-4">
-            {Bytes.length === 0 
-              ? "No Bytes available at the moment." 
-              : "No Bytes match your selected industries."}
-          </p>
-          {Bytes.length > 0 && (
-            <Button 
-              onClick={() => navigate("/profile")}
-              className="bg-primary hover:bg-primary/90"
-            >
-              Update Interests
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
+  // Desktop view
   if (window.innerWidth > 768) {
     return(
       <div className={cn(
-        "page-container",
+        "page-container min-h-screen",
         isDarkMode ? "bg-gray-900" : "bg-background"
       )}>
         <div className="p-4 pb-20 max-w-7xl mx-auto mt-10">
+            <FeedTabs 
+              activeTab={activeTab} 
+              onTabChange={handleTabChange}
+              followedCount={totalFollowed}
+            />
+            
           <div className="space-y-6">
-          
-              {Bytes.map((bite) => (
-                          <ByteCard
-                            key={bite.id}
-                            bite={bite}
-                            isDarkMode={isDarkMode}
-                            onSave={()=>{handleSaveInsight(bite.id);}}
-                            onShare={()=> handleShareDesktop(bite.id)}
-                            onClick={()=>navigate(`/bytes/${bite.id}`)}
-                            
+            {activeTab === "following" && followingBytes.length === 0 && !followingLoading ? (
+              <EmptyFollowingState />
+            ) : (
+              Bytes.map((bite) => (
+                <ByteCard
+                  key={bite.id}
+                  bite={bite}
+                  isDarkMode={isDarkMode}
+                  onSave={()=>{handleSaveInsight(bite.id);}}
+                  onShare={()=> handleShareDesktop(bite.id)}
+                  onClick={()=>navigate(`/bytes/${bite.id}`)}
                   isChannelFollowed={isChannelFollowed(bite.influencer.channel_id)}
-          isChannelLoading={isChannelLoading(bite.influencer.channel_id)}
-          onFollowToggle={handleFollowToggle}
-                          />
-                        ))}
+                  isChannelLoading={isChannelLoading(bite.influencer.channel_id)}
+                  onFollowToggle={handleFollowToggle}
+                />
+              ))
+            )}
           </div>
           
-             {(isLoadingMore) && (
-        <div className="flex justify-center my-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      )}
+          {(isLoadingMore) && (
+            <div className="flex justify-center my-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
 
-      {/* No more content message */}
-      {!hasMore && !isLoading && Bytes.length > 0 && (
-        <div className="text-center py-8 text-gray-500">
-          You've reached the end
-        </div>
-      )}
+          {!hasMore && !isLoading && Bytes.length > 0 && (
+            <div className="text-center py-8 text-gray-500">
+              You've reached the end
+            </div>
+          )}
 
-
-          {Bytes.length === 0 && (
+          {Bytes.length === 0 && !isLoading && activeTab === "trending" && (
             <div className="text-center py-8">
               <p className={cn(
                 isDarkMode ? "text-gray-400" : "text-gray-500"
               )}>
                 No Bytes found matching your criteria.
               </p>
-              {/* <Button 
-                variant="ghost"
-                onClick={() => setSelectedIndustries([])}
-                className={cn(
-                  "mt-2",
-                  isDarkMode ? "text-gray-300 hover:bg-gray-700" : ""
-                )}
-              >
-                Clear filters
-              </Button> */}
             </div>
           )}
         </div>
        
         <Navigation />
-    
-        </div>
+      </div>
     );
   }
 
+  // Mobile view
   return (
     <div className="h-screen bg-background relative">
-  
       {isSharing && (
         <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
           <div className="text-center">
@@ -835,86 +857,68 @@ useEffect(() => {
           </div>
         </div>
       )}
-      
-      {!showingInfluencer ? (
-        <>
-          <div 
-            className="swipe-container h-full w-full"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onClick={() => {
-              setShowNavbar(!showNavbar);
-              setShowTabNavigation(!showTabNavigation);
-            }}
-            ref={swipeContainerRef}
-          >
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={currentInsightIndex}
-                custom={direction}
-                initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
-                transition={{ duration: 0.1, ease: "easeOut" }}
-                className="h-full w-full">
-                   <InsightCard 
-                  key={Bytes[currentInsightIndex].id}
-                  insight={Bytes[currentInsightIndex]}
-                  onSave={handleSaveInsight}
-                  onLike={()=>{}}
-                  onShare={handleShareInsight}
-              
-                  onInfluencerClick={handleInfluencerClick}
-                  onSourceClick={handleSourceClick}
-                  userIndustries={selectedIndustries} 
-                  position={""}
-                  onClick={handleInsightClick}
-                  onSummaryTouchStart={handleSummaryTouchStart}
-                  onSummaryTouchEnd={handleSummaryTouchEnd}
-                  onSummaryEdgeAttempt={handleSummaryEdgeAttempt}
-
-                  isChannelFollowed={isChannelFollowed(Bytes[currentInsightIndex].influencer.channel_id)}
-          isChannelLoading={isChannelLoading(Bytes[currentInsightIndex].influencer.channel_id)}
-          onFollowToggle={handleFollowToggle}
-                />
-              </motion.div>
-            </AnimatePresence>
+          {/* Feed Tabs for Mobile */}
+          <div className="absolute top-4 left-4 right-4 z-10">
+            <FeedTabs 
+              activeTab={activeTab} 
+              onTabChange={handleTabChange}
+              followedCount={totalFollowed}
+            />
           </div>
-        </>
-        ) : (
-          selectedInfluencer && (
-            <motion.div
-              initial={{ x: 300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ duration: 0.1, ease: "easeOut" }}
-              onTouchStart={handleTouchStart} 
-              onTouchMove={handleTouchMove} 
-              onTouchEnd={() => {
-                const swipeDirection = touchStartX - touchMoveX > 40 ? 'left' : 
-                                     touchMoveX - touchStartX > 40 ? 'right' : null;
-                if (swipeDirection) {
-                  handleInfluencerProfileSwipe(swipeDirection);
-                }
+
+          {activeTab === "following" && followingBytes.length === 0 && !followingLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <EmptyFollowingState />
+            </div>
+          ) : (
+            <div 
+              className="swipe-container h-full w-full "
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={() => {
+                setShowNavbar(!showNavbar);
+                setShowTabNavigation(!showTabNavigation);
               }}
+              ref={swipeContainerRef}
             >
-              <InfluencerProfile 
-                influencer={selectedInfluencer}
-                onFollowToggle={()=>{}}
-                onInsightClick={handleInsightClick}
-                onBack={() => {
-                  setShowingInfluencer(false);
-                  setCurrentInsightIndex(previousInsightIndex);
-                }}
-              />
-            </motion.div>
-          )
-        )}
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={`${activeTab}-${currentInsightIndex}`}
+                  custom={direction}
+                  initial={{ y: direction === 1 ? 100 : -100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: direction === 1 ? -100 : 100, opacity: 0 }}
+                  transition={{ duration: 0.1, ease: "easeOut" }}
+                  className="h-full w-full">
+                     <InsightCard 
+                    key={Bytes[currentInsightIndex]?.id}
+                    insight={Bytes[currentInsightIndex]}
+                    onSave={handleSaveInsight}
+                    onLike={()=>{}}
+                    onShare={handleShareInsight}
+                    onInfluencerClick={handleInfluencerClick}
+                    onSourceClick={handleSourceClick}
+                    userIndustries={selectedIndustries} 
+                    position={""}
+                    onClick={handleInsightClick}
+                    onSummaryTouchStart={handleSummaryTouchStart}
+                    onSummaryTouchEnd={handleSummaryTouchEnd}
+                    onSummaryEdgeAttempt={handleSummaryEdgeAttempt}
+                    isChannelFollowed={isChannelFollowed(Bytes[currentInsightIndex]?.influencer?.channel_id)}
+                    isChannelLoading={isChannelLoading(Bytes[currentInsightIndex]?.influencer?.channel_id)}
+                    onFollowToggle={handleFollowToggle}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          )}
+  
+    
         
-        <Navigation />
-      </div>
-    );
+      <Navigation />
+    </div>
+  );
 };
 
 export default Index;

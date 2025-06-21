@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Smartlook from 'smartlook-client';
+import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.clear();
       setUser(null);
       setToken(null);
+  
     } catch (error) {
       console.error("Sign out failed:", error);
       throw error;

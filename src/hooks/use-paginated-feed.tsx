@@ -36,7 +36,7 @@ export const usePaginatedFeed = (user: any, token: string) => {
   const industriesKey = selectedIndustries.sort().join(',');
 
   const transformApiData = useCallback((data: ApiInsight[]): Insight[] => {
-    return transformApiInsights(data, true); 
+    return transformApiInsights(data, false); 
   }, []);
 
   const fetchFeed = useCallback(async (page: number, isInitialLoad: boolean = false) => {
