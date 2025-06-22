@@ -1,107 +1,49 @@
-// src/contexts/AuthContext.tsx
-import { createContext, useContext, useEffect, useState } from "react";
-import { GoogleAuthProvider, signInWithPopup, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import Smartlook from 'smartlook-client';
-import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  User,
+  onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut as firebaseSignOut,
+  getIdToken
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
-  loading: boolean;
   token: string | null;
+  loading: boolean;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
   refreshToken: () => Promise<void>;
   handleGoogleSignIn: () => Promise<void>;
-  handleSignOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  token: null,
-  refreshToken: async () => {},
-  handleGoogleSignIn: async () => {},
-  handleSignOut: async () => {},
-});
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
-
-  const refreshToken = async () => {
-    if (user) {
-      try {
-        const newToken = await user.getIdToken(true);
-        setToken(newToken);
-        return newToken;
-      } catch (error) {
-        console.error("Error refreshing token:", error);
-        setToken(null);
-        throw error;
-      }
-    }
-    return null;
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-
-        const firebaseToken = await result.user.getIdToken();
-    
-    // Send to your backend for verification
-    const backendResponse = await fetch(`${API_BASE_URL}/auth/google`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: firebaseToken }),
-    });
-
-    if (!backendResponse.ok) {
-      throw new Error('Backend authentication failed');
-    }
-
-    const backendData = await backendResponse.json();
-
-      await refreshToken();
-      return result.user;
-    } catch (error) {
-      console.error("Google sign-in failed:", error);
-      throw error;
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await auth.signOut();
-      localStorage.clear();
-      setUser(null);
-      setToken(null);
-  
-    } catch (error) {
-      console.error("Sign out failed:", error);
-      throw error;
-    }
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      if (user) {
         try {
-          const newToken = await firebaseUser.getIdToken();
-          setToken(newToken);
-
-          Smartlook.identify('USER_ID', {
-  name: firebaseUser.displayName,
-  email: firebaseUser.email,
-});
+          const idToken = await getIdToken(user);
+          setToken(idToken);
         } catch (error) {
-          console.error("Error getting token:", error);
+          console.error('Error getting ID token:', error);
           setToken(null);
         }
       } else {
@@ -110,28 +52,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    const interval = setInterval(async () => {
-      if (user) await refreshToken();
-    }, 30 * 60 * 1000);
+    return () => unsubscribe();
+  }, []);
 
-    return () => {
-      unsubscribe();
-      clearInterval(interval);
-    };
-  }, [user]);
+  const signInWithGoogle = async (): Promise<void> => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await getIdToken(result.user);
+      setToken(idToken);
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    }
+  };
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      token, 
-      refreshToken,
-      handleGoogleSignIn,
-      handleSignOut
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const signOut = async (): Promise<void> => {
+    try {
+      await firebaseSignOut(auth);
+      setToken(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  };
+
+  const refreshToken = async (): Promise<void> => {
+    if (user) {
+      try {
+        const idToken = await getIdToken(user, true);
+        setToken(idToken);
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        throw error;
+      }
+    }
+  };
+
+  const handleGoogleSignIn = async (): Promise<void> => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await getIdToken(result.user);
+      setToken(idToken);
+    } catch (error) {
+      console.error('Error with Google sign in:', error);
+      throw error;
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    token,
+    loading,
+    signInWithGoogle,
+    signOut,
+    refreshToken,
+    handleGoogleSignIn,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => useContext(AuthContext);

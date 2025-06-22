@@ -1,3 +1,4 @@
+
 // components/ByteCard.tsx
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,14 +48,12 @@ export const ByteCard = ({
   onFollowToggle,
 }: ByteCardProps) => {
 
-    const handleFollowToggle = async (e: React.MouseEvent) => {
-    
+  const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isChannelLoading || !onFollowToggle || !bite.influencer.channel_id) return;
     await onFollowToggle(bite.influencer.channel_id, isChannelFollowed);
   };
 
-  
   const timeAgo = formatDistanceToNow(new Date(bite.publishedAt), { addSuffix: false });
 
   const handleShareClick = (e: React.MouseEvent) => {
@@ -79,6 +78,13 @@ export const ByteCard = ({
     }
   };
 
+  // Truncate summary to approximately 100 words
+  const truncateSummary = (text: string, wordLimit: number = 100) => {
+    const words = text.split(' ');
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(' ') + '...';
+  };
+
   return (
     <div
       data-insight-id={bite.id}
@@ -91,8 +97,8 @@ export const ByteCard = ({
       onClick={() => onClick(bite.id)}
     >
       <div className="sm:flex">
-        {/* Image Section */}
-        <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-full">
+        {/* Image Section - Reduced height by 25% */}
+        <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-48"> {/* Reduced from auto height */}
           <img
             src={bite.image}
             alt={bite.title}
@@ -129,31 +135,30 @@ export const ByteCard = ({
         
         {/* Content Section */}
         <div className="p-4 sm:w-2/3">
-        <div className="flex items-center mb-3">
-  <div className="flex items-center w-full">
-    <span className={cn(
-      "text-sm font-medium",
-      isDarkMode ? "text-gray-300" : "text-gray-700"
-    )}>
-      {bite.influencer.name}
-    </span>
-    <span className="ml-2 mr-1">•</span>
-    <span className={cn(
-      "text-xs",
-      isDarkMode ? "text-gray-500" : "text-gray-400"
-    )}>
-      {timeAgo}
-    </span>
-  </div>
+          <div className="flex items-center mb-3">
+            <div className="flex items-center w-full">
+              <span className={cn(
+                "text-sm font-medium",
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              )}>
+                {bite.influencer.name}
+              </span>
+              <span className="ml-2 mr-1">•</span>
+              <span className={cn(
+                "text-xs",
+                isDarkMode ? "text-gray-500" : "text-gray-400"
+              )}>
+                {timeAgo}
+              </span>
+            </div>
 
-  <FollowButton
-    isFollowing={isChannelFollowed}
-    isLoading={isChannelLoading}
-    onClick={handleFollowToggle}
-    className="ml-4" // use ml-2 or ml-4 depending on spacing needs
-  />
-</div>
-
+            <FollowButton
+              isFollowing={isChannelFollowed}
+              isLoading={isChannelLoading}
+              onClick={handleFollowToggle}
+              className="ml-4"
+            />
+          </div>
           
           <h3 className={cn(
             "font-bold text-lg mb-2 line-clamp-2",
@@ -162,11 +167,12 @@ export const ByteCard = ({
             {bite.title}
           </h3>
           
+          {/* Updated summary section - no scrolling, truncated text */}
           <p className={cn(
-            "text-sm line-clamp-3 mb-4",
+            "text-sm mb-4 leading-relaxed",
             isDarkMode ? "text-gray-300" : "text-gray-600"
           )}>
-            {bite.summary}
+            {truncateSummary(bite.summary, 100)}
           </p>
           
           <div className="flex items-center justify-between">

@@ -1,3 +1,4 @@
+
 "use client";
 import { useRef } from "react";
 import { Heart, Share, Save, Twitter, Youtube, Linkedin, UserPlus, UserMinus, Loader2 } from "lucide-react";
@@ -6,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import ByteMeLogo from "@/components/ByteMeLogo";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ContentControl from "@/components/ContentControl";
 import { FollowButton } from "@/contexts/follow_button_props";
 
@@ -66,10 +66,9 @@ interface InsightCardProps {
   userIndustries?: string[];
   onClick?: (id: string) => void;
   onSummaryEdgeAttempt?: (direction: "up" | "down") => void;
-  // New props for follow functionality
   isChannelFollowed: boolean;
   isChannelLoading: boolean;
-   onFollowToggle?: (channelId: string, currentlyFollowed: boolean) => Promise<void>;
+  onFollowToggle?: (channelId: string, currentlyFollowed: boolean) => Promise<void>;
 }
 
 export const PlatformIcon = ({ source }: { source: string }) => {
@@ -108,25 +107,14 @@ export const InsightCard = ({
   onSummaryTouchEnd?: () => void,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const pendingEdgeDirection = useRef<"up" | "down" | null>(null);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
   );
 
-  
-
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSave(insight.id);
-    
-    if (!insight.isSaved) {
-      // toast({
-      //   title: "Byte saved",
-      //   description: "You can find it in your saved items",
-      // });
-    }
   };
 
   const handleLike = (e: React.MouseEvent) => {
@@ -139,12 +127,11 @@ export const InsightCard = ({
     onShare(insight.id);
   };
 
-    const handleFollowToggle = async (e: React.MouseEvent) => {
+  const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isChannelLoading || !onFollowToggle || !insight.influencer.channel_id) return;
     await onFollowToggle(insight.influencer.channel_id, isChannelFollowed);
   };
-
 
   const handleInfluencerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -159,7 +146,6 @@ export const InsightCard = ({
   };
 
   const handleHideInfluencer = () => {
-    // Add to hidden influencers list
     const hiddenInfluencers = JSON.parse(localStorage.getItem("hiddenInfluencers") || "[]");
     if (!hiddenInfluencers.includes(insight.influencer.id)) {
       hiddenInfluencers.push(insight.influencer.id);
@@ -168,7 +154,6 @@ export const InsightCard = ({
   };
 
   const handleHideTopic = () => {
-    // Add to hidden topics list
     const hiddenTopics = JSON.parse(localStorage.getItem("hiddenTopics") || "[]");
     if (!hiddenTopics.includes(insight.industry)) {
       hiddenTopics.push(insight.industry);
@@ -177,7 +162,6 @@ export const InsightCard = ({
   };
 
   const handleReport = () => {
-    // Store report (in real app, this would send to backend)
     const reports = JSON.parse(localStorage.getItem("reports") || "[]");
     reports.push({
       insightId: insight.id,
@@ -191,72 +175,23 @@ export const InsightCard = ({
     ? formatDistanceToNow(new Date(insight.publishedAt), { addSuffix: false })
     : '';
 
-  // Enhanced touch handling for summary scroll area
-  const handleSummaryTouchMove = (e: React.TouchEvent) => {
-    if (!summaryRef.current || !onSummaryEdgeAttempt) return;
-    
-    const scrollArea = summaryRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-    if (!scrollArea) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = scrollArea;
-    const touch = e.touches[0];
-    const deltaY = touch.clientY - ((scrollArea as any)._lastTouchY || touch.clientY);
-    (scrollArea as any)._lastTouchY = touch.clientY;
-
-    // Check if we're at scroll boundaries and user is trying to scroll further
-    const isAtTop = scrollTop <= 1;
-    const isAtBottom = Math.abs(scrollTop + clientHeight - scrollHeight) <= 1;
-    
-    // Store pending direction but don't trigger navigation yet
-    if (deltaY > 10 && isAtTop) {
-      pendingEdgeDirection.current = "up";
-    } else if (deltaY < -10 && isAtBottom) {
-      pendingEdgeDirection.current = "down";
-    } else {
-      pendingEdgeDirection.current = null;
-    }
-  };
-
-  const handleSummaryTouchStartInner = (e: React.TouchEvent) => {
-    if (summaryRef.current) {
-      const scrollArea = summaryRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-      if (scrollArea) {
-        (scrollArea as any)._lastTouchY = e.touches[0].clientY;
-      }
-    }
-    pendingEdgeDirection.current = null;
-    if (onSummaryTouchStart) onSummaryTouchStart();
-  };
-
-  const handleSummaryTouchEndInner = (e: React.TouchEvent) => {
-    if (summaryRef.current) {
-      const scrollArea = summaryRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-      if (scrollArea) {
-        delete (scrollArea as any)._lastTouchY;
-      }
-    }
-    
-    // Only trigger navigation on touch end if there was a pending edge direction
-    if (pendingEdgeDirection.current && onSummaryEdgeAttempt) {
-      onSummaryEdgeAttempt(pendingEdgeDirection.current);
-    }
-    
-    pendingEdgeDirection.current = null;
-    if (onSummaryTouchEnd) onSummaryTouchEnd();
-  };
-
   const handleCardClick = () => {
     // if (onClick) {
     //   onClick(insight.id);
     // }
   };
 
-  
+  // Truncate summary to approximately 100 words
+  const truncateSummary = (text: string, wordLimit: number = 100) => {
+    const words = text.split(' ');
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(' ') + '...';
+  };
 
   return (
    <div 
     className={cn(
-      "insight-card w-full p-4  flex flex-col overflow-hidden bg-white dark:bg-gray-900  shadow-sm hover:shadow-md transition-shadow",
+      "insight-card w-full p-4 flex flex-col overflow-hidden bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow",
       "border border-gray-200 dark:border-gray-800",
       position
     )}
@@ -264,12 +199,12 @@ export const InsightCard = ({
     style={{ cursor: 'pointer' }}
   >
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Image Section */}
+      {/* Image Section - Reduced height by 25% */}
       <div className="relative mb-4 rounded-xl overflow-hidden mt-16">
         <img
           src={insight.image}
           alt={insight.title}
-       className="insight-image rounded-xl h-60 object-cover w-full"
+          className="insight-image rounded-xl h-44 object-cover w-full" // Reduced from h-60 to h-44
         />
         
         {/* ByteMe Brand Watermark - Top right */}
@@ -305,23 +240,15 @@ export const InsightCard = ({
       </div>
       
       {/* Title Section */}
-      <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white">
+      <h2 className="text-lg font-bold mb-3 leading-tight text-gray-900 dark:text-white">
         {insight.title}
       </h2>
       
-      {/* Scrollable Summary Content */}
-      <div
-        ref={summaryRef}
-        className="flex-1 mb-4 pr-2 max-h-[260px] overflow-hidden"
-        onTouchStart={handleSummaryTouchStartInner}
-        onTouchEnd={handleSummaryTouchEndInner}
-        onTouchMove={handleSummaryTouchMove}
-      >
-        <ScrollArea className="h-full">
-          <p className="text-base text-gray-700 dark:text-gray-300">
-            {insight.summary}
-          </p>
-        </ScrollArea>
+      {/* Summary Content - No scroll, fixed height with truncated text */}
+      <div className="flex-1 mb-4 pr-2">
+        <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+          {truncateSummary(insight.summary, 100)}
+        </p>
       </div>
     </div>
     
@@ -335,27 +262,23 @@ export const InsightCard = ({
             <span className="text-sm font-medium mr-2 text-gray-900 dark:text-white truncate">
               {insight.influencer.name}
             </span>
-               <span className="mx-2">•</span>
+            <span className="mx-2">•</span>
             <span className={cn(
               "text-xs",
                "text-gray-400"
             )}>
               {timeAgo}
             </span>
-
           </div>
           
           {/* Follow/Unfollow Button */}
-      
-<FollowButton
-  isFollowing={isChannelFollowed}
-  isLoading={isChannelLoading}
-  onClick={handleFollowToggle}
-  className="ml-2"
-/>
+          <FollowButton
+            isFollowing={isChannelFollowed}
+            isLoading={isChannelLoading}
+            onClick={handleFollowToggle}
+            className="ml-2"
+          />
         </div>
-        
-       
       </div>
       
       {/* Interaction Buttons */}
