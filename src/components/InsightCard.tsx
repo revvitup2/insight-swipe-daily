@@ -181,8 +181,8 @@ export const InsightCard = ({
     // }
   };
 
-  // Truncate summary to approximately 150 words (increased from 100)
-  const truncateSummary = (text: string, wordLimit: number = 150) => {
+  // Truncate summary to approximately 100 words
+  const truncateSummary = (text: string, wordLimit: number = 100) => {
     const words = text.split(' ');
     if (words.length <= wordLimit) return text;
     return words.slice(0, wordLimit).join(' ') + '...';
@@ -200,11 +200,11 @@ export const InsightCard = ({
   >
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Image Section - Reduced height by 25% */}
-      <div className="relative mb-3 rounded-xl overflow-hidden mt-16"> {/* Reduced margin from mb-4 to mb-3 */}
+      <div className="relative mb-2 rounded-xl overflow-hidden mt-16"> 
         <img
           src={insight.image}
           alt={insight.title}
-          className="insight-image rounded-xl h-44 object-cover w-full"
+          className="insight-image rounded-xl h-36 object-cover w-full"
         />
         
         {/* ByteMe Brand Watermark - Top right */}
@@ -240,20 +240,20 @@ export const InsightCard = ({
       </div>
       
       {/* Title Section */}
-      <h2 className="text-lg font-bold mb-2 leading-tight text-gray-900 dark:text-white"> {/* Reduced margin from mb-3 to mb-2 */}
+      <h2 className="text-lg font-bold mb-1 leading-tight text-gray-900 dark:text-white"> 
         {insight.title}
       </h2>
       
-      {/* Expanded Summary Content - More space, no scroll, truncated text */}
-      <div className="flex-1 mb-3 pr-2"> {/* Reduced margin from mb-4 to mb-3 */}
+      {/* Expanded Summary Content - More space for text */}
+      <div className="flex-1 mb-2 pr-2">
         <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
-          {truncateSummary(insight.summary, 150)} {/* Increased word limit from 100 to 150 */}
+          {truncateSummary(insight.summary, 100)}
         </p>
       </div>
     </div>
     
     <div>
-      <div className="flex items-center justify-between mb-3"> {/* Reduced margin from mb-4 to mb-3 */}
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center flex-1 min-w-0">
           <div 
             className="flex items-center cursor-pointer min-w-0 flex-1" 

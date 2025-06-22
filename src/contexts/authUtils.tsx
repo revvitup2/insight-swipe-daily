@@ -23,11 +23,14 @@ export const getUserDisplayInfo = (user: User | null) => {
 };
 
 export const useAuthActions = () => {
-  const { signInWithGoogle, signOut } = useAuth();
+  const { user, signInWithGoogle, signOut, requireAuth } = useAuth();
   
   return {
+    user,
     signInWithGoogle,
     signOut,
+    requireAuth,
     handleGoogleSignIn: signInWithGoogle,
+    handleSignOut: signOut,
   };
 };

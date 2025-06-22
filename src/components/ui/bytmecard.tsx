@@ -1,3 +1,4 @@
+
 // components/ByteCard.tsx
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -77,8 +78,8 @@ export const ByteCard = ({
     }
   };
 
-  // Truncate summary to approximately 150 words (increased from 100)
-  const truncateSummary = (text: string, wordLimit: number = 150) => {
+  // Truncate summary to approximately 100 words
+  const truncateSummary = (text: string, wordLimit: number = 100) => {
     const words = text.split(' ');
     if (words.length <= wordLimit) return text;
     return words.slice(0, wordLimit).join(' ') + '...';
@@ -97,7 +98,7 @@ export const ByteCard = ({
     >
       <div className="sm:flex">
         {/* Image Section - Reduced height by 25% */}
-        <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-48">
+        <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-36">
           <img
             src={bite.image}
             alt={bite.title}
@@ -134,7 +135,7 @@ export const ByteCard = ({
         
         {/* Content Section */}
         <div className="p-4 sm:w-2/3">
-          <div className="flex items-center mb-2"> {/* Reduced margin from mb-3 to mb-2 */}
+          <div className="flex items-center mb-1">
             <div className="flex items-center w-full">
               <span className={cn(
                 "text-sm font-medium",
@@ -160,18 +161,18 @@ export const ByteCard = ({
           </div>
           
           <h3 className={cn(
-            "font-bold text-lg mb-2 line-clamp-2",
+            "font-bold text-lg mb-1 line-clamp-2",
             isDarkMode ? "text-white" : "text-gray-900"
           )}>
             {bite.title}
           </h3>
           
-          {/* Expanded summary section - More space, truncated to 150 words */}
+          {/* Optimized summary section - Better space utilization */}
           <p className={cn(
-            "text-sm mb-3 leading-relaxed", /* Reduced margin from mb-4 to mb-3 */
+            "text-sm mb-2 leading-relaxed",
             isDarkMode ? "text-gray-300" : "text-gray-600"
           )}>
-            {truncateSummary(bite.summary, 150)} {/* Increased word limit from 100 to 150 */}
+            {truncateSummary(bite.summary, 100)}
           </p>
           
           <div className="flex items-center justify-between">
