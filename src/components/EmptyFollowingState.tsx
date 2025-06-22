@@ -17,13 +17,13 @@ export const EmptyFollowingState = () => {
       <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
         Start following influencers to see their latest content in your personalized feed.
       </p>
-      {/* <Button
-        onClick={() => navigate("/")}
+      <Button
+        onClick={() => navigate("/influencers")}
         className="flex items-center gap-2"
       >
         <Search className="w-4 h-4" />
         Discover Influencers
-      </Button> */}
+      </Button>
     </div>
   );
 };

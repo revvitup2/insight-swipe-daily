@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Users, ArrowLeft } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { toast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useFollowChannel } from "@/hooks/use-follow";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Influencer {
   id: string;
@@ -14,7 +18,7 @@ interface Influencer {
   industry: string;
   followerCount: number;
   profileImage: string;
-  isFollowed: boolean;
+  channel_id: string;
 }
 
 const mockInfluencers: Influencer[] = [
@@ -24,15 +28,15 @@ const mockInfluencers: Influencer[] = [
     industry: "Technology",
     followerCount: 120000000,
     profileImage: "https://pbs.twimg.com/profile_images/1685664445849899008/99wW5_Xo_400x400.jpg",
-    isFollowed: false,
+    channel_id: "elon_musk_channel",
   },
   {
-    id: "2",
+    id: "2", 
     name: "Bill Gates",
     industry: "Technology",
     followerCount: 60000000,
     profileImage: "https://pbs.twimg.com/profile_images/1541984345234993152/OUHwzkvV_400x400.jpg",
-    isFollowed: true,
+    channel_id: "bill_gates_channel",
   },
   {
     id: "3",
@@ -40,7 +44,7 @@ const mockInfluencers: Influencer[] = [
     industry: "Marketing",
     followerCount: 10000000,
     profileImage: "https://pbs.twimg.com/profile_images/1398493874902149122/q-c8jHPU_400x400.jpg",
-    isFollowed: false,
+    channel_id: "gary_vee_channel",
   },
   {
     id: "4",
@@ -48,7 +52,7 @@ const mockInfluencers: Influencer[] = [
     industry: "AI",
     followerCount: 2000000,
     profileImage: "https://pbs.twimg.com/profile_images/1478999754395729922/c4W_1aPj_400x400.jpg",
-    isFollowed: true,
+    channel_id: "lex_fridman_channel",
   },
   {
     id: "5",
@@ -56,42 +60,47 @@ const mockInfluencers: Influencer[] = [
     industry: "Healthcare",
     followerCount: 1000000,
     profileImage: "https://pbs.twimg.com/profile_images/1472983540253429765/UpB_K0cd_400x400.jpg",
-    isFollowed: false,
+    channel_id: "huberman_lab_channel",
   },
 ];
 
 const Influencers = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [followedInfluencers, setFollowedInfluencers] = useState<Set<string>>(new Set());
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const navigate = useNavigate();
+  const { token } = useAuth();
 
+  const {
+    toggleFollowChannel,
+    isChannelFollowed,
+    isChannelLoading,
+    initializeFollowedChannels,
+  } = useFollowChannel(token);
+
+  // Initialize followed channels on component mount
   useEffect(() => {
-    // Load followed influencers from localStorage
-    const storedFollowed = localStorage.getItem("followedInfluencers");
-    if (storedFollowed) {
-      setFollowedInfluencers(new Set(JSON.parse(storedFollowed)));
+    if (token) {
+      initializeFollowedChannels();
     }
-  }, []);
+  }, [token, initializeFollowedChannels]);
+
+  // Debounce search term
+  const debouncedSearch = useDebounce((term: string) => {
+    setDebouncedSearchTerm(term);
+  }, 300);
 
   useEffect(() => {
-    // Save followed influencers to localStorage
-    localStorage.setItem("followedInfluencers", JSON.stringify(Array.from(followedInfluencers)));
-  }, [followedInfluencers]);
+    debouncedSearch(searchTerm);
+  }, [searchTerm, debouncedSearch]);
 
-  const toggleFollow = (influencerId: string) => {
-    setFollowedInfluencers((prev) => {
-      const newFollowed = new Set(prev);
-      if (newFollowed.has(influencerId)) {
-        newFollowed.delete(influencerId);
-      } else {
-        newFollowed.add(influencerId);
-      }
-      return newFollowed;
-    });
+  const handleFollowToggle = async (channelId: string) => {
+    const currentlyFollowed = isChannelFollowed(channelId);
+    await toggleFollowChannel(channelId, currentlyFollowed);
   };
 
   const filteredInfluencers = mockInfluencers.filter((influencer) =>
-    influencer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    influencer.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    influencer.industry.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   );
 
   return (
@@ -118,51 +127,54 @@ const Influencers = () => {
         </div>
 
         {/* Search Input */}
-        <div className="mb-6">
+        <div className="mb-6 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             type="text"
-            placeholder="Search influencers..."
+            placeholder="Search influencers by name or industry..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
         </div>
 
         {/* Influencer Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredInfluencers.map((influencer) => (
-            <Card key={influencer.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {influencer.name}
-                  <Badge variant="secondary">{influencer.industry}</Badge>
-                </CardTitle>
-                <CardDescription>
-                  {influencer.followerCount.toLocaleString()} Followers
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* <img
-                  src={influencer.profileImage}
-                  alt={influencer.name}
-                  className="rounded-full w-20 h-20 mx-auto mb-4"
-                /> */}
-                <Button
-                  variant={followedInfluencers.has(influencer.id) ? "destructive" : "outline"}
-                  className="w-full"
-                  onClick={() => {
-                    toggleFollow(influencer.id);
-                    toast({
-                      title: followedInfluencers.has(influencer.id) ? "Unfollowed" : "Followed",
-                      description: `You have ${followedInfluencers.has(influencer.id) ? "unfollowed" : "followed"} ${influencer.name}.`,
-                    });
-                  }}
-                >
-                  {followedInfluencers.has(influencer.id) ? "Unfollow" : "Follow"}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {filteredInfluencers.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No influencers found matching your search.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredInfluencers.map((influencer) => (
+              <Card key={influencer.id}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {influencer.name}
+                    <Badge variant="secondary">{influencer.industry}</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    {influencer.followerCount.toLocaleString()} Followers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant={isChannelFollowed(influencer.channel_id) ? "destructive" : "default"}
+                    className="w-full"
+                    disabled={isChannelLoading(influencer.channel_id)}
+                    onClick={() => handleFollowToggle(influencer.channel_id)}
+                  >
+                    {isChannelLoading(influencer.channel_id) 
+                      ? "Loading..." 
+                      : isChannelFollowed(influencer.channel_id) 
+                        ? "Unfollow" 
+                        : "Follow"
+                    }
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
       
       <Navigation />

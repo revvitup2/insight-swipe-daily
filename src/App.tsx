@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -81,6 +82,7 @@ useEffect(() => {
               <Route path="/saved" element={<SavedBytes />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/influencers" element={<Influencers />} />
               
               {/* Admin Routes */}
               <Route path="/bytes/:videoId" element={<InsightDetails />} />
