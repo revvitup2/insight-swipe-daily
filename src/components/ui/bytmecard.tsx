@@ -1,4 +1,3 @@
-
 // components/ByteCard.tsx
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -78,8 +77,8 @@ export const ByteCard = ({
     }
   };
 
-  // Truncate summary to approximately 100 words
-  const truncateSummary = (text: string, wordLimit: number = 100) => {
+  // Truncate summary to approximately 150 words (increased from 100)
+  const truncateSummary = (text: string, wordLimit: number = 150) => {
     const words = text.split(' ');
     if (words.length <= wordLimit) return text;
     return words.slice(0, wordLimit).join(' ') + '...';
@@ -98,7 +97,7 @@ export const ByteCard = ({
     >
       <div className="sm:flex">
         {/* Image Section - Reduced height by 25% */}
-        <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-48"> {/* Reduced from auto height */}
+        <div className="sm:w-1/3 relative aspect-video sm:aspect-auto sm:h-48">
           <img
             src={bite.image}
             alt={bite.title}
@@ -135,7 +134,7 @@ export const ByteCard = ({
         
         {/* Content Section */}
         <div className="p-4 sm:w-2/3">
-          <div className="flex items-center mb-3">
+          <div className="flex items-center mb-2"> {/* Reduced margin from mb-3 to mb-2 */}
             <div className="flex items-center w-full">
               <span className={cn(
                 "text-sm font-medium",
@@ -167,12 +166,12 @@ export const ByteCard = ({
             {bite.title}
           </h3>
           
-          {/* Updated summary section - no scrolling, truncated text */}
+          {/* Expanded summary section - More space, truncated to 150 words */}
           <p className={cn(
-            "text-sm mb-4 leading-relaxed",
+            "text-sm mb-3 leading-relaxed", /* Reduced margin from mb-4 to mb-3 */
             isDarkMode ? "text-gray-300" : "text-gray-600"
           )}>
-            {truncateSummary(bite.summary, 100)}
+            {truncateSummary(bite.summary, 150)} {/* Increased word limit from 100 to 150 */}
           </p>
           
           <div className="flex items-center justify-between">

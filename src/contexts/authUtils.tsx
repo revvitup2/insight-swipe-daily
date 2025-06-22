@@ -1,6 +1,7 @@
 
 import { signInWithPopup, GoogleAuthProvider, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { useAuth } from './AuthContext';
 
 export const handleGoogleSignIn = async (): Promise<User> => {
   try {
@@ -18,5 +19,15 @@ export const getUserDisplayInfo = (user: User | null) => {
   return {
     displayName: user.displayName || user.email?.split('@')[0] || 'User',
     email: user.email
+  };
+};
+
+export const useAuthActions = () => {
+  const { signInWithGoogle, signOut } = useAuth();
+  
+  return {
+    signInWithGoogle,
+    signOut,
+    handleGoogleSignIn: signInWithGoogle,
   };
 };
