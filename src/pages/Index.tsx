@@ -185,23 +185,6 @@ useEffect(() => {
   }, [Bytes, currentInsightIndex]); // Removed isLoadingMore and isHandlingLoadMore from dependencies
 
   useEffect(() => {
-    if (!hasMore || isLoading || isLoadingMore || isHandlingLoadMore) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
-
-      if (isNearBottom) {
-        setIsHandlingLoadMore(true);
-        loadMore().finally(() => setIsHandlingLoadMore(false));
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasMore, isLoading, isLoadingMore, loadMore, isHandlingLoadMore]);
-
-  useEffect(() => {
     const newPositions = Bytes.map((_, i) => 
       i === currentInsightIndex ? "" : 
       (i < currentInsightIndex ? "slide-up" : "slide-down")
@@ -242,7 +225,6 @@ useEffect(() => {
   const handleSaveInsight = async (id: string) => {
     const newSavedStatus = await handleSaveInsightInApi(id);
   };
-
 
   const handleShareInsight = async (id: string) => {
     const insight = Bytes.find(i => i.id === id);
@@ -784,7 +766,7 @@ useEffect(() => {
     return <LoadingSpinner message="Loading Bytes..." />;
   }
 
-  // Desktop view
+  // Desktop view - Remove endless scrolling and use individual cards
   if (window.innerWidth > 768) {
     return(
       <div className={cn(
@@ -846,7 +828,7 @@ useEffect(() => {
     );
   }
 
-  // Mobile view
+  // Mobile view - Individual post swiping (no endless feed)
   return (
     <div className="h-screen bg-background relative">
       {isSharing && (
