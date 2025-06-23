@@ -250,6 +250,11 @@ export const InsightCard = ({
     //   onClick(insight.id);
     // }
   };
+    const truncateSummary = (text: string, wordLimit: number = 100) => {
+    const words = text.split(' ');
+    if (words.length <= wordLimit) return text;
+    return words.slice(0, wordLimit).join(' ') + '...';
+  };
 
   
 
@@ -265,11 +270,11 @@ export const InsightCard = ({
   >
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Image Section */}
-      <div className="relative mb-4 rounded-xl overflow-hidden mt-16">
+        <div className="relative mb-2 rounded-xl overflow-hidden mt-16"> 
         <img
           src={insight.image}
           alt={insight.title}
-       className="insight-image rounded-xl h-60 object-cover w-full"
+          className="insight-image rounded-xl h-36 object-cover w-full"
         />
         
         {/* ByteMe Brand Watermark - Top right */}
@@ -310,18 +315,10 @@ export const InsightCard = ({
       </h2>
       
       {/* Scrollable Summary Content */}
-      <div
-        ref={summaryRef}
-        className="flex-1 mb-4 pr-2 max-h-[260px] overflow-hidden"
-        onTouchStart={handleSummaryTouchStartInner}
-        onTouchEnd={handleSummaryTouchEndInner}
-        onTouchMove={handleSummaryTouchMove}
-      >
-        <ScrollArea className="h-full">
-          <p className="text-base text-gray-700 dark:text-gray-300">
-            {insight.summary}
-          </p>
-        </ScrollArea>
+        <div className="flex-1 mb-2 pr-2">
+        <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+          {truncateSummary(insight.summary, 100)}
+        </p>
       </div>
     </div>
     

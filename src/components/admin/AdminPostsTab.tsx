@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Insight } from "@/components/InsightCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, Search,Copy  } from "lucide-react";
+import { Pencil, Trash2, Search, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { 
   Dialog, 
@@ -26,96 +25,60 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchFeedItems, updateFeedItem,deleteFeedItem } from "@/lib/api";
+import { fetchFeedItems, updateFeedItem, deleteFeedItem } from "@/lib/api";
+import { useFeed, useInfiniteScroll } from "@/hooks/use-feed";
 
 export const AdminPostsTab = () => {
-  const [posts, setPosts] = useState<Insight[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Insight | null>(null);
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-  useEffect(() => {
-    // In a real app, this would fetch from your actual API
-    const fetchBytes = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/feed`);
-        const data = await response.json();
-        
-       const formattedBytes = data.map((item: any) => ({
-  id: item.video_id,
-  title: item.metadata.title,
-  summary: item.analysis.summary,
-  image: item.metadata.thumbnails.high.url,
-  industry: item.industry || "General",
-  influencer: {
-    id: item.influencer_id,
-    name: item.metadata.channel_title,
-    profileImage: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.metadata.channel_title)}`,
-    isFollowed: false,
-    channel_id: item.metadata.channel_id // Add this line
-  },
-  isSaved: false,
-  isLiked: false,
-  keyPoints: item.analysis.key_points,
-  sentiment: item.analysis.sentiment,
-  publishedAt: item.published_at,
-  source: "youtube",
-  sourceUrl: `https://youtube.com/watch?v=${item.video_id}`
-}));
-        
-        setPosts(formattedBytes);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching Bytes:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch posts",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-      }
-    };
-    
-    fetchBytes();
-  }, []);
   
+  // Use the useFeed hook for pagination
+  const { 
+    feed: posts, 
+    isLoading, 
+    isLoadingMore,
+    error, 
+    hasMore, 
+    loadMore 
+  } = useFeed(filterCategory ? [filterCategory] : undefined);
+  
+  // Add infinite scroll
+  useInfiniteScroll(loadMore, isLoading || isLoadingMore);
+
   const handleConfirmDelete = (id: string) => {
     setDeletePostId(id);
   };
 
-// Update the handleDeletePost function
-const handleDeletePost = async () => {
-  if (!deletePostId) return;
+  const handleDeletePost = async () => {
+    if (!deletePostId) return;
 
-  try {
-    const token = localStorage.getItem("adminToken");
-    if (!token) {
-      throw new Error("No authentication token found");
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+      
+      await deleteFeedItem(token, deletePostId);
+      
+      // The feed will automatically refresh on next load
+      toast({
+        title: "Post deleted",
+        description: "The post has been successfully deleted",
+      });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletePostId(null);
     }
-    
-    await deleteFeedItem(token, deletePostId);
-    
-    setPosts(posts.filter(post => post.id !== deletePostId));
-    toast({
-      title: "Post deleted",
-      description: "The post has been successfully deleted",
-    });
-  } catch (error) {
-    console.error("Error deleting post:", error);
-    toast({
-      title: "Error",
-      description: "Failed to delete post",
-      variant: "destructive"
-    });
-  } finally {
-    setDeletePostId(null);
-  }
-};
+  };
   
   const handleEditPost = (post: Insight) => {
     setEditingPost({...post});
@@ -123,21 +86,21 @@ const handleDeletePost = async () => {
   };
 
   const handleCopyChannelId = (channelId: string) => {
-  navigator.clipboard.writeText(channelId)
-    .then(() => {
-      toast({
-        title: "Copied!",
-        description: "Channel ID copied to clipboard",
+    navigator.clipboard.writeText(channelId)
+      .then(() => {
+        toast({
+          title: "Copied!",
+          description: "Channel ID copied to clipboard",
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "Error",
+          description: "Failed to copy Channel ID",
+          variant: "destructive"
+        });
       });
-    })
-    .catch(() => {
-      toast({
-        title: "Error",
-        description: "Failed to copy Channel ID",
-        variant: "destructive"
-      });
-    });
-};
+  };
 
   const handleSaveEdit = async () => {
     if (!editingPost) return;
@@ -157,10 +120,7 @@ const handleDeletePost = async () => {
         }
       });
       
-      setPosts(posts.map(post => 
-        post.id === editingPost.id ? editingPost : post
-      ));
-      
+      // The feed will automatically refresh on next load
       toast({
         title: "Post updated",
         description: "Changes have been saved",
@@ -179,14 +139,9 @@ const handleDeletePost = async () => {
   };
 
   const filteredPosts = posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.influencer.name.toLowerCase().includes(searchQuery.toLowerCase());
-                         
-    const matchesCategory = filterCategory === "all" || !filterCategory 
-      ? true 
-      : post.industry.toLowerCase() === filterCategory.toLowerCase();
-    return matchesSearch && matchesCategory;
+    return post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           post.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           post.influencer.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
   
   // Get unique categories for the filter
@@ -205,7 +160,12 @@ const handleDeletePost = async () => {
           />
         </div>
         
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
+        <Select 
+          value={filterCategory} 
+          onValueChange={(value) => {
+            setFilterCategory(value === "all" ? "" : value);
+          }}
+        >
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
@@ -224,6 +184,17 @@ const handleDeletePost = async () => {
         <div className="text-center py-10">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Loading posts...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-10">
+          <p className="text-destructive">Error loading posts</p>
+          <Button 
+            variant="outline"
+            className="mt-2"
+            onClick={() => loadMore()}
+          >
+            Retry
+          </Button>
         </div>
       ) : filteredPosts.length === 0 ? (
         <div className="text-center py-10">
@@ -253,11 +224,6 @@ const handleDeletePost = async () => {
                       </div>
                       
                       <div className="flex items-center mb-2">
-                        {/* <img
-                          src={post.influencer.profileImage}
-                          alt={post.influencer.name}
-                          className="w-6 h-6 rounded-full mr-2"
-                        /> */}
                         <span className="text-sm text-muted-foreground">
                           {post.influencer.name}
                         </span>
@@ -275,33 +241,30 @@ const handleDeletePost = async () => {
                         </span>
                       </div>
                       <div className="flex flex-col space-y-2">
-                      <div className="flex space-x-2">
-
-    
-
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditPost(post)}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleConfirmDelete(post.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Delete
+                          </Button>
+                        </div>
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleEditPost(post)}
+                          onClick={() => handleCopyChannelId(post.influencer.channel_id)}
                         >
-                          <Pencil className="h-4 w-4 mr-1" /> Edit
+                          <Copy className="h-4 w-4 mr-1" /> Copy Channel ID
                         </Button>
-                        
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleConfirmDelete(post.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete
-                        </Button>
-                        </div>
-                                                 <Button 
-      variant="outline" 
-      size="sm"
-      onClick={() => handleCopyChannelId(post.influencer.channel_id)}
-    >
-      <Copy className="h-4 w-4 mr-1" /> Copy Channel ID
-    </Button>
                       </div>
                     </div>
                   </div>
@@ -309,6 +272,20 @@ const handleDeletePost = async () => {
               </CardContent>
             </Card>
           ))}
+          
+          {/* Loading spinner for pagination */}
+          {(isLoadingMore) && (
+            <div className="flex justify-center my-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+
+          {/* No more content message */}
+          {!hasMore && !isLoading && filteredPosts.length > 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              You've reached the end of posts
+            </div>
+          )}
         </div>
       )}
 
@@ -358,29 +335,6 @@ const handleDeletePost = async () => {
                   rows={5}
                 />
               </div>
-              
-              {/* <div className="grid gap-2">
-                <label htmlFor="image" className="text-sm font-medium">Image URL</label>
-                <Input
-                  id="image"
-                  value={editingPost.image}
-                  onChange={(e) => setEditingPost({...editingPost, image: e.target.value})}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="w-full h-32 rounded overflow-hidden">
-                  <img 
-                    src={editingPost.image} 
-                    alt="Post preview" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "https://via.placeholder.com/800x450?text=Image+Preview";
-                    }}
-                  />
-                </div>
-              </div> */}
             </div>
           )}
 
