@@ -20,7 +20,7 @@ export const loginAdmin = async (username: string, password: string) => {
   return response.json();
 };
 
-export const fetchFeedItems = async (token: string) => {
+export const fetchFeedItems = async (token: string, p0: { search?: string; industry?: string; limit: number; skip: number; }) => {
   const response = await fetch(`${API_BASE_URL}/feed`, {
     headers: {
       Authorization: `Bearer ${token}`,
