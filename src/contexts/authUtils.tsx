@@ -25,10 +25,18 @@ export const getUserDisplayInfo = (user: User | null) => {
 export const useAuthActions = () => {
   const { user, signInWithGoogle, signOut } = useAuth();
   
+  const requireAuth = async (callback: () => Promise<void>) => {
+    if (!user) {
+      await signInWithGoogle();
+    }
+    await callback();
+  };
+  
   return {
     user,
     signInWithGoogle,
     signOut,
+    requireAuth,
     handleGoogleSignIn: signInWithGoogle,
     handleSignOut: signOut,
   };
