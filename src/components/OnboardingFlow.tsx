@@ -9,19 +9,19 @@ import { APP_NAME } from "@/constants/constants";
 interface Industry {
   id: string;
   name: string;
-  icon: string;
 }
 
 export const industries: Industry[] = [
-  { id: "finance", name: "Finance", icon: "💰" },
-  { id: "Artificial Intelligence (AI)", name: "Artificial Intelligence", icon: "🤖" },
-  { id: "healthcare", name: "Healthcare", icon: "🏥" },
-  { id: "startups", name: "Startups", icon: "🚀" },
-  { id: "business", name: "Business", icon: "💼" },
-  { id: "technology", name: "Technology", icon: "💻" },
-  { id: "marketing", name: "Marketing", icon: "📢" },
-  { id: "design", name: "Design", icon: "🎨" },
-    { id: "others", name: "Others",icon:"🚀" },
+    {id: "ai-tools-apps", name: "AI Tools & Apps"},
+        {id: "chatgpt-friends", name: "ChatGPT & Friends"},
+        {id: "ai-in-business", name: "AI in Business"},
+        {id: "creative-ai", name: "Creative AI"},
+        {id: "ai-search-browsing", name: "AI Search & Browsing"},
+        {id: "new-ai-breakthroughs", name: "New AI Breakthroughs"},
+        {id: "ai-hardware-chips", name: "AI Hardware & Chips"},
+        {id: "rules-ethics", name: "Rules & Ethics"},
+        {id: "jobs-society", name: "Jobs & Society"},
+        {id: "ai-startups-funding", name: "AI Startups & Funding"},
 ];
 
 interface OnboardingFlowProps {
@@ -139,7 +139,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     : "border-border"
                 )}
               >
-                <div className="text-2xl mr-3">{industry.icon}</div>
+                {/* <div className="text-2xl mr-3">{industry.icon}</div> */}
                 <div>
                   <div className="font-medium">{industry.name}</div>
                 </div>

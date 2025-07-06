@@ -849,6 +849,7 @@ useEffect(() => {
   // Mobile view
   return (
     <div className="h-screen bg-background relative">
+      
       {isSharing && (
         <div className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center">
           <div className="text-center">
@@ -865,11 +866,22 @@ useEffect(() => {
               followedCount={totalFollowed}
             />
           </div>
+          
 
           {activeTab === "following" && followingBytes.length === 0 && !followingLoading ? (
-            <div className="h-full flex items-center justify-center">
-              <EmptyFollowingState />
-            </div>
+      <div className="h-full flex items-center justify-center">
+        <EmptyFollowingState />
+      </div>
+    ) : activeTab === "trending" && trendingBytes.length === 0 && !trendingLoading ? (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center py-8">
+          <p className={cn(
+            isDarkMode ? "text-gray-400" : "text-gray-500"
+          )}>
+            No Bytes found matching your criteria.
+          </p>
+        </div>
+      </div>
           ) : (
             <div 
               className="swipe-container h-full w-full "

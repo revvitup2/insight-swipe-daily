@@ -1,5 +1,6 @@
 // utils/transformInsight.ts
 import { Insight } from "@/components/InsightCard";
+import { industries } from "@/components/OnboardingFlow";
 import { ApiInsight } from "@/contexts/feedService";
 
 export const transformApiInsight = (item: ApiInsight, isFollowed: boolean = false): Insight => {
@@ -16,13 +17,15 @@ export const transformApiInsight = (item: ApiInsight, isFollowed: boolean = fals
   } else {
     sourcePlatform = "other";
   }
+   const industryEntry = industries.find(industry => industry.id === item.industry);
+  const industryName = industryEntry ? industryEntry.name : "Ai tools";
   
   return {
     id: item.video_id,
     title: item.metadata?.title || "Untitled",
     summary: item.analysis?.summary || "",
     image: item.metadata?.thumbnails?.high?.url || "",
-    industry: item.industry || "General",
+     industry: industryName,
     influencer: {
       id: item.influencer_id,
       name: item.metadata?.channel_title || "Unknown",

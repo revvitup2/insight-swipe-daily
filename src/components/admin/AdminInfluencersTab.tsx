@@ -26,6 +26,7 @@ import {
 import { createInfluencer, fetchInfluencers, updateInfluencerPause } from "@/lib/api";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { industries } from "../OnboardingFlow";
 
 interface Influencer {
   _id: string;
@@ -43,25 +44,8 @@ interface Influencer {
   is_pause: boolean;
 }
 
-const INDUSTRY_OPTIONS = [
-  "Artificial Intelligence (AI)",
-  "Technology",
-  "Finance",
-  "Healthcare",
-  "Startups",
-  "Business",
-  "Marketing",
-  "Design",
-  "Others"
-];
-
 const INDUSTRY_TYPE_OPTIONS = [
-  "B2B",
-  "B2C",
-  "Enterprise",
-  "SaaS",
-  "E-commerce",
-  "Consumer"
+ "AI"
 ];
 
 export const AdminInfluencersTab = () => {
@@ -353,9 +337,9 @@ export const AdminInfluencersTab = () => {
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    {INDUSTRY_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
+                    {industries.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

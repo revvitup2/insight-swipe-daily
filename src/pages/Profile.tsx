@@ -17,15 +17,16 @@ import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import FeedbackForm from "@/components/FeedbackForm";
 
 export const industries = [
-  { id: "finance", name: "Finance" },
-  { id: "Artificial Intelligence (AI)", name: "AI" },
-  { id: "healthcare", name: "Healthcare" },
-  { id: "startups", name: "Startups" },
-  { id: "business", name: "Business" },
-  { id: "technology", name: "Technology" },
-  { id: "marketing", name: "Marketing" },
-  { id: "design", name: "Design" },
-  { id: "others", name: "Others" },
+{id: "ai-tools-apps", name: "AI Tools & Apps"},
+        {id: "chatgpt-friends", name: "ChatGPT & Friends"},
+        {id: "ai-in-business", name: "AI in Business"},
+        {id: "creative-ai", name: "Creative AI"},
+        {id: "ai-search-browsing", name: "AI Search & Browsing"},
+        {id: "new-ai-breakthroughs", name: "New AI Breakthroughs"},
+        {id: "ai-hardware-chips", name: "AI Hardware & Chips"},
+        {id: "rules-ethics", name: "Rules & Ethics"},
+        {id: "jobs-society", name: "Jobs & Society"},
+        {id: "ai-startups-funding", name: "AI Startups & Funding"},
 ];
 
 const Profile = () => {
