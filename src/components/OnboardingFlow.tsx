@@ -5,6 +5,8 @@ import { Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { APP_NAME } from "@/constants/constants";
+import { useSelectedIndustries } from "@/contexts/selectedIndustries";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Industry {
   id: string;
@@ -29,18 +31,21 @@ interface OnboardingFlowProps {
 }
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const { user, loading, token } = useAuth();
+  // const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const { selectedIndustries, toggleIndustry, setSelectedIndustries } = useSelectedIndustries(user, token);
+
   const [step, setStep] = useState(1);
   const [showSelectionWarning, setShowSelectionWarning] = useState(false);
   
-  const toggleIndustry = (industryId: string) => {
-    if (selectedIndustries.includes(industryId)) {
-      setSelectedIndustries(selectedIndustries.filter(id => id !== industryId));
-    } else {
-      setSelectedIndustries([...selectedIndustries, industryId]);
-    }
-    setShowSelectionWarning(false);
-  };
+  // const toggleIndustry = (industryId: string) => {
+  //   if (selectedIndustries.includes(industryId)) {
+  //     setSelectedIndustries(selectedIndustries.filter(id => id !== industryId));
+  //   } else {
+  //     setSelectedIndustries([...selectedIndustries, industryId]);
+  //   }
+  //   setShowSelectionWarning(false);
+  // };
 
   const selectAllIndustries = () => {
     setSelectedIndustries(industries.map(industry => industry.id));
@@ -49,6 +54,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const deselectAllIndustries = () => {
     setSelectedIndustries([]);
+       localStorage.setItem("selectedIndustries", JSON.stringify([]));
   };
   
   const handleNextStep = () => {
@@ -60,7 +66,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
   
   const handleComplete = () => {
-    localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
     onComplete(selectedIndustries);
   };
   

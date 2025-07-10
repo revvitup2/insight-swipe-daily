@@ -10,9 +10,9 @@ import { Badge } from "lucide-react";
 import { ByteCard } from "@/components/ui/bytmecard";
 import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useFeed, useInfiniteScroll } from "@/hooks/use-feed";
-import { industries } from "./Profile";
 import { useFollowChannel } from "@/hooks/use-follow";
 import { useAuth } from "@/contexts/AuthContext";
+import { industries } from "@/components/OnboardingFlow";
 
 const Explore = () => {
     const { user, token } = useAuth();
@@ -237,6 +237,8 @@ const handleSave = async (id: string) => {
     );
   };
 
+  console.log("All Insights:", allInsights);
+console.log("Selected Industries:", selectedIndustries);
   const filteredBytes = allInsights.filter((insight) => {
     if (selectedIndustries.length === 0) return true;
     return selectedIndustries.some((industry) =>

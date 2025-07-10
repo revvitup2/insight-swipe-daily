@@ -41,10 +41,10 @@ export const useFollowChannel = (token: string | null) => {
         const data: FollowedChannelsResponse = await response.json();
         setFollowedChannels(new Set(data.followed_channels));
       } else {
-        console.error('Failed to fetch followed channels:', response.status);
+        // console.error('Failed to fetch followed channels:', response.status);
       }
     } catch (error) {
-      console.error('Failed to fetch followed channels:', error);
+      // console.error('Failed to fetch followed channels:', error);
     } finally {
       setIsInitialized(true);
     }
