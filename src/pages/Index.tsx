@@ -13,7 +13,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { motion, AnimatePresence } from 'framer-motion';
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { cn } from "@/lib/utils";
-import { Save, Share } from "lucide-react";
+import { Save, Share, Search } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatDistanceToNow } from "date-fns";
 import { getCurrentUserToken } from "@/lib/firebase";
@@ -800,7 +800,7 @@ useEffect(() => {
             
           <div className="space-y-6">
             {activeTab === "following" && followingBytes.length === 0 && !followingLoading ? (
-              <EmptyFollowingState />
+              <EmptyFollowingState onFollowChange={() => hardRefresh()} />
             ) : (
               Bytes.map((bite) => (
                 <ByteCard
@@ -860,17 +860,31 @@ useEffect(() => {
       )}
           {/* Feed Tabs for Mobile */}
           <div className="absolute top-4 left-4 right-4 z-10">
-            <FeedTabs 
-              activeTab={activeTab} 
-              onTabChange={handleTabChange}
-              followedCount={totalFollowed}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <FeedTabs 
+                  activeTab={activeTab} 
+                  onTabChange={handleTabChange}
+                  followedCount={totalFollowed}
+                />
+              </div>
+              {activeTab === "following" && followingBytes.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/influencers")}
+                  className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           
 
           {activeTab === "following" && followingBytes.length === 0 && !followingLoading ? (
       <div className="h-full flex items-center justify-center">
-        <EmptyFollowingState />
+        <EmptyFollowingState onFollowChange={() => hardRefresh()} />
       </div>
     ) : activeTab === "trending" && trendingBytes.length === 0 && !trendingLoading ? (
       <div className="h-full flex items-center justify-center">

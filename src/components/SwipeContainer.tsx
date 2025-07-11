@@ -1,4 +1,3 @@
-
 import React, { useContext } from 'react';
 import InsightCard, { Insight } from './InsightCard';
 
@@ -8,7 +7,6 @@ interface SwipeContainerProps {
   onSave: (id: string) => void;
   onLike: (id: string) => void;
   onShare: (id: string) => void;
-  onFollowInfluencer: (influencerId: string) => void;
   onInfluencerClick: (influencerId: string) => void;
   onSourceClick?: (url: string) => void;
   userIndustries: string[];
@@ -16,6 +14,9 @@ interface SwipeContainerProps {
   onTouchMove: (e: React.TouchEvent) => void;
   onTouchEnd: () => void;
   onClick: () => void;
+  isChannelFollowed: (channelId: string) => boolean;
+  isChannelLoading: (channelId: string) => boolean;
+  onFollowToggle?: (channelId: string, currentlyFollowed: boolean) => Promise<void>;
 }
 
 const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
@@ -25,14 +26,16 @@ const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
     onSave,
     onLike,
     onShare,
-    onFollowInfluencer,
     onInfluencerClick,
     onSourceClick,
     userIndustries,
     onTouchStart,
     onTouchMove,
     onTouchEnd,
-    onClick
+    onClick,
+    isChannelFollowed,
+    isChannelLoading,
+    onFollowToggle
   }, ref) => {
     return (
       <div 
@@ -50,11 +53,13 @@ const SwipeContainer = React.forwardRef<HTMLDivElement, SwipeContainerProps>(
             onSave={onSave}
             onLike={onLike}
             onShare={onShare}
-            onFollowInfluencer={onFollowInfluencer}
             onInfluencerClick={onInfluencerClick}
             onSourceClick={onSourceClick}
             position={positions[index] || ""}
             userIndustries={userIndustries}
+            isChannelFollowed={isChannelFollowed(insight.influencer.channel_id)}
+            isChannelLoading={isChannelLoading(insight.influencer.channel_id)}
+            onFollowToggle={onFollowToggle}
           />
         ))}
       </div>

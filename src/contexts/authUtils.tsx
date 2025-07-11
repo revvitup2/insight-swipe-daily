@@ -4,16 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export const useAuthActions = () => {
-  const { handleGoogleSignIn, handleSignOut, user } = useAuth();
+  const { signInWithGoogle, signOut, user } = useAuth();
 const navigate = useNavigate();
   const enhancedHandleGoogleSignIn = async () => {
     try {
-      const user = await handleGoogleSignIn();
+      await signInWithGoogle();
       toast({
         title: "Welcome!",
-        description: `Signed in as ${user.displayName || user.email}`,
+        description: `Signed in successfully`,
       });
-      return user;
     } catch (error) {
       toast({
         title: "Error",
@@ -26,7 +25,7 @@ const navigate = useNavigate();
 
   const enhancedHandleSignOut = async () => {
     try {
-      await handleSignOut();
+      await signOut();
       toast({
         title: "Signed out",
         description: "You've been successfully signed out",
@@ -56,9 +55,11 @@ const navigate = useNavigate();
   };
 
   return {
+    user,
+    signInWithGoogle,
+    signOut,
+    requireAuth,
     handleGoogleSignIn: enhancedHandleGoogleSignIn,
     handleSignOut: enhancedHandleSignOut,
-    requireAuth,
-    user,
   };
 };
