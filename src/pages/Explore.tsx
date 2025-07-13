@@ -6,13 +6,15 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Badge } from "lucide-react";
+import { Badge, Search } from "lucide-react";
 import { ByteCard } from "@/components/ui/bytmecard";
 import { useSavedInsights } from "@/components/savedInsightUtils";
 import { useFeed, useInfiniteScroll } from "@/hooks/use-feed";
 import { industries } from "./Profile";
 import { useFollowChannel } from "@/hooks/use-follow";
 import { useAuth } from "@/contexts/AuthContext";
+import InfluencerSearch from "@/components/InfluencerSearch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const Explore = () => {
     const { user, token } = useAuth();
@@ -288,7 +290,31 @@ const handleSave = async (id: string) => {
       )}
       
       <div className="container mx-auto py-6 md:py-12 px-4 pb-20 md:pb-6">
-        <h1 className="text-3xl font-bold mb-6 text-primary">Explore Bytes</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-primary">Explore Bytes</h1>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                <Search className="h-4 w-4" />
+                <span>Search Influencers</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Search Influencers</DialogTitle>
+              </DialogHeader>
+              <InfluencerSearch 
+                onInfluencerSelect={(influencer) => {
+                  toast({
+                    title: "Influencer Selected",
+                    description: `You selected ${influencer.display_name}`,
+                  });
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
         
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-3">Filter by Industry</h2>
