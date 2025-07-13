@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import {useLocation, useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import InsightCard, { Insight, PlatformIcon } from "@/components/InsightCard";
 import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
@@ -13,7 +13,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { motion, AnimatePresence } from 'framer-motion';
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { cn } from "@/lib/utils";
-import { Save, Share } from "lucide-react";
+import { ArrowRight, Save, Share } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatDistanceToNow } from "date-fns";
 import { getCurrentUserToken } from "@/lib/firebase";
@@ -76,8 +76,11 @@ const Index = () => {
   const { isDarkMode } = useTheme();
 
   // New state for feed tabs
-  const [activeTab, setActiveTab] = useState<"trending" | "following">("trending");
-
+const location = useLocation();
+const [activeTab, setActiveTab] = useState<"trending" | "following">(
+  location.state?.activeTab || "trending"
+);
+  // const [activeTab, setActiveTab] = useState<"trending" | "following">("trending");
   // Trending feed (existing)
   const { 
     feed: trendingBytes, 
@@ -85,7 +88,9 @@ const Index = () => {
     isLoadingMore: trendingLoadingMore, 
     error: trendingError, 
     hasMore: trendingHasMore, 
-    loadMore: loadMoreTrending 
+    loadMore: loadMoreTrending ,
+    refresh: refreshFeed,
+    hardRefresh:hardFeedRefresh,
   } = usePaginatedFeed(user, token);
 
   // Following feed (new)
@@ -222,14 +227,16 @@ useEffect(() => {
   }, [showingInfluencer, Bytes, selectedInfluencer]);
 
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
-    localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
+    // localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
     localStorage.setItem("onboarded", "true");
     setOnboarded(true);
-    
+    window.location.reload();
     toast({
       title: "Welcome to ByteMe!",
       description: "We've personalized your feed based on your interests.",
     });
+
+
     
     setShowTutorial(true);
   };
@@ -830,15 +837,19 @@ useEffect(() => {
             </div>
           )}
 
-          {Bytes.length === 0 && !isLoading && activeTab === "trending" && (
-            <div className="text-center py-8">
-              <p className={cn(
-                isDarkMode ? "text-gray-400" : "text-gray-500"
-              )}>
-                No Bytes found matching your criteria.
-              </p>
-            </div>
-          )}
+         {Bytes.length === 0 && !isLoading && activeTab === "trending" && (
+  <div className="flex flex-col items-center justify-center py-8 gap-4">
+    <p className={cn(
+      isDarkMode ? "text-gray-400" : "text-gray-500",
+      "text-center"
+    )}>
+      No Bytes found matching your interests.
+    </p>
+            <Button onClick={() => navigate("/profile")}>
+              Update Bytes
+            </Button>
+  </div>
+)}
         </div>
        
         <Navigation />
@@ -875,11 +886,16 @@ useEffect(() => {
     ) : activeTab === "trending" && trendingBytes.length === 0 && !trendingLoading ? (
       <div className="h-full flex items-center justify-center">
         <div className="text-center py-8">
-          <p className={cn(
+          <p className={cn( 
+            "mb-4",
             isDarkMode ? "text-gray-400" : "text-gray-500"
+
           )}>
-            No Bytes found matching your criteria.
+            No Bytes found matching your interests.
           </p>
+             <Button onClick={() => navigate("/profile")}>
+              Update Bytes
+            </Button>
         </div>
       </div>
           ) : (

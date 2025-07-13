@@ -81,7 +81,8 @@ useEffect(() => {
               <Route path="/saved" element={<SavedBytes />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
-              
+              <Route path="/influencers" element={<Influencers />} />
+
               {/* Admin Routes */}
               <Route path="/bytes/:videoId" element={<InsightDetails />} />
               <Route path="/admin" element={<AdminLogin />} />

@@ -161,6 +161,7 @@ export const usePaginatedFeed = (user: any, token: string) => {
 
     return () => clearTimeout(timeoutId);
   }, [industriesKey, loadInitialFeed]);
+    
 
   return { 
     feed, 

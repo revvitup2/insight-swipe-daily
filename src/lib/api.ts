@@ -272,3 +272,17 @@ export const removeSavedFeedItem = async (token: string, videoId: string) => {
   return response.json();
 };
 
+
+export const fetchInfluencersList = async (token: string, skip: number = 0, limit: number = ITEMS_PER_PAGE): Promise<InfluencersResponse> => {
+  const response = await fetch(`${API_BASE_URL}/influencers?skip=${skip}&limit=${limit}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch influencers');
+  }
+
+  return response.json();
+};
