@@ -79,6 +79,8 @@ export const InfluencerSearchOverlay = ({
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isAddingInfluencer, setIsAddingInfluencer] = useState(false);
   const [urlError, setUrlError] = useState("");
+  const [removedInfluencers, setRemovedInfluencers] = useState<Set<string>>(new Set());
+  const [removingInfluencers, setRemovingInfluencers] = useState<Set<string>>(new Set());
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -189,6 +191,12 @@ export const InfluencerSearchOverlay = ({
 
   const handleFollow = async (influencerId: string, influencerName: string) => {
     const currentlyFollowed = isChannelFollowed(influencerId);
+    
+    if (!currentlyFollowed) {
+      // If following, start the removal animation
+      setRemovingInfluencers(prev => new Set(prev).add(influencerId));
+    }
+    
     const result = await toggleFollowChannel(influencerId, currentlyFollowed);
     
     if (result.success) {
@@ -196,11 +204,35 @@ export const InfluencerSearchOverlay = ({
         title: currentlyFollowed ? "Unfollowed" : "Following",
         description: `${currentlyFollowed ? "Unfollowed" : "Now following"} ${influencerName}`,
       });
+      
+      if (!currentlyFollowed) {
+        // If successfully followed, remove from UI after animation
+        setTimeout(() => {
+          setRemovedInfluencers(prev => new Set(prev).add(influencerId));
+          setRemovingInfluencers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(influencerId);
+            return newSet;
+          });
+        }, 300); // Match animation duration
+      }
+    } else {
+      // If follow failed, remove from removing state
+      setRemovingInfluencers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(influencerId);
+        return newSet;
+      });
     }
   };
 
   const filteredMockInfluencers = mockInfluencers.filter((influencer) =>
-    influencer.name.toLowerCase().includes(searchQuery.toLowerCase())
+    influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    !removedInfluencers.has(influencer.id)
+  );
+
+  const filteredSearchResults = searchResults.filter((influencer) =>
+    !removedInfluencers.has(influencer.id)
   );
 
   if (!isOpen) return null;
@@ -313,47 +345,51 @@ export const InfluencerSearchOverlay = ({
           )}
 
           {/* Search Results */}
-          {searchResults.length > 0 && (
+          {filteredSearchResults.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Search Results:</p>
-              {searchResults.map((influencer) => (
-                <Card 
-                  key={influencer.id} 
-                  className={cn(
-                    "cursor-pointer hover:bg-accent transition-colors",
-                    isDarkMode ? "hover:bg-accent/50" : ""
-                  )}
-                  onClick={() => onInfluencerSelect?.(influencer)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      {influencer.avatar_url && (
-                        <img 
-                          src={influencer.avatar_url} 
-                          alt={influencer.display_name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h3 className="font-medium">{influencer.display_name}</h3>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {influencer.platform}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {influencer.industry}
-                          </Badge>
+              {filteredSearchResults.map((influencer) => {
+                const isRemoving = removingInfluencers.has(influencer.id);
+                return (
+                  <Card 
+                    key={influencer.id} 
+                    className={cn(
+                      "cursor-pointer hover:bg-accent transition-all duration-300",
+                      isDarkMode ? "hover:bg-accent/50" : "",
+                      isRemoving ? "animate-fade-out scale-95 opacity-0" : "animate-fade-in"
+                    )}
+                    onClick={() => onInfluencerSelect?.(influencer)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        {influencer.avatar_url && (
+                          <img 
+                            src={influencer.avatar_url} 
+                            alt={influencer.display_name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-medium">{influencer.display_name}</h3>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {influencer.platform}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {influencer.industry}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
           {/* Mock Influencers List */}
-          {(!searchQuery.trim() || searchResults.length === 0) && (
+          {(!searchQuery.trim() || filteredSearchResults.length === 0) && (
             <div className="space-y-2">
               <p className="text-sm font-medium">
                 {searchQuery.trim() ? "Suggested Influencers:" : "Popular Influencers:"}
@@ -362,9 +398,16 @@ export const InfluencerSearchOverlay = ({
                 {filteredMockInfluencers.map((influencer) => {
                   const isFollowed = isChannelFollowed(influencer.id);
                   const isLoading = isChannelLoading(influencer.id);
+                  const isRemoving = removingInfluencers.has(influencer.id);
                   
                   return (
-                    <Card key={influencer.id} className="transition-all hover:shadow-md">
+                    <Card 
+                      key={influencer.id} 
+                      className={cn(
+                        "transition-all duration-300 hover:shadow-md",
+                        isRemoving ? "animate-fade-out scale-95 opacity-0" : "animate-fade-in"
+                      )}
+                    >
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-base">{influencer.name}</CardTitle>
@@ -380,9 +423,9 @@ export const InfluencerSearchOverlay = ({
                           size="sm"
                           className="w-full"
                           onClick={() => handleFollow(influencer.id, influencer.name)}
-                          disabled={isLoading}
+                          disabled={isLoading || isRemoving}
                         >
-                          {isLoading ? "..." : (isFollowed ? "Unfollow" : "Follow")}
+                          {isLoading || isRemoving ? "..." : (isFollowed ? "Unfollow" : "Follow")}
                         </Button>
                       </CardContent>
                     </Card>
