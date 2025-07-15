@@ -14,12 +14,13 @@ import { industries } from "./Profile";
 import { useFollowChannel } from "@/hooks/use-follow";
 import { useAuth } from "@/contexts/AuthContext";
 import InfluencerSearch from "@/components/InfluencerSearch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { InfluencerSearchOverlay } from "@/components/InfluencerSearchOverlay";
 
 const Explore = () => {
     const { user, token } = useAuth();
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [isSharing, setIsSharing] = useState(false);
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
@@ -293,27 +294,15 @@ const handleSave = async (id: string) => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-primary">Explore Bytes</h1>
           
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                <Search className="h-4 w-4" />
-                <span>Search Influencers</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Search Influencers</DialogTitle>
-              </DialogHeader>
-              <InfluencerSearch 
-                onInfluencerSelect={(influencer) => {
-                  toast({
-                    title: "Influencer Selected",
-                    description: `You selected ${influencer.display_name}`,
-                  });
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center space-x-2"
+            onClick={() => setShowSearchOverlay(true)}
+          >
+            <Search className="h-4 w-4" />
+            <span>Search Influencers</span>
+          </Button>
         </div>
         
         <div className="mb-8">
@@ -394,6 +383,18 @@ const handleSave = async (id: string) => {
       </div>
       
       <Navigation />
+      
+      <InfluencerSearchOverlay
+        isOpen={showSearchOverlay}
+        onClose={() => setShowSearchOverlay(false)}
+        onInfluencerSelect={(influencer) => {
+          toast({
+            title: "Influencer Selected",
+            description: `You selected ${influencer.display_name}`,
+          });
+          setShowSearchOverlay(false);
+        }}
+      />
     </div>
   );
 };
