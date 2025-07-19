@@ -50,10 +50,10 @@ const INDUSTRY_TYPE_OPTIONS = [
 
 export const AdminInfluencersTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [platform, setPlatform] = useState<string>("");
+  const [platform, setPlatform] = useState<string>("youtube"); // First platform option
+const [industry, setIndustry] = useState(industries[0].id); // First industry option
+const [industryType, setIndustryType] = useState(INDUSTRY_TYPE_OPTIONS[0]); 
   const [channelId, setChannelId] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [industryType, setIndustryType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -154,10 +154,11 @@ export const AdminInfluencersTab = () => {
       setInfluencers(data);
       
       // Reset form
-      setPlatform("");
+      setPlatform("youtube");
       setChannelId("");
-      setIndustry("");
-      setIndustryType("");
+      setIndustry(industries[0].id);
+      setIndustryType(INDUSTRY_TYPE_OPTIONS[0]);
+
     } catch (error) {
       console.error("Error adding influencer:", error);
       toast({
