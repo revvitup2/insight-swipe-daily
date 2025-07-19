@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Moon, Sun, LogOut, Settings } from "lucide-react";
+import { Moon, Sun, LogOut, Settings, HelpCircle } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,7 +53,17 @@ const Profile = () => {
 
   //   loadPreferences();
   // }, [user, token]);
-  const { selectedIndustries,savePreferences, setSelectedIndustries,toggleIndustry } = useSelectedIndustries(user, token)
+  const { selectedIndustries,savePreferences, setSelectedIndustries,toggleIndustry } = useSelectedIndustries(user, token);
+  
+  const startTutorial = () => {
+    localStorage.removeItem("appTutorialShown");
+    localStorage.removeItem("tutorialShown");
+    navigate("/");
+    // Small delay to ensure page loads before tutorial starts
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
 
 
   // const toggleIndustry = async (industryId: string) => {
@@ -230,7 +240,7 @@ const Profile = () => {
                 Customize how ByteMe looks and feels
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -240,6 +250,21 @@ const Profile = () => {
                   checked={isDarkMode}
                   onCheckedChange={toggleDarkMode}
                 />
+              </div>
+              
+              {/* Tutorial Button */}
+              <div className="pt-2 border-t">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between"
+                  onClick={startTutorial}
+                >
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4" />
+                    <span className="font-medium">Take App Tour</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">Restart tutorial</span>
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import SwipeTutorial from "@/components/SwipeTutorial";
+import AppTutorial from "@/components/AppTutorial";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { motion, AnimatePresence } from 'framer-motion';
 import ByteMeLogo from "@/components/ByteMeLogo";
@@ -65,6 +66,7 @@ const Index = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showAppTutorial, setShowAppTutorial] = useState(false);
   const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [sharingState, setSharingState] = useState<Record<string, boolean>>({});
   const [isSummaryScrolling, setIsSummaryScrolling] = useState(false);
@@ -161,7 +163,9 @@ useEffect(() => {
   }, [currentInsightIndex]);
 
   useEffect(() => {
-    if (onboarded && !localStorage.getItem("tutorialShown")) {
+    if (onboarded && !localStorage.getItem("appTutorialShown")) {
+      setShowAppTutorial(true);
+    } else if (onboarded && !localStorage.getItem("tutorialShown")) {
       setShowTutorial(true);
     }
   }, [onboarded]);
@@ -237,6 +241,17 @@ useEffect(() => {
   const handleTutorialComplete = () => {
     setShowTutorial(false);
     localStorage.setItem("tutorialShown", "true");
+  };
+
+  const handleAppTutorialComplete = () => {
+    setShowAppTutorial(false);
+    localStorage.setItem("appTutorialShown", "true");
+    setShowTutorial(true);
+  };
+
+  const handleAppTutorialSkip = () => {
+    setShowAppTutorial(false);
+    localStorage.setItem("appTutorialShown", "true");
   };
 
   const handleSaveInsight = async (id: string) => {
@@ -943,6 +958,18 @@ useEffect(() => {
     
         
       <Navigation />
+      
+      {/* Tutorials */}
+      {showAppTutorial && (
+        <AppTutorial 
+          onComplete={handleAppTutorialComplete}
+          onSkip={handleAppTutorialSkip}
+        />
+      )}
+      
+      {showTutorial && (
+        <SwipeTutorial onComplete={handleTutorialComplete} />
+      )}
     </div>
   );
 };

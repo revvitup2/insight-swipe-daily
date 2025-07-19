@@ -15,6 +15,7 @@ export const FeedTabs = ({ activeTab, onTabChange, followedCount = 0 }: FeedTabs
         variant="ghost"
         size="sm"
         onClick={() => onTabChange("trending")}
+        data-tab="trending"
         className={cn(
           "flex-1 flex items-center justify-center gap-2 rounded-md transition-all",
           activeTab === "trending"
@@ -29,6 +30,7 @@ export const FeedTabs = ({ activeTab, onTabChange, followedCount = 0 }: FeedTabs
         variant="ghost"
         size="sm"
         onClick={() => onTabChange("following")}
+        data-tab="following"
         className={cn(
           "flex-1 flex items-center justify-center gap-2 rounded-md transition-all",
           activeTab === "following"
