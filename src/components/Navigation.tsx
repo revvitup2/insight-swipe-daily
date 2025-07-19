@@ -22,16 +22,19 @@ export const Navigation = () => {
       name: "Saved",
       path: "/saved",
       icon: <Bookmark className="w-6 h-6" />,
+      dataNav: "saved"
     },
     {
       name: "Explore",
       path: "/explore",
       icon: <Search className="w-6 h-6" />,
+      dataNav: "explore"
     },
     {
       name: "Profile",
       path: "/profile",
       icon: <User className="w-6 h-6" />,
+      dataNav: "profile"
     },
   ];
 
@@ -51,6 +54,7 @@ export const Navigation = () => {
         <Link 
           key={item.path} 
           to={item.path}
+          data-nav={item.dataNav}
           className={cn(
             "flex flex-col items-center justify-center p-2 rounded-lg transition-colors",
             currentPath === item.path 
