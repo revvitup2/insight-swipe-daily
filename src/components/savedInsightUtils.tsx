@@ -7,11 +7,11 @@ import { getCurrentUserToken } from "@/lib/firebase";
 export const useSavedInsights = () => {
   const { user, requireAuth } = useAuthActions();
 
-  const handleSaveInsightInApi = async (id: string) => {
+  const handleSaveInsightInApi = async (id: string,industry?: string) => {
     const token = await getCurrentUserToken();
     try {
       await requireAuth(async () => {
-        await saveFeedItem(token, id);
+        await saveFeedItem(token, id,industry);
         toast({
           title: "Byte saved",
           description: "You can find it in saved tab",

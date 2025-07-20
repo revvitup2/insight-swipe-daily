@@ -246,8 +246,8 @@ useEffect(() => {
     localStorage.setItem("tutorialShown", "true");
   };
 
-  const handleSaveInsight = async (id: string) => {
-    const newSavedStatus = await handleSaveInsightInApi(id);
+  const handleSaveInsight = async (id: string,industry:string) => {
+    const newSavedStatus = await handleSaveInsightInApi(id,industry);
   };
 
 
@@ -814,7 +814,7 @@ useEffect(() => {
                   key={bite.id}
                   bite={bite}
                   isDarkMode={isDarkMode}
-                  onSave={()=>{handleSaveInsight(bite.id);}}
+                  onSave={()=>{handleSaveInsight(bite.id,bite.industry);}}
                   onShare={()=> handleShareDesktop(bite.id)}
                   onClick={()=>navigate(`/bytes/${bite.id}`)}
                   isChannelFollowed={isChannelFollowed(bite.influencer.channel_id)}
@@ -922,7 +922,7 @@ useEffect(() => {
                      <InsightCard 
                     key={Bytes[currentInsightIndex]?.id}
                     insight={Bytes[currentInsightIndex]}
-                    onSave={handleSaveInsight}
+                      onSave={()=>{handleSaveInsight(Bytes[currentInsightIndex]?.id,Bytes[currentInsightIndex]?.industry);}}
                     onLike={()=>{}}
                     onShare={handleShareInsight}
                     onInfluencerClick={handleInfluencerClick}

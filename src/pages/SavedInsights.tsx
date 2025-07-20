@@ -68,13 +68,13 @@ const SavedBytes = () => {
     await toggleFollowChannel(channelId, currentlyFollowed);
   };
   
-  const handleRemoveInsight = async (id: string) => {
+  const handleRemoveInsight = async (id: string,industry?: string) => {
     try {
       if (!token) {
         throw new Error("Authentication required");
       }
 
-      await removeSavedFeedItem(token, id);
+      await removeSavedFeedItem(token, id,industry);
       removeItem(id);
       
       toast({
@@ -145,7 +145,7 @@ const SavedBytes = () => {
                 key={insight.id}
                 bite={insight}
                 isDarkMode={isDarkMode}
-                onRemove={handleRemoveInsight}
+                onRemove={()=>{handleRemoveInsight(insight.id,insight.industry)}}
                 isChannelFollowed={isChannelFollowed(insight.influencer.channel_id)}
                 isChannelLoading={isChannelLoading(insight.influencer.channel_id)}
                 onFollowToggle={handleFollowToggle}
