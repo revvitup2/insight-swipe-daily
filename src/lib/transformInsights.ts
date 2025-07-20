@@ -18,7 +18,7 @@ export const transformApiInsight = (item: ApiInsight, isFollowed: boolean = fals
     sourcePlatform = "other";
   }
    const industryEntry = industries.find(industry => industry.id === item.industry);
-  const industryName = industryEntry ? industryEntry.id : "ai-tools-apps";
+  const industryName = industryEntry ? industryEntry.id : "personalised";
   
   return {
     id: item.video_id,
