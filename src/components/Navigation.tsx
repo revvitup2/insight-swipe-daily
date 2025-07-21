@@ -1,9 +1,9 @@
 
 "use client";
-import { Home, Bookmark, Search, User } from "lucide-react";
+import { Home, Bookmark, Search, User, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 export const Navigation = () => {
@@ -11,6 +11,7 @@ export const Navigation = () => {
   const currentPath = location.pathname;
   const [isVisible, setIsVisible] = useState(true);
   const { isDarkMode } = useTheme();
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const navItems = [
     {
@@ -19,10 +20,10 @@ export const Navigation = () => {
       icon: <Home className="w-6 h-6" />,
     },
     {
-      name: "Saved",
-      path: "/saved",
-      icon: <Bookmark className="w-6 h-6" />,
-      dataNav: "saved"
+      name: "Progress",
+      path: "/progress",
+      icon: <TrendingUp className="w-6 h-6" />,
+      dataNav: "progress"
     },
     {
       name: "Explore",
@@ -38,8 +39,47 @@ export const Navigation = () => {
     },
   ];
 
+  // Auto-hide functionality for home page
   useEffect(() => {
     setIsVisible(true);
+    
+    // Only auto-hide on home page
+    if (currentPath !== "/") return;
+
+    const hideNavAfterInactivity = () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      
+      inactivityTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+      }, 3000); // Hide after 3 seconds of inactivity
+    };
+
+    const showNavOnActivity = () => {
+      setIsVisible(true);
+      hideNavAfterInactivity();
+    };
+
+    // Events that should show the navigation
+    const events = ['touchstart', 'touchmove', 'touchend', 'mousedown', 'mousemove', 'scroll'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, showNavOnActivity, { passive: true });
+    });
+
+    // Initial timer
+    hideNavAfterInactivity();
+
+    // Cleanup
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      events.forEach(event => {
+        document.removeEventListener(event, showNavOnActivity);
+      });
+    };
   }, [currentPath]);
   
   return (

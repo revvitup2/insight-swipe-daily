@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index";
-import SavedBytes from "./pages/SavedInsights";
+import Progress from "./pages/Progress";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -78,7 +78,7 @@ useEffect(() => {
 
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/saved" element={<SavedBytes />} />
+              <Route path="/progress" element={<Progress />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
               
