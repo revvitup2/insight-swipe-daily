@@ -80,6 +80,7 @@ useEffect(() => {
               <Route path="/" element={<Index />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/saved" element={<SavedInsights />} />
               <Route path="/profile" element={<Profile />} />
               
               {/* Admin Routes */}
