@@ -57,20 +57,19 @@ interface BadgeType {
 }
 
 const Progress = () => {
-  const { user, token } = useAuth();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
 
-  // Mock data - in real app, this would come from API
+  // Enhanced dummy data for design preview
   const [stats, setStats] = useState<ProgressStats>({
-    dailyStreak: 7,
-    totalBytesConsumed: 42,
-    totalDaysActive: 12,
-    categoriesExplored: 5,
+    dailyStreak: 14,
+    totalBytesConsumed: 87,
+    totalDaysActive: 23,
+    categoriesExplored: 8,
     weeklyGoal: 7,
-    weeklyProgress: 5,
-    monthlyGoal: 25,
-    monthlyProgress: 18
+    weeklyProgress: 6,
+    monthlyGoal: 30,
+    monthlyProgress: 24
   });
 
   const milestones: Milestone[] = [
@@ -142,7 +141,8 @@ const Progress = () => {
       description: "Read your first Byte",
       icon: <BookOpen className="w-5 h-5" />,
       category: "habits",
-      unlocked: stats.totalBytesConsumed >= 1
+      unlocked: true,
+      unlockedAt: "2024-01-20"
     },
     {
       id: "weekly-streak",
@@ -150,7 +150,17 @@ const Progress = () => {
       description: "Maintained a 7-day learning streak",
       icon: <Flame className="w-5 h-5" />,
       category: "consistency",
-      unlocked: stats.dailyStreak >= 7
+      unlocked: true,
+      unlockedAt: "2024-01-27"
+    },
+    {
+      id: "50-bytes",
+      title: "50 Bytes Read",
+      description: "Consumed 50 learning Bytes",
+      icon: <Star className="w-5 h-5" />,
+      category: "habits",
+      unlocked: true,
+      unlockedAt: "2024-02-05"
     },
     {
       id: "ai-native",
@@ -158,7 +168,17 @@ const Progress = () => {
       description: "Read 30 AI-focused Bytes",
       icon: <Zap className="w-5 h-5" />,
       category: "mastery",
-      unlocked: false
+      unlocked: true,
+      unlockedAt: "2024-02-10"
+    },
+    {
+      id: "category-explorer",
+      title: "Category Explorer",
+      description: "Explored 5+ different categories",
+      icon: <Target className="w-5 h-5" />,
+      category: "mastery",
+      unlocked: true,
+      unlockedAt: "2024-02-12"
     },
     {
       id: "top-learner",
@@ -166,6 +186,14 @@ const Progress = () => {
       description: "Among top 10% in AI category",
       icon: <Trophy className="w-5 h-5" />,
       category: "mastery",
+      unlocked: false
+    },
+    {
+      id: "streak-master",
+      title: "Streak Master",
+      description: "Achieve a 30-day streak",
+      icon: <Flame className="w-5 h-5" />,
+      category: "consistency",
       unlocked: false
     }
   ];
@@ -187,25 +215,7 @@ const Progress = () => {
     return "Every Byte makes you smarter! 💡";
   };
 
-  if (!token) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-6xl mb-4">🔒</div>
-            <h3 className="text-xl font-semibold mb-2">Authentication Required</h3>
-            <p className="text-muted-foreground mb-6">
-              Sign in to track your learning progress
-            </p>
-            <Button onClick={() => navigate("/")}>
-              Go to Home
-            </Button>
-          </div>
-        </div>
-        <Navigation />
-      </div>
-    );
-  }
+  // Removed authentication requirement for design preview
 
   return (
     <div className="min-h-screen bg-background pb-20">
