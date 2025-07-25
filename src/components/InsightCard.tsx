@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { Heart, Share, Save, Twitter, Youtube, Linkedin, UserPlus, UserMinus, Loader2, Search, BookOpen } from "lucide-react";
+import { Heart, Share, Save, Twitter, Youtube, Linkedin, UserPlus, UserMinus, Loader2, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import ByteMeLogo from "@/components/ByteMeLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ContentControl from "@/components/ContentControl";
 import { FollowButton } from "@/contexts/follow_button_props";
+import { useAutoHide } from "@/hooks/use-auto-hide";
 
 interface Influencer {
   id: string;
@@ -111,7 +112,8 @@ export const InsightCard = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const pendingEdgeDirection = useRef<"up" | "down" | null>(null);
-  const [isFullByteMode, setIsFullByteMode] = useState(false);
+  const [isBigByteMode, setIsBigByteMode] = useState(false);
+  const isFloatingButtonVisible = useAutoHide(3000);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
@@ -258,8 +260,8 @@ export const InsightCard = ({
     return words.slice(0, wordLimit).join(' ') + '...';
   };
 
-  // Generate full-byte content from key points if not provided
-  const getFullByteContent = () => {
+  // Generate big-byte content from key points if not provided
+  const getBigByteContent = () => {
     if (insight.fullSummary) {
       return insight.fullSummary;
     }
@@ -275,8 +277,8 @@ export const InsightCard = ({
     return insight.summary;
   };
 
-  const handleFullByteToggle = () => {
-    setIsFullByteMode(!isFullByteMode);
+  const handleBigByteToggle = () => {
+    setIsBigByteMode(!isBigByteMode);
   };
 
   
@@ -337,44 +339,19 @@ export const InsightCard = ({
         {insight.title}
       </h2>
       
-      {/* Summary Content with Full-Byte Toggle */}
+      {/* Summary Content */}
       <div className="flex-1 mb-3 pr-2">
         <div className={cn(
           "text-base text-gray-700 dark:text-gray-300 leading-relaxed transition-all duration-300",
-          isFullByteMode ? "animate-fade-in" : ""
+          isBigByteMode ? "animate-fade-in" : ""
         )}>
-          {isFullByteMode ? (
+          {isBigByteMode ? (
             <div className="whitespace-pre-line">
-              {getFullByteContent()}
+              {getBigByteContent()}
             </div>
           ) : (
             <p>{truncateSummary(insight.summary, 100)}</p>
           )}
-        </div>
-        
-        {/* Full-Byte Toggle Button */}
-        <div className="flex justify-center mt-3">
-          <button
-            onClick={handleFullByteToggle}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200",
-              "bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200",
-              "dark:bg-violet-950/50 dark:hover:bg-violet-950/70 dark:text-violet-300 dark:border-violet-800",
-              "hover:shadow-sm hover:scale-105 active:scale-95"
-            )}
-          >
-            {isFullByteMode ? (
-              <>
-                <BookOpen className="w-4 h-4" />
-                Short Summary
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4" />
-                Full-Byte
-              </>
-            )}
-          </button>
         </div>
       </div>
     </div>
@@ -434,6 +411,25 @@ export const InsightCard = ({
           <Share className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         </button>
       </div>
+    </div>
+
+    {/* Floating Byte Toggle Button */}
+    <div className={cn(
+      "fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40 transition-all duration-300",
+      !isFloatingButtonVisible && "translate-y-full opacity-0"
+    )}>
+      <button
+        onClick={handleBigByteToggle}
+        className={cn(
+          "flex items-center gap-2 px-4 py-3 rounded-full text-sm font-semibold transition-all duration-200 shadow-lg",
+          "bg-violet-100 hover:bg-violet-200 text-violet-800 border border-violet-300",
+          "dark:bg-violet-900/80 dark:hover:bg-violet-900 dark:text-violet-200 dark:border-violet-700",
+          "hover:shadow-xl hover:scale-105 active:scale-95 backdrop-blur-sm"
+        )}
+      >
+        <ArrowUpDown className="w-4 h-4" />
+        {isBigByteMode ? "Small-byte" : "Big-byte"}
+      </button>
     </div>
   </div>
   );

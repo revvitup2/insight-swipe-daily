@@ -3,15 +3,14 @@
 import { Home, Bookmark, Search, User, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAutoHide } from "@/hooks/use-auto-hide";
 
 export const Navigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const [isVisible, setIsVisible] = useState(true);
   const { isDarkMode } = useTheme();
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isVisible = useAutoHide(3000);
   
   const navItems = [
     {
@@ -39,48 +38,6 @@ export const Navigation = () => {
     },
   ];
 
-  // Auto-hide functionality for home page
-  useEffect(() => {
-    setIsVisible(true);
-    
-    // Only auto-hide on home page
-    if (currentPath !== "/") return;
-
-    const hideNavAfterInactivity = () => {
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      
-      inactivityTimerRef.current = setTimeout(() => {
-        setIsVisible(false);
-      }, 3000); // Hide after 3 seconds of inactivity
-    };
-
-    const showNavOnActivity = () => {
-      setIsVisible(true);
-      hideNavAfterInactivity();
-    };
-
-    // Events that should show the navigation
-    const events = ['touchstart', 'touchmove', 'touchend', 'mousedown', 'mousemove', 'scroll'];
-    
-    events.forEach(event => {
-      document.addEventListener(event, showNavOnActivity, { passive: true });
-    });
-
-    // Initial timer
-    hideNavAfterInactivity();
-
-    // Cleanup
-    return () => {
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      events.forEach(event => {
-        document.removeEventListener(event, showNavOnActivity);
-      });
-    };
-  }, [currentPath]);
   
   return (
     <div 
