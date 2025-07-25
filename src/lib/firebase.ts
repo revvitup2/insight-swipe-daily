@@ -1,7 +1,17 @@
 // src/lib/firebase.ts
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { browserLocalPersistence, getAuth, GoogleAuthProvider, onAuthStateChanged, User } from "firebase/auth";
+import { 
+  browserLocalPersistence, 
+  getAuth, 
+  GoogleAuthProvider, 
+  onAuthStateChanged, 
+  User,
+  signInWithPopup,
+  createUserWithEmailAndPassword as firebaseCreateUser,
+  signInWithEmailAndPassword as firebaseSignIn,
+  updateProfile
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDb-4a3ePeZjin7FE4Ge-s-fz3Yc3Muscg",
@@ -52,5 +62,39 @@ const setPersistence = async () => {
 };
 
 setPersistence();
+
+// Authentication functions
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error) {
+    console.error("Error signing in with Google:", error);
+    throw error;
+  }
+};
+
+export const createUserWithEmailAndPassword = async (email: string, password: string, displayName?: string) => {
+  try {
+    const result = await firebaseCreateUser(auth, email, password);
+    if (displayName && result.user) {
+      await updateProfile(result.user, { displayName });
+    }
+    return result.user;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+};
+
+export const signInWithEmailAndPassword = async (email: string, password: string) => {
+  try {
+    const result = await firebaseSignIn(auth, email, password);
+    return result.user;
+  } catch (error) {
+    console.error("Error signing in:", error);
+    throw error;
+  }
+};
 
 export { auth, provider, getCurrentUserToken };

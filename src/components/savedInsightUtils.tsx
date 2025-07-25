@@ -3,11 +3,20 @@ import { useAuthActions } from "@/contexts/authUtils";
 import { toast } from "@/hooks/use-toast";
 import { saveFeedItem, removeSavedFeedItem } from "@/lib/api";
 import { getCurrentUserToken } from "@/lib/firebase";
+import { useNavigate } from "react-router-dom";
 
 export const useSavedInsights = () => {
   const { user, requireAuth } = useAuthActions();
+  const navigate = useNavigate();
 
   const handleSaveInsightInApi = async (id: string) => {
+    // Check if user is authenticated
+    if (!user) {
+      // Redirect to sign-up page
+      navigate('/signup', { state: { redirectPath: '/' } });
+      return;
+    }
+
     const token = await getCurrentUserToken();
     try {
       await requireAuth(async () => {

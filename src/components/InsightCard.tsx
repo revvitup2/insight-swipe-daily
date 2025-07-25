@@ -1,6 +1,6 @@
 "use client";
-import { useRef } from "react";
-import { Heart, Share, Save, Twitter, Youtube, Linkedin, UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Heart, Share, Save, Twitter, Youtube, Linkedin, UserPlus, UserMinus, Loader2, Search, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export interface Insight {
   id: string;
   title: string;
   summary: string;
+  fullSummary?: string; // New field for full-byte mode
   image: string;
   industry: string;
   influencer: Influencer;
@@ -110,6 +111,7 @@ export const InsightCard = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const pendingEdgeDirection = useRef<"up" | "down" | null>(null);
+  const [isFullByteMode, setIsFullByteMode] = useState(false);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())
@@ -250,10 +252,31 @@ export const InsightCard = ({
     //   onClick(insight.id);
     // }
   };
-    const truncateSummary = (text: string, wordLimit: number = 100) => {
+  const truncateSummary = (text: string, wordLimit: number = 100) => {
     const words = text.split(' ');
     if (words.length <= wordLimit) return text;
     return words.slice(0, wordLimit).join(' ') + '...';
+  };
+
+  // Generate full-byte content from key points if not provided
+  const getFullByteContent = () => {
+    if (insight.fullSummary) {
+      return insight.fullSummary;
+    }
+    
+    // Generate from key points if available
+    if (insight.keyPoints && insight.keyPoints.length > 0) {
+      return insight.keyPoints.slice(0, 5).map((point, index) => 
+        `• ${point.trim()}`
+      ).join('\n\n');
+    }
+    
+    // Fallback: expand the summary
+    return insight.summary;
+  };
+
+  const handleFullByteToggle = () => {
+    setIsFullByteMode(!isFullByteMode);
   };
 
   
@@ -314,11 +337,45 @@ export const InsightCard = ({
         {insight.title}
       </h2>
       
-      {/* Scrollable Summary Content */}
-        <div className="flex-1 mb-2 pr-2">
-        <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
-          {truncateSummary(insight.summary, 100)}
-        </p>
+      {/* Summary Content with Full-Byte Toggle */}
+      <div className="flex-1 mb-3 pr-2">
+        <div className={cn(
+          "text-base text-gray-700 dark:text-gray-300 leading-relaxed transition-all duration-300",
+          isFullByteMode ? "animate-fade-in" : ""
+        )}>
+          {isFullByteMode ? (
+            <div className="whitespace-pre-line">
+              {getFullByteContent()}
+            </div>
+          ) : (
+            <p>{truncateSummary(insight.summary, 100)}</p>
+          )}
+        </div>
+        
+        {/* Full-Byte Toggle Button */}
+        <div className="flex justify-center mt-3">
+          <button
+            onClick={handleFullByteToggle}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200",
+              "bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200",
+              "dark:bg-violet-950/50 dark:hover:bg-violet-950/70 dark:text-violet-300 dark:border-violet-800",
+              "hover:shadow-sm hover:scale-105 active:scale-95"
+            )}
+          >
+            {isFullByteMode ? (
+              <>
+                <BookOpen className="w-4 h-4" />
+                Short Summary
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4" />
+                Full-Byte
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
     

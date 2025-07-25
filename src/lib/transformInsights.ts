@@ -24,8 +24,9 @@ export const transformApiInsight = (item: ApiInsight, isFollowed: boolean = fals
     id: item.video_id,
     title: item.metadata?.title || "Untitled",
     summary: item.analysis?.summary || "",
+    fullSummary: item.analysis?.key_points?.slice(0, 5).join('\n\n• ') ? `• ${item.analysis.key_points.slice(0, 5).join('\n\n• ')}` : undefined,
     image: item.metadata?.thumbnails?.high?.url || "",
-     industry: industryName,
+    industry: industryName,
     influencer: {
       id: item.influencer_id,
       name: item.metadata?.channel_title || "Unknown",

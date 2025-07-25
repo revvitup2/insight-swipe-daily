@@ -19,6 +19,7 @@ import HeaderNavigation from "./components/HeaderNavigation";
 import SavedInsights from "./pages/SavedInsights";
 import Influencers from "./pages/Influencers";
 import InsightsDetails from "./pages/InsightsDetails";
+import SignUp from "./pages/SignUp";
 import Smartlook from 'smartlook-client';
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ useEffect(() => {
               <Route path="/progress" element={<Progress />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/saved" element={<SavedInsights />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route path="/profile" element={<Profile />} />
               
               {/* Admin Routes */}
