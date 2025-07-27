@@ -9,6 +9,7 @@ import ByteMeLogo from "@/components/ByteMeLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ContentControl from "@/components/ContentControl";
 import { FollowButton } from "@/contexts/follow_button_props";
+import { useAutoHide } from "@/hooks/use-auto-hide";
 
 interface Influencer {
   id: string;
@@ -110,6 +111,7 @@ export const InsightCard = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const pendingEdgeDirection = useRef<"up" | "down" | null>(null);
+  const isFloatingButtonVisible = useAutoHide(3000);
   
   const isPreferredIndustry = userIndustries.some(industry => 
     insight.industry.toLowerCase().includes(industry.toLowerCase())

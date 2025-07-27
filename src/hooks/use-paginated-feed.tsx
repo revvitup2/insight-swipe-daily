@@ -19,7 +19,7 @@ interface FeedCache {
 
 const CACHE_EXPIRY_MS = 60 * 60 * 1000;
 
-export const usePaginatedFeed = (user: any, token: string) => {
+export const usePaginatedFeed = (user: any, token: string,customVideoId?: string) => {
   const [feed, setFeed] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -72,7 +72,8 @@ export const usePaginatedFeed = (user: any, token: string) => {
         body: JSON.stringify({
           industries: selectedIndustries,
           limit,
-          skip
+          skip,
+          custom_video_id: isInitialLoad ? customVideoId : undefined 
         })
       });
       

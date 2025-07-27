@@ -16,6 +16,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { searchYouTubeChannels, addPersonalizedChannel, YouTubeChannel } from "@/lib/api/youtube";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import SignUp from "@/components/SignUpComponent";
 
 interface Influencer {
   channel_id: string;
@@ -295,12 +296,7 @@ const handleAddChannelConfirm = async () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h3 className="text-xl font-semibold mb-2">Authentication Required</h3>
-            <p className="text-muted-foreground mb-6">You need to sign in to view and follow influencers</p>
-            <Button onClick={handleGoogleSignIn}>Sign In with Google</Button>
-          </div>
+          <SignUp/>
         </div>
       </div>
     );

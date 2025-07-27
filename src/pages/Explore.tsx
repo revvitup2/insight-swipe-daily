@@ -84,8 +84,8 @@ const handleSave = async (id: string) => {
         setIsSharing(false);
         return;
       }
-
-      const shareUrl = `${window.location.origin}/bytes/${bite.id}`;
+      
+      const shareUrl = `${window.location.origin}?id=${bite.id}`;
       const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 

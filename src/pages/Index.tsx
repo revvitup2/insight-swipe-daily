@@ -77,6 +77,9 @@ const Index = () => {
 
   // New state for feed tabs
 const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const customVideoId = searchParams.get('id') || undefined;
+
 const [activeTab, setActiveTab] = useState<"trending" | "following">(
   location.state?.activeTab || "trending"
 );
@@ -90,8 +93,7 @@ const [activeTab, setActiveTab] = useState<"trending" | "following">(
     hasMore: trendingHasMore, 
     loadMore: loadMoreTrending ,
     refresh: refreshFeed,
-    hardRefresh:hardFeedRefresh,
-  } = usePaginatedFeed(user, token);
+  } = usePaginatedFeed(user, token,customVideoId);
 
   // Following feed (new)
   const {
@@ -276,7 +278,7 @@ useEffect(() => {
         return;
       }
 
-      const shareUrl = `${window.location.origin}/Bytes/${insight.id}`;
+      const shareUrl = `${window.location.origin}?id=${insight.id}`;
       const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 
@@ -438,7 +440,7 @@ useEffect(() => {
         return;
       }
 
-      const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
+      const shareUrl = `${window.location.origin}?id=${bite.id}`;
       const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 
@@ -782,10 +784,6 @@ useEffect(() => {
       navigateToPreviousInsight();
     }
   };
-
-  if (!onboarded) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
 
   if (isLoading && Bytes.length === 0) {
     return <LoadingSpinner message="Loading Bytes..." />;
