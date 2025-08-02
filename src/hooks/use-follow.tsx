@@ -19,8 +19,9 @@ export const useFollowChannel = (token: string | null) => {
   const [followedChannels, setFollowedChannels] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Initialize followed channels when token changes
+  // Initialize followed channels when token changes or when manually refreshed
   const initializeFollowedChannels = useCallback(async () => {
     if (!token) {
       setFollowedChannels(new Set());
@@ -29,6 +30,7 @@ export const useFollowChannel = (token: string | null) => {
     }
 
     try {
+      setIsLoading(prev => ({ ...prev, __global: true }));
       const response = await fetch(`${API_BASE_URL}/user/followed-channels`, {
         method: 'GET',
         headers: {
@@ -42,28 +44,39 @@ export const useFollowChannel = (token: string | null) => {
         setFollowedChannels(new Set(data.followed_channels));
       } else {
         console.error('Failed to fetch followed channels:', response.status);
+        throw new Error('Failed to fetch followed channels');
       }
     } catch (error) {
       console.error('Failed to fetch followed channels:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load followed channels",
+        variant: "destructive",
+      });
     } finally {
+      setIsLoading(prev => ({ ...prev, __global: false }));
       setIsInitialized(true);
     }
   }, [token]);
 
-  // Load followed channels when token changes
+  // Load followed channels when token changes or refresh is triggered
   useEffect(() => {
-    setIsInitialized(false);
     initializeFollowedChannels();
-  }, [initializeFollowedChannels]);
+  }, [initializeFollowedChannels, refreshTrigger]);
+
+  // Function to manually refresh followed channels
+  const refreshFollowedChannels = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   // Toggle follow/unfollow
   const toggleFollowChannel = useCallback(async (channelId: string, currentlyFollowed: boolean) => {
     if (!token) {
-      // toast({
-      //   title: "Error",
-      //   description: "You need to be logged in to follow channels",
-      //   variant: "destructive",
-      // });
+      toast({
+        title: "Error",
+        description: "You need to be logged in to follow channels",
+        variant: "destructive",
+      });
       return { success: false, isFollowed: currentlyFollowed };
     }
 
@@ -101,6 +114,9 @@ export const useFollowChannel = (token: string | null) => {
           description: data.message || `Successfully ${!currentlyFollowed ? 'followed' : 'unfollowed'} the channel`,
         });
 
+        // Refresh the full list after successful operation
+        refreshFollowedChannels();
+        
         return { success: true, isFollowed: !currentlyFollowed };
       } else {
         // Revert optimistic update on failure
@@ -138,7 +154,7 @@ export const useFollowChannel = (token: string | null) => {
     } finally {
       setIsLoading(prev => ({ ...prev, [channelId]: false }));
     }
-  }, [token]);
+  }, [token, refreshFollowedChannels]);
 
   const isChannelFollowed = useCallback((channelId: string) => {
     return followedChannels.has(channelId);
@@ -148,12 +164,16 @@ export const useFollowChannel = (token: string | null) => {
     return isLoading[channelId] || false;
   }, [isLoading]);
 
+  const isGlobalLoading = isLoading.__global || false;
+
   return {
     followedChannels: Array.from(followedChannels),
     toggleFollowChannel,
     isChannelFollowed,
     isChannelLoading,
     initializeFollowedChannels,
-    isInitialized, // Add this to know when initialization is complete
+    refreshFollowedChannels,
+    isInitialized,
+    isGlobalLoading,
   };
 };

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import {useLocation, useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import InsightCard, { Insight, PlatformIcon } from "@/components/InsightCard";
 import InfluencerProfile, { Influencer } from "@/components/InfluencerProfile";
@@ -13,7 +13,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { motion, AnimatePresence } from 'framer-motion';
 import ByteMeLogo from "@/components/ByteMeLogo";
 import { cn } from "@/lib/utils";
-import { Save, Share } from "lucide-react";
+import { ArrowRight, Save, Share } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatDistanceToNow } from "date-fns";
 import { getCurrentUserToken } from "@/lib/firebase";
@@ -76,8 +76,14 @@ const Index = () => {
   const { isDarkMode } = useTheme();
 
   // New state for feed tabs
-  const [activeTab, setActiveTab] = useState<"trending" | "following">("trending");
+const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const customVideoId = searchParams.get('id') || undefined;
 
+const [activeTab, setActiveTab] = useState<"trending" | "following">(
+  location.state?.activeTab || "trending"
+);
+  // const [activeTab, setActiveTab] = useState<"trending" | "following">("trending");
   // Trending feed (existing)
   const { 
     feed: trendingBytes, 
@@ -85,8 +91,9 @@ const Index = () => {
     isLoadingMore: trendingLoadingMore, 
     error: trendingError, 
     hasMore: trendingHasMore, 
-    loadMore: loadMoreTrending 
-  } = usePaginatedFeed(user, token);
+    loadMore: loadMoreTrending ,
+    refresh: refreshFeed,
+  } = usePaginatedFeed(user, token,customVideoId);
 
   // Following feed (new)
   const {
@@ -222,14 +229,16 @@ useEffect(() => {
   }, [showingInfluencer, Bytes, selectedInfluencer]);
 
   const handleOnboardingComplete = (selectedIndustries: string[]) => {
-    localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
+    // localStorage.setItem("selectedIndustries", JSON.stringify(selectedIndustries));
     localStorage.setItem("onboarded", "true");
     setOnboarded(true);
-    
+    window.location.reload();
     toast({
       title: "Welcome to ByteMe!",
       description: "We've personalized your feed based on your interests.",
     });
+
+
     
     setShowTutorial(true);
   };
@@ -239,8 +248,8 @@ useEffect(() => {
     localStorage.setItem("tutorialShown", "true");
   };
 
-  const handleSaveInsight = async (id: string) => {
-    const newSavedStatus = await handleSaveInsightInApi(id);
+  const handleSaveInsight = async (id: string,industry:string) => {
+    const newSavedStatus = await handleSaveInsightInApi(id,industry);
   };
 
 
@@ -269,7 +278,7 @@ useEffect(() => {
         return;
       }
 
-      const shareUrl = `${window.location.origin}/Bytes/${insight.id}`;
+      const shareUrl = `${window.location.origin}?id=${insight.id}`;
       const shareText = `${insight.title}\n\n${insight.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 
@@ -431,7 +440,7 @@ useEffect(() => {
         return;
       }
 
-      const shareUrl = `${window.location.origin}/Bytes/${bite.id}`;
+      const shareUrl = `${window.location.origin}?id=${bite.id}`;
       const shareText = `${bite.title}\n\n${bite.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
       const file = new File([blob], 'insight.png', { type: 'image/png' });
 
@@ -776,10 +785,6 @@ useEffect(() => {
     }
   };
 
-  if (!onboarded) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
-  }
-
   if (isLoading && Bytes.length === 0) {
     return <LoadingSpinner message="Loading Bytes..." />;
   }
@@ -807,7 +812,7 @@ useEffect(() => {
                   key={bite.id}
                   bite={bite}
                   isDarkMode={isDarkMode}
-                  onSave={()=>{handleSaveInsight(bite.id);}}
+                  onSave={()=>{handleSaveInsight(bite.id,bite.industry);}}
                   onShare={()=> handleShareDesktop(bite.id)}
                   onClick={()=>navigate(`/bytes/${bite.id}`)}
                   isChannelFollowed={isChannelFollowed(bite.influencer.channel_id)}
@@ -830,15 +835,19 @@ useEffect(() => {
             </div>
           )}
 
-          {Bytes.length === 0 && !isLoading && activeTab === "trending" && (
-            <div className="text-center py-8">
-              <p className={cn(
-                isDarkMode ? "text-gray-400" : "text-gray-500"
-              )}>
-                No Bytes found matching your criteria.
-              </p>
-            </div>
-          )}
+         {Bytes.length === 0 && !isLoading && activeTab === "trending" && (
+  <div className="flex flex-col items-center justify-center py-8 gap-4">
+    <p className={cn(
+      isDarkMode ? "text-gray-400" : "text-gray-500",
+      "text-center"
+    )}>
+      No Bytes found matching your interests.
+    </p>
+            <Button onClick={() => navigate("/profile")}>
+              Update Bytes
+            </Button>
+  </div>
+)}
         </div>
        
         <Navigation />
@@ -875,11 +884,16 @@ useEffect(() => {
     ) : activeTab === "trending" && trendingBytes.length === 0 && !trendingLoading ? (
       <div className="h-full flex items-center justify-center">
         <div className="text-center py-8">
-          <p className={cn(
+          <p className={cn( 
+            "mb-4",
             isDarkMode ? "text-gray-400" : "text-gray-500"
+
           )}>
-            No Bytes found matching your criteria.
+            No Bytes found matching your interests.
           </p>
+             <Button onClick={() => navigate("/profile")}>
+              Update Bytes
+            </Button>
         </div>
       </div>
           ) : (
@@ -906,7 +920,7 @@ useEffect(() => {
                      <InsightCard 
                     key={Bytes[currentInsightIndex]?.id}
                     insight={Bytes[currentInsightIndex]}
-                    onSave={handleSaveInsight}
+                      onSave={()=>{handleSaveInsight(Bytes[currentInsightIndex]?.id,Bytes[currentInsightIndex]?.industry);}}
                     onLike={()=>{}}
                     onShare={handleShareInsight}
                     onInfluencerClick={handleInfluencerClick}

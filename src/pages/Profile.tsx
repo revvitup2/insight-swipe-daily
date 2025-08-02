@@ -15,19 +15,8 @@ import { getUserPreferences, saveUserPreferences } from "@/lib/api";
 import { useAuthActions } from "@/contexts/authUtils";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import FeedbackForm from "@/components/FeedbackForm";
+import { industries } from "@/components/OnboardingFlow";
 
-export const industries = [
-{id: "ai-tools-apps", name: "AI Tools & Apps"},
-        {id: "chatgpt-friends", name: "ChatGPT & Friends"},
-        {id: "ai-in-business", name: "AI in Business"},
-        {id: "creative-ai", name: "Creative AI"},
-        {id: "ai-search-browsing", name: "AI Search & Browsing"},
-        {id: "new-ai-breakthroughs", name: "New AI Breakthroughs"},
-        {id: "ai-hardware-chips", name: "AI Hardware & Chips"},
-        {id: "rules-ethics", name: "Rules & Ethics"},
-        {id: "jobs-society", name: "Jobs & Society"},
-        {id: "ai-startups-funding", name: "AI Startups & Funding"},
-];
 
 const Profile = () => {
   const { user, loading, token } = useAuth(); // Use the auth context
@@ -55,6 +44,7 @@ const Profile = () => {
   // }, [user, token]);
   const { selectedIndustries,savePreferences, setSelectedIndustries,toggleIndustry } = useSelectedIndustries(user, token)
 
+  
 
   // const toggleIndustry = async (industryId: string) => {
   //   setSelectedIndustries(prev => {
@@ -84,6 +74,7 @@ const Profile = () => {
   const handleToggle = (industryId: string) => {
   toggleIndustry(industryId);
 };
+console.log("selectedindusties",selectedIndustries);
   if (loading) {
     return (
       <div className="min-h-screen bg-background">

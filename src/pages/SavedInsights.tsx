@@ -13,6 +13,7 @@ import { useAuthActions } from "@/contexts/authUtils";
 import { useFollowChannel } from "@/hooks/use-follow";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePaginatedSavedFeeds } from "@/hooks/use-paginated-saved-feeds";
+import SignUp from "@/components/SignUpComponent";
 
 const SavedBytes = () => {
   const { token } = useAuth();
@@ -68,13 +69,13 @@ const SavedBytes = () => {
     await toggleFollowChannel(channelId, currentlyFollowed);
   };
   
-  const handleRemoveInsight = async (id: string) => {
+  const handleRemoveInsight = async (id: string,industry?: string) => {
     try {
       if (!token) {
         throw new Error("Authentication required");
       }
 
-      await removeSavedFeedItem(token, id);
+      await removeSavedFeedItem(token, id,industry);
       removeItem(id);
       
       toast({
@@ -112,12 +113,7 @@ const SavedBytes = () => {
     return (
       <div className="min-h-screen bg-background pb-20">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h3 className="text-xl font-semibold mb-2">Authentication Required</h3>
-            <p className="text-muted-foreground mb-6">{error.message}</p>
-            <Button onClick={handleGoogleSignIn}>Sign In with Google</Button>
-          </div>
+          <SignUp/>
         </div>
         <Navigation />
       </div>
@@ -145,7 +141,7 @@ const SavedBytes = () => {
                 key={insight.id}
                 bite={insight}
                 isDarkMode={isDarkMode}
-                onRemove={handleRemoveInsight}
+                onRemove={()=>{handleRemoveInsight(insight.id,insight.industry)}}
                 isChannelFollowed={isChannelFollowed(insight.influencer.channel_id)}
                 isChannelLoading={isChannelLoading(insight.influencer.channel_id)}
                 onFollowToggle={handleFollowToggle}

@@ -46,7 +46,7 @@ const App = () => {
   }, []);
 
   const projectId = useMemo(() => "rolzayo9jx", []);
-    const smartlookProjectId = useMemo(() => "c2407cdd2bac6d616f28410212491313aa3bab7e", []);
+    const smartlookProjectId = useMemo(() => "e23912fa6f3b081344a9cfbdf1f31a49e8809d8f", []);
 
 
     const isDebugMode = import.meta.env.VITE_DEBUG_MODE === 'true';
@@ -81,7 +81,8 @@ useEffect(() => {
               <Route path="/saved" element={<SavedBytes />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
-              
+              <Route path="/influencers" element={<Influencers />} />
+
               {/* Admin Routes */}
               <Route path="/bytes/:videoId" element={<InsightDetails />} />
               <Route path="/admin" element={<AdminLogin />} />

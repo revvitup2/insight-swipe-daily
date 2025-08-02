@@ -218,13 +218,20 @@ export const getUserPreferences = async (token: string): Promise<{ selected_cate
 // src/lib/api.ts
 
 // Save a feed item
-export const saveFeedItem = async (token: string, videoId: string) => {
+export const saveFeedItem = async (token: string, videoId: string,industry?: string) => {
+  const isPersonalised = industry?.toLowerCase() === "personalised";
+    const body = JSON.stringify({
+    is_personalised: isPersonalised,
+    ...(industry && !isPersonalised && { industry }) // Only include industry if it's not "personalised"
+  });
+
   const response = await fetch(`${API_BASE_URL}/user/saved-feeds/${videoId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
+       body: body
   });
 
   if (!response.ok) {
@@ -255,14 +262,20 @@ export const getSavedFeedItems = async (token: string) => {
 };
 
 // Remove a saved feed item
-export const removeSavedFeedItem = async (token: string, videoId: string) => {
+export const removeSavedFeedItem = async (token: string, videoId: string,industry?: string) => {
+  const isPersonalised = industry?.toLowerCase() === "personalised";
+  const body = JSON.stringify({
+    is_personalised: isPersonalised,
+    ...(industry && !isPersonalised && { industry }) // Only include industry if it's not "personalised"
+  });
+
   const response = await fetch(`${API_BASE_URL}/user/saved-feeds/${videoId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-  
+    body: body
   });
 
   if (!response.ok) {
@@ -272,3 +285,17 @@ export const removeSavedFeedItem = async (token: string, videoId: string) => {
   return response.json();
 };
 
+
+export const fetchInfluencersList = async (token: string, skip: number = 0, limit: number = ITEMS_PER_PAGE): Promise<InfluencersResponse> => {
+  const response = await fetch(`${API_BASE_URL}/influencers?skip=${skip}&limit=${limit}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch influencers');
+  }
+
+  return response.json();
+};

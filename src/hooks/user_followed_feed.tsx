@@ -123,11 +123,11 @@ export const useFollowedFeed = (user: any, token: string | null) => {
     } catch (error) {
       setError(error as Error);
       console.error("Error fetching followed feed:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch followed channels feed. Please try again later.",
-        variant: "destructive"
-      });
+      // toast({
+      //   title: "Error",
+      //   description: "Failed to fetch followed channels feed. Please try again later.",
+      //   variant: "destructive"
+      // });
     } finally {
       if (isInitialLoad) {
         setIsLoading(false);

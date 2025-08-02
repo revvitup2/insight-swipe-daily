@@ -157,7 +157,7 @@ const handleShareInsight = async () => {
       return;
     }
 
-    const shareUrl = `${window.location.origin}/Bytes/${insight.video_id}`;
+    const shareUrl = `${window.location.origin}?id=${insight.video_id}`;
     const shareText = `${insight.metadata.title}\n\n${insight.analysis.summary.substring(0, 100)}...\n\nTo read more insightful Bytes in less than 60 words, visit: ${shareUrl}`;
     const file = new File([blob], 'insight.png', { type: 'image/png' });
 

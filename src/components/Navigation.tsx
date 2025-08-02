@@ -5,13 +5,13 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAutoHide } from "@/hooks/use-auto-hide";
 
 export const Navigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const [isVisible, setIsVisible] = useState(true);
   const { isDarkMode } = useTheme();
-  
+   const isVisible = useAutoHide(3000);
   const navItems = [
     {
       name: "Home",
@@ -35,10 +35,6 @@ export const Navigation = () => {
     },
   ];
 
-  useEffect(() => {
-    setIsVisible(true);
-  }, [currentPath]);
-  
   return (
     <div 
       className={cn(
