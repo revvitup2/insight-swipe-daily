@@ -1,6 +1,6 @@
 
 "use client";
-import { Home, Bookmark, Search, User, TrendingUp } from "lucide-react";
+import { Home, Bookmark, Search, User, TrendingUp, Sparkles } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -29,6 +29,12 @@ export const Navigation = () => {
       path: "/explore",
       icon: <Search className="w-6 h-6" />,
       dataNav: "explore"
+    },
+    {
+      name: "Tools",
+      path: "/tools",
+      icon: <Sparkles className="w-6 h-6" />,
+      dataNav: "tools"
     },
     {
       name: "Profile",

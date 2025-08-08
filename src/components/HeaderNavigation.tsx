@@ -10,7 +10,8 @@ import {
   User, 
   Menu, 
   X,
-  Users
+  Users,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -36,6 +37,11 @@ const HeaderNavigation = () => {
       name: "Explore",
       path: "/explore",
       icon: <Search className="w-5 h-5" />,
+    },
+    {
+      name: "AI Tools",
+      path: "/tools",
+      icon: <Sparkles className="w-5 h-5" />,
     },
     // {
     //   name: "Influencers",

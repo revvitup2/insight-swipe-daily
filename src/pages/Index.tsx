@@ -28,6 +28,7 @@ import { useFollowChannel } from "@/hooks/use-follow";
 import { EmptyFollowingState } from "@/components/EmptyFollowingState";
 import { useFollowedFeed } from "@/hooks/user_followed_feed";
 import { FeedTabs } from "@/components/FeedbackTab";
+import { useUnseenCounts } from "@/hooks/use-unseen-counts";
 
 export interface VersionedInsight extends Insight {
   version: number;
@@ -111,6 +112,13 @@ const Index = () => {
   const hasMore = activeTab === "trending" ? trendingHasMore : followingHasMore;
   const loadMore = activeTab === "trending" ? loadMoreTrending : loadMoreFollowing;
 
+  // Unseen counts
+  const { trendingCount, followingBadgeText, markTabVisited } = useUnseenCounts({
+    trending: trendingBytes,
+    following: followingBytes,
+    userId: user?.uid || null,
+  });
+
   const [isHandlingLoadMore, setIsHandlingLoadMore] = useState(false);
 
   const {
@@ -149,6 +157,8 @@ useEffect(() => {
       i === 0 ? "" : "slide-down"
     );
     setInsightPositions(positions);
+    // Mark visited to hide unseen badge during this session
+    markTabVisited(tab);
   };
 
   // Track the previous length to detect new data
@@ -187,6 +197,12 @@ useEffect(() => {
     // Update the previous length tracker
     previousBytesLength.current = Bytes.length;
   }, [Bytes, currentInsightIndex]); // Removed isLoadingMore and isHandlingLoadMore from dependencies
+
+  // Mark default tab visited once on mount to hide badge after viewing
+  useEffect(() => {
+    markTabVisited("trending");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!hasMore || isLoading || isLoadingMore || isHandlingLoadMore) return;
@@ -811,6 +827,8 @@ useEffect(() => {
               activeTab={activeTab} 
               onTabChange={handleTabChange}
               followedCount={totalFollowed}
+              trendingUnseenCount={trendingCount}
+              followingUnseenBadge={followingBadgeText}
             />
             
           <div className="space-y-6">
@@ -881,6 +899,8 @@ useEffect(() => {
                   activeTab={activeTab} 
                   onTabChange={handleTabChange}
                   followedCount={totalFollowed}
+                  trendingUnseenCount={trendingCount}
+                  followingUnseenBadge={followingBadgeText}
                 />
               </div>
               {activeTab === "following" && followingBytes.length > 0 && (

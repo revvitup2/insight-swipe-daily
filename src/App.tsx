@@ -21,6 +21,8 @@ import Influencers from "./pages/Influencers";
 import InsightsDetails from "./pages/InsightsDetails";
 import SignUp from "./pages/SignUp";
 import Smartlook from 'smartlook-client';
+import Tools from "./pages/Tools";
+import ToolDetails from "./pages/ToolDetails";
 
 const queryClient = new QueryClient();
 interface ProtectedRouteProps {
@@ -81,6 +83,8 @@ useEffect(() => {
               <Route path="/" element={<Index />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/tools" element={<Tools />} />
+              <Route path="/tools/:slug" element={<ToolDetails />} />
               <Route path="/saved" element={<SavedInsights />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/profile" element={<Profile />} />
