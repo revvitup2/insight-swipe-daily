@@ -20,6 +20,7 @@ import SavedInsights from "./pages/SavedInsights";
 import Influencers from "./pages/Influencers";
 import InsightsDetails from "./pages/InsightsDetails";
 import Smartlook from 'smartlook-client';
+import Privacy from "./pages/privacy/privacy";
 
 const queryClient = new QueryClient();
 interface ProtectedRouteProps {
@@ -61,10 +62,15 @@ useEffect(() => {
   Smartlook.init(smartlookProjectId);
 }, [projectId]);
 
-  const shouldShowHeader = useMemo(() => {
-    const path = window.location.pathname;
-    return !path.startsWith('/admin') && !path.startsWith('/bytes/');
-  }, []);
+const shouldShowHeader = useMemo(() => {
+  const path = window.location.pathname;
+  return (
+    !path.startsWith('/admin') &&
+    !path.startsWith('/bytes/') &&
+    !path.startsWith('/privacy')
+  );
+}, []);
+
 
  return ( 
    <QueryClientProvider client={queryClient}>
@@ -81,6 +87,7 @@ useEffect(() => {
               <Route path="/saved" element={<SavedBytes />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
+               <Route path="/privacy" element={<Privacy />} />
               <Route path="/influencers" element={<Influencers />} />
 
               {/* Admin Routes */}
