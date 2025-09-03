@@ -23,6 +23,7 @@ import SignUp from "./pages/SignUp";
 import Smartlook from 'smartlook-client';
 import Tools from "./pages/Tools";
 import ToolDetails from "./pages/ToolDetails";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 interface ProtectedRouteProps {
@@ -88,6 +89,7 @@ useEffect(() => {
               <Route path="/saved" element={<SavedInsights />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/privacy" element={<Privacy />} />
               
               {/* Admin Routes */}
               <Route path="/bytes/:videoId" element={<InsightDetails />} />

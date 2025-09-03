@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Moon, Sun, LogOut, Settings, HelpCircle } from "lucide-react";
+import { Moon, Sun, LogOut, Settings, HelpCircle, Shield } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -270,6 +270,28 @@ const Profile = () => {
           </Card>
 
               <FeedbackForm/>
+          
+          {/* Legal & Privacy */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Legal & Privacy</CardTitle>
+              <CardDescription>
+                Learn about your privacy and data protection
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between"
+                onClick={() => navigate("/privacy")}
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  <span className="font-medium">Privacy Policy</span>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
           
           <div className="mt-20"></div>
 
