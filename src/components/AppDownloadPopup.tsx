@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X, Download, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { APP_LOGO } from "@/constants/constants";
 
 interface AppDownloadPopupProps {
   isOpen: boolean;
@@ -86,7 +87,7 @@ useEffect(() => {
             <div className="flex justify-center mb-6">
               <div className="relative">
                 <img
-                  src="/lovable-uploads/148324a1-946c-4a01-b925-db5cc25fd1dc.png"
+                  src={APP_LOGO}
                   alt="ByteMe Logo"
                   className="w-20 h-20 rounded-2xl shadow-lg object-cover"
                 />
