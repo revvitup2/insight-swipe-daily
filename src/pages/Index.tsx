@@ -27,6 +27,7 @@ import { useFollowChannel } from "@/hooks/use-follow";
 import { EmptyFollowingState } from "@/components/EmptyFollowingState";
 import { useFollowedFeed } from "@/hooks/user_followed_feed";
 import { FeedTabs } from "@/components/FeedbackTab";
+import AppDownloadPopup from "@/components/AppDownloadPopup";
 
 export interface VersionedInsight extends Insight {
   version: number;
@@ -74,6 +75,9 @@ const Index = () => {
   const [isSummaryEdgeAttempted, setIsSummaryEdgeAttempted] = useState(false);
   const [isSummaryEdgeAttemptedDirection, setIsSummaryEdgeAttemptedDirection] = useState<"up" | "down" | null>(null);
   const { isDarkMode } = useTheme();
+  
+  // App download popup state
+  const [showAppDownloadPopup, setShowAppDownloadPopup] = useState(false);
 
   // New state for feed tabs
 const location = useLocation();
@@ -172,6 +176,18 @@ useEffect(() => {
       setShowTutorial(true);
     }
   }, [onboarded]);
+
+  // Show app download popup on component mount
+useEffect(() => {
+  const hasShownPopup = sessionStorage.getItem('appDownloadPopupShown');
+  if (!hasShownPopup) {
+    // Delay the popup slightly to ensure smooth page load
+    const timer = setTimeout(() => {
+      setShowAppDownloadPopup(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }
+}, []);
 
   // Fixed useEffect - only reset index on first load, not on pagination
   useEffect(() => {
@@ -851,6 +867,13 @@ useEffect(() => {
         </div>
        
         <Navigation />
+        
+        {/* App Download Popup */}
+        <AppDownloadPopup
+          isOpen={showAppDownloadPopup}
+          onClose={() => setShowAppDownloadPopup(false)}
+          playStoreLink="https://play.google.com/store/apps/details?id=com.byteme.website"
+        />
       </div>
     );
   }
@@ -943,6 +966,13 @@ useEffect(() => {
     
         
       <Navigation />
+      
+      {/* App Download Popup */}
+      <AppDownloadPopup
+        isOpen={showAppDownloadPopup}
+        onClose={() => setShowAppDownloadPopup(false)}
+        playStoreLink="https://play.google.com/store/apps/details?id=com.byteme.website"
+      />
     </div>
   );
 };
