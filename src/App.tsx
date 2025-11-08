@@ -19,10 +19,10 @@ import HeaderNavigation from "./components/HeaderNavigation";
 import SavedInsights from "./pages/SavedInsights";
 import Influencers from "./pages/Influencers";
 import InsightsDetails from "./pages/InsightsDetails";
-import Smartlook from 'smartlook-client';
 import Privacy from "./pages/privacy/privacy";
 
 const queryClient = new QueryClient();
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -37,87 +37,87 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   return <>{children}</>;
 };
 
-
 const App = () => {
-   useEffect(() => {
+  const isDebugMode = import.meta.env.VITE_DEBUG_MODE === 'true';
+
+  // Favicon effect
+  useEffect(() => {
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) {
       link.href = "/lovable-uploads/favicon.ico";
     }
   }, []);
 
-  const projectId = useMemo(() => "rolzayo9jx", []);
-    const smartlookProjectId = useMemo(() => "e23912fa6f3b081344a9cfbdf1f31a49e8809d8f", []);
+  // Clarity initialization effect
+  useEffect(() => {
+    if (isDebugMode) {
+      console.log('Debug mode is ON - Skipping analytics initialization');
+      return;
+    }
 
+    try {
+      // Initialize Clarity with your project ID
+      Clarity.init("rolzayo9jx");
+      console.log('Clarity analytics initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize Clarity:', error);
+    }
+  }, [isDebugMode]);
 
-    const isDebugMode = import.meta.env.VITE_DEBUG_MODE === 'true';
+  const shouldShowHeader = useMemo(() => {
+    const path = window.location.pathname;
+    return (
+      !path.startsWith('/admin') &&
+      !path.startsWith('/bytes/') &&
+      !path.startsWith('/privacy')
+    );
+  }, []);
 
-useEffect(() => {
-  if (isDebugMode) {
-    console.log('Debug mode is ON - Skipping analytics initialization');
-    return;
-  }
-
-  Clarity.init(projectId);
-  Smartlook.init(smartlookProjectId);
-}, [projectId]);
-
-const shouldShowHeader = useMemo(() => {
-  const path = window.location.pathname;
-  return (
-    !path.startsWith('/admin') &&
-    !path.startsWith('/bytes/') &&
-    !path.startsWith('/privacy')
-  );
-}, []);
-
-
- return ( 
-   <QueryClientProvider client={queryClient}>
+  return ( 
+    <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-          <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-           {shouldShowHeader && <HeaderNavigation />}
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              {shouldShowHeader && <HeaderNavigation />}
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/saved" element={<SavedBytes />} />
+                <Route path="/explore" element={<Explore />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/influencers" element={<Influencers />} />
 
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/saved" element={<SavedBytes />} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/profile" element={<Profile />} />
-               <Route path="/privacy" element={<Privacy />} />
-              <Route path="/influencers" element={<Influencers />} />
-
-              {/* Admin Routes */}
-              <Route path="/bytes/:videoId" element={<InsightDetails />} />
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/posts" element={
-                <ProtectedRoute>
-                  <AdminDashboard activeTab="posts" />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/prompts" element={
-                <ProtectedRoute>
-                  <AdminDashboard activeTab="prompts" />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/influencers" element={
-                <ProtectedRoute>
-                  <AdminDashboard activeTab="influencers" />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+                {/* Admin Routes */}
+                <Route path="/bytes/:videoId" element={<InsightDetails />} />
+                <Route path="/admin" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/posts" element={
+                  <ProtectedRoute>
+                    <AdminDashboard activeTab="posts" />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/prompts" element={
+                  <ProtectedRoute>
+                    <AdminDashboard activeTab="prompts" />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/influencers" element={
+                  <ProtectedRoute>
+                    <AdminDashboard activeTab="influencers" />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
