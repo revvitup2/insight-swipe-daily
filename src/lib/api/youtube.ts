@@ -1,3 +1,5 @@
+import { fetchWithErrorHandling } from "../serverStatus";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 
@@ -15,7 +17,7 @@ export const searchYouTubeChannels = async (
   maxResults: number = 5,
   token?: string
 ): Promise<YouTubeChannel[]> => {
-  const response = await fetch(
+  const response = await fetchWithErrorHandling(
     `${API_BASE_URL}/search/youtube-channels?query=${encodeURIComponent(
       query
     )}&max_results=${maxResults}`,
@@ -44,7 +46,7 @@ export const addPersonalizedChannel = async (
   channel_id: string;
   is_personalised: boolean;
 }> => {
-  const response = await fetch(
+  const response = await fetchWithErrorHandling(
     `${API_BASE_URL}/add-personalised-channel?channel_id=${channelId}`,
     {
       method: "POST",

@@ -5,7 +5,7 @@ import { Insight } from "@/components/InsightCard";
 import { useSelectedIndustries } from "@/contexts/selectedIndustries";
 import { ApiInsight } from "@/contexts/feedService";
 import { transformApiInsights } from "@/lib/transformInsights";
-
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -58,7 +58,7 @@ export const usePaginatedSavedFeeds = (token: string | null) => {
         setIsLoadingMore(true);
       }
 
-       const response = await fetch(`${API_BASE_URL}/user/saved-feeds-collection`, {
+       const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/saved-feeds-collection`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

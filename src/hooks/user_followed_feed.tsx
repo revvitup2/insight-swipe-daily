@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Insight } from "@/components/InsightCard";
 import { ApiInsight } from "@/contexts/feedService";
 import { transformApiInsights } from "@/lib/transformInsights";
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -64,7 +65,7 @@ export const useFollowedFeed = (user: any, token: string | null) => {
         setIsLoadingMore(true);
       }
 
-      const response = await fetch(`${API_BASE_URL}/user/followed/feeds`, {
+      const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/followed/feeds`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -11,6 +11,7 @@ import { CURRENT_INSIGHT_VERSION } from "@/constants/constants";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useSavedInsights } from "@/components/savedInsightUtils";
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 interface ApiInsight {
   influencer_id: string;
@@ -99,7 +100,7 @@ const InsightDetails = () => {
   useEffect(() => {
     const fetchInsightDetails = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/feed/video/${videoId}`);
+        const response = await fetchWithErrorHandling(`${API_BASE_URL}/feed/video/${videoId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch insight details');
         }

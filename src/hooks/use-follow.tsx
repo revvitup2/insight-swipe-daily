@@ -1,6 +1,7 @@
 // hooks/useFollowChannel.ts
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { fetchWithErrorHandling } from '@/lib/serverStatus';
 
 interface FollowChannelResponse {
   status: string;
@@ -31,7 +32,7 @@ export const useFollowChannel = (token: string | null) => {
 
     try {
       setIsLoading(prev => ({ ...prev, __global: true }));
-      const response = await fetch(`${API_BASE_URL}/user/followed-channels`, {
+      const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/followed-channels`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +95,7 @@ export const useFollowChannel = (token: string | null) => {
     setIsLoading(prev => ({ ...prev, [channelId]: true }));
     
     try {
-      const response = await fetch(`${API_BASE_URL}/user/follow-channel`, {
+      const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/follow-channel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

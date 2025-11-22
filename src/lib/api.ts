@@ -1,8 +1,10 @@
 // src/lib/api.ts
+import { fetchWithErrorHandling } from "./serverStatus";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const loginAdmin = async (username: string, password: string) => {
-  const response = await fetch(`${API_BASE_URL}/admin/auth/token`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/admin/auth/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -21,7 +23,7 @@ export const loginAdmin = async (username: string, password: string) => {
 };
 
 export const fetchFeedItems = async (token: string, p0: { search?: string; industry?: string; limit: number; skip: number; }) => {
-  const response = await fetch(`${API_BASE_URL}/feed`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/feed`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -43,7 +45,7 @@ export const updateFeedItem = async (
     analysis?: { summary?: string };
   }
 ) => {
-  const response = await fetch(`${API_BASE_URL}/admin/feed-items/${id}`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/admin/feed-items/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -60,7 +62,7 @@ export const updateFeedItem = async (
 };
 
 export const fetchInfluencers = async (token: string) => {
-  const response = await fetch(`${API_BASE_URL}/admin/influencers/`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/admin/influencers/`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -78,7 +80,7 @@ export const updateInfluencerPause = async (
   influencerId: string,
   isPause: boolean
 ) => {
-  const response = await fetch(`${API_BASE_URL}/admin/influencers/${influencerId}/pause`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/admin/influencers/${influencerId}/pause`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -103,7 +105,7 @@ export const createInfluencer = async (
     platform: string;
   }
 ) => {
-  const response = await fetch(`${API_BASE_URL}/admin/influencers/`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/admin/influencers/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -121,7 +123,7 @@ export const createInfluencer = async (
 
 // src/lib/api.ts
 export const deleteFeedItem = async (token: string, id: string) => {
-  const response = await fetch(`${API_BASE_URL}/admin/feed-items/${id}`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/admin/feed-items/${id}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -137,7 +139,7 @@ export const deleteFeedItem = async (token: string, id: string) => {
 
 // Google Auth API
 export const googleAuth = async (token: string) => {
-  const response = await fetch(`${API_BASE_URL}/auth/google`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/auth/google`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -154,7 +156,7 @@ export const googleAuth = async (token: string) => {
 
 // User Preferences API
 export const updateFollowedChannels = async (token: string, channelId: string, follow: boolean) => {
-  const response = await fetch(`${API_BASE_URL}/follow-channel`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/follow-channel`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -171,7 +173,7 @@ export const updateFollowedChannels = async (token: string, channelId: string, f
 };
 
 export const updateUserCategories = async (token: string, categories: string[]) => {
-  const response = await fetch(`${API_BASE_URL}/user/update-categories`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/update-categories`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -198,7 +200,7 @@ export const saveUserPreferences = async (token: string, preferences: {
 
 // lib/api.ts
 export const getUserPreferences = async (token: string): Promise<{ selected_categories: string[] }> => {
-  const response = await fetch(`${API_BASE_URL}/user/get-categories`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/get-categories`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -225,7 +227,7 @@ export const saveFeedItem = async (token: string, videoId: string,industry?: str
     ...(industry && !isPersonalised && { industry }) // Only include industry if it's not "personalised"
   });
 
-  const response = await fetch(`${API_BASE_URL}/user/saved-feeds/${videoId}`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/saved-feeds/${videoId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -248,7 +250,7 @@ export const saveFeedItem = async (token: string, videoId: string,industry?: str
 };
 // Get all saved feed items
 export const getSavedFeedItems = async (token: string) => {
-  const response = await fetch(`${API_BASE_URL}/user/saved-feeds`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/saved-feeds`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
@@ -269,7 +271,7 @@ export const removeSavedFeedItem = async (token: string, videoId: string,industr
     ...(industry && !isPersonalised && { industry }) // Only include industry if it's not "personalised"
   });
 
-  const response = await fetch(`${API_BASE_URL}/user/saved-feeds/${videoId}`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/user/saved-feeds/${videoId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -287,7 +289,7 @@ export const removeSavedFeedItem = async (token: string, videoId: string,industr
 
 
 export const fetchInfluencersList = async (token: string, skip: number = 0, limit: number = ITEMS_PER_PAGE): Promise<InfluencersResponse> => {
-  const response = await fetch(`${API_BASE_URL}/influencers?skip=${skip}&limit=${limit}`, {
+  const response = await fetchWithErrorHandling(`${API_BASE_URL}/influencers?skip=${skip}&limit=${limit}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

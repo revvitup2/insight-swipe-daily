@@ -1,6 +1,7 @@
 import { toast } from "@/hooks/use-toast";
 import { Insight } from "@/components/InsightCard";
 import { transformApiInsights } from "@/lib/transformInsights";
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -39,7 +40,7 @@ export const fetchFeed = async (
   skip: number = 0
 ): Promise<Insight[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/explore/feed`, {
+    const response = await fetchWithErrorHandling(`${API_BASE_URL}/explore/feed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

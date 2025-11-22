@@ -20,6 +20,8 @@ import SavedInsights from "./pages/SavedInsights";
 import Influencers from "./pages/Influencers";
 import InsightsDetails from "./pages/InsightsDetails";
 import Privacy from "./pages/privacy/privacy";
+import { MaintenanceScreen } from "./components/MaintenanceScreen";
+import { serverStatusManager } from "./lib/serverStatus";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,18 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
 const App = () => {
   const isDebugMode = import.meta.env.VITE_DEBUG_MODE === 'true';
+  const [isServerDown, setIsServerDown] = useState(false);
+
+  // Server status monitoring
+  useEffect(() => {
+    const unsubscribe = serverStatusManager.subscribe((isDown) => {
+      setIsServerDown(isDown);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Favicon effect
   useEffect(() => {
@@ -73,6 +87,10 @@ const App = () => {
     );
   }, []);
 
+  const handleRetry = async () => {
+    await serverStatusManager.retryConnection();
+  };
+
   return ( 
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -80,43 +98,47 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
-              {shouldShowHeader && <HeaderNavigation />}
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/saved" element={<SavedBytes />} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/influencers" element={<Influencers />} />
+            {isServerDown ? (
+              <MaintenanceScreen onRetry={handleRetry} />
+            ) : (
+              <BrowserRouter>
+                {shouldShowHeader && <HeaderNavigation />}
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/saved" element={<SavedBytes />} />
+                  <Route path="/explore" element={<Explore />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/influencers" element={<Influencers />} />
 
-                {/* Admin Routes */}
-                <Route path="/bytes/:videoId" element={<InsightDetails />} />
-                <Route path="/admin" element={<AdminLogin />} />
-                <Route path="/admin/dashboard" element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/posts" element={
-                  <ProtectedRoute>
-                    <AdminDashboard activeTab="posts" />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/prompts" element={
-                  <ProtectedRoute>
-                    <AdminDashboard activeTab="prompts" />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/influencers" element={
-                  <ProtectedRoute>
-                    <AdminDashboard activeTab="influencers" />
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+                  {/* Admin Routes */}
+                  <Route path="/bytes/:videoId" element={<InsightDetails />} />
+                  <Route path="/admin" element={<AdminLogin />} />
+                  <Route path="/admin/dashboard" element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/posts" element={
+                    <ProtectedRoute>
+                      <AdminDashboard activeTab="posts" />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/prompts" element={
+                    <ProtectedRoute>
+                      <AdminDashboard activeTab="prompts" />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/influencers" element={
+                    <ProtectedRoute>
+                      <AdminDashboard activeTab="influencers" />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            )}
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>

@@ -17,6 +17,7 @@ import { searchYouTubeChannels, addPersonalizedChannel, YouTubeChannel } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SignUp from "@/components/SignUpComponent";
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 interface Influencer {
   channel_id: string;
@@ -156,7 +157,7 @@ const handleAddChannelConfirm = async () => {
     setIsAddingInfluencer(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/influencers/add-from-url`, {
+      const response = await fetchWithErrorHandling(`${API_BASE_URL}/influencers/add-from-url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

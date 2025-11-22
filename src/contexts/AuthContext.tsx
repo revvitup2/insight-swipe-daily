@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const firebaseToken = await result.user.getIdToken();
     
     // Send to your backend for verification
-    const backendResponse = await fetch(`${API_BASE_URL}/auth/google`, {
+    const backendResponse = await fetchWithErrorHandling(`${API_BASE_URL}/auth/google`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

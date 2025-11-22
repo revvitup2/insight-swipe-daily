@@ -11,6 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { fetchWithErrorHandling } from "@/lib/serverStatus";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -42,7 +43,7 @@ export const FeedbackForm = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/feedback`, {
+      const response = await fetchWithErrorHandling(`${API_BASE_URL}/feedback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
